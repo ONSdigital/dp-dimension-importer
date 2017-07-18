@@ -41,7 +41,7 @@ func main() {
 
 	incoming = make(chan kafka.Message)
 
-	handler.DimensionsCli = client.DimensionsClientImpl{DimensionsAddr: cfg.ImporterAddr}
+	handler.DimensionsCli = client.DimensionsClientImpl{Host: cfg.ImporterAddr}
 	myConsumer := message.KafkaConsumerImpl{}
 
 	go myConsumer.Consume(incoming)
