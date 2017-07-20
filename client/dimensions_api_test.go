@@ -10,14 +10,15 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"testing"
 )
 
 const host = "http://localhost:8080"
 const instanceID = "1234567890"
 
-var dimensionOne = model.Dimension{NodeId: "1111", NodeNamde: "Sex", Value: "Male"}
-var dimensionTwo = model.Dimension{NodeId: "1112", NodeNamde: "Sex", Value: "Female"}
+var dimensionOne = model.Dimension{NodeId: "1111", NodeName: "Sex", Value: "Male"}
+var dimensionTwo = model.Dimension{NodeId: "1112", NodeName: "Sex", Value: "Female"}
 var expectedDimensions = &model.Dimensions{InstanceId: "123", Items: []model.Dimension{dimensionOne, dimensionTwo}}
 
 var body []byte
@@ -35,7 +36,7 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 			HTTPGetCount: 0,
 		})
 
-		client := DimensionsClientImpl{}
+		client := DimensionsClient{}
 
 		Convey("When the Get is invoked", func() {
 			dims, err := client.Get(instanceID)
@@ -52,8 +53,7 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 	})
 
 	Convey("Given valid client configuration", t, func() {
-		client := DimensionsClientImpl{Host: host}
-		unmarshal = json.Unmarshal
+		client := DimensionsClient{Host: host}
 
 		Convey("When the client called with a valid instanceID", func() {
 			body, _ = json.Marshal(expectedDimensions)
@@ -219,22 +219,17 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 		})
 
 		Convey("When unmarshalling the response returns an error", func() {
-			unmarshalErr := errors.New("Unmarshal error")
+			junkBody := []byte("This is not a dimension")
 
 			mock := mockIt(&Mock{
 				StatusCode:   200,
 				Dimensions:   nil,
+				Body:         junkBody,
 				HTTPGetCount: 0,
 				ReaderCount:  0,
 				Error:        nil,
 				Reader:       ioutil.ReadAll,
 			})
-
-			unmarshalCount := 0
-			unmarshal = func([]byte, interface{}) error {
-				unmarshalCount++
-				return unmarshalErr
-			}
 
 			dims, err := client.Get(instanceID)
 
@@ -246,12 +241,11 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 				So(mock.ReaderCount, ShouldEqual, 1)
 			})
 
-			Convey("And the body was unmarshalled once.", func() {
-				So(unmarshalCount, ShouldEqual, 1)
-			})
-
 			Convey("And no dimensions are returned along with the appropriate error.", func() {
-				So(err, ShouldResemble, unmarshalErr)
+				expectedType := reflect.TypeOf((*json.SyntaxError)(nil))
+				actualType := reflect.TypeOf(err)
+				So(actualType, ShouldEqual, expectedType)
+
 				So(dims, ShouldEqual, nil)
 			})
 
@@ -303,6 +297,7 @@ type Mock struct {
 	HTTPGetCount int
 	ReaderCount  int
 	Dimensions   *model.Dimensions
+	Body         []byte
 	Error        error
 	URLParam     string
 	Reader       func(reader io.Reader) ([]byte, error)
@@ -312,7 +307,11 @@ func (m *Mock) httpGet() func(string) (*http.Response, error) {
 	m.HTTPGetCount = 0
 
 	if m.Dimensions == nil {
-		body = make([]byte, 0)
+		if len(m.Body) > 0 {
+			body = m.Body
+		} else {
+			body = make([]byte, 0)
+		}
 	} else {
 		body, _ = json.Marshal(m.Dimensions)
 	}

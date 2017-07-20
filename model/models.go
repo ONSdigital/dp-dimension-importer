@@ -6,12 +6,19 @@ type DimensionsExtractedEvent struct {
 }
 
 type Dimensions struct {
-	InstanceId string `json:"instanceId"`
+	InstanceId string      `json:"instanceId"`
 	Items      []Dimension `json:"items"`
 }
 
 type Dimension struct {
-	NodeId    string `json:"nodeId,omitempty"`
-	NodeNamde string `json:"nodeName"`
-	Value     string `json:"value"`
+	NodeId   string `json:"nodeId,omitempty"`
+	NodeName string `json:"nodeName"`
+	Value    string `json:"value"`
+}
+
+type DimensionEntity struct {
+	Method string
+	To     string
+	id     string
+	body   map[string]interface{}
 }

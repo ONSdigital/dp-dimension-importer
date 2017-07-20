@@ -5,31 +5,29 @@ import (
 	"fmt"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
+	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 	"io/ioutil"
 	"net/http"
+	"github.com/ONSdigital/dp-dimension-importer/common"
 )
 
-// import API Get Dimensions URL format
+// import API Get DimensionsKey URL format
 const dimensionsHostFMT = "%s/instance/%s/dimensions"
 
 // error messages
-const okResponseMsg = "200 Response returned from Import API"
-const notFoundMsg = "404 Response returned from Import API"
-const badReqMsg = "500 Response returned from Import API"
-const unexpectedErrMsg = "Unexpected response status returned from Import API"
+const okResponseMsg = "Get DimensionsKey success"
+const getDimensionsErrMsg = "Get dimensions returned error status"
 const unmarshallingErrMsg = "Unexpected error while unmarshalling response"
 const unexpectedAPIErrMsg = "Unexpected error returned when calling Import API"
-const hostConfigMissingMsg = "DimensionsClientImpl requires an API host to be configured."
+const hostConfigMissingMsg = "DimensionsClient requires an API host to be configured."
 
 // errors
-const instanceIDRequiredErr = ClientError("instanceID is a mandatory field.")
-const instanceIDNotFoundErr = ClientError("instanceID does not match any jobs")
-const internalServerErr = ClientError("Failed to process the request due to an internal error")
-const unexpectedErr = ClientError("Unexpected response status returned from Import API")
-const missingConfigErr = ClientError("DimensionsClientImpl is missing required configuration.")
+var instanceIDNotFoundErr = errors.New(getDimensionsErrMsg)
+var internalServerErr = errors.New(getDimensionsErrMsg)
+var unexpectedErr = errors.New(getDimensionsErrMsg)
+var missingConfigErr = errors.New("DimensionsClient is missing required configuration.")
 
 // debug data map keys
-const instanceIDKey = "instanceID"
 const urlKey = "url"
 const statusCodeKey = "statusCode"
 const errDetailsKey = "details"
@@ -40,52 +38,49 @@ var httpGet = http.Get
 // respBodyReader abstraction around ioutil.ReadAll to simplify testing / mocking.
 var respBodyReader = ioutil.ReadAll
 
-// unmarshal abstraction around json.Unmarshal to simplify testing / mocking.
-var unmarshal = json.Unmarshal
-
-// DimensionsClientImpl provides implementation for making HTTP GET requests to the dp-import-api to retrieve the
+// DimensionsClient provides implementation for making HTTP GET requests to the dp-import-api to retrieve the
 // dataset dimensions for a given instanceID.
-type DimensionsClientImpl struct {
+type DimensionsClient struct {
 	Host string
 }
 
 // Get perform a HTTP GET request to the dp-import-api to retrieve the dataset dimenions for the specified instanceID
-func (i DimensionsClientImpl) Get(instanceID string) (*model.Dimensions, error) {
-	if len(i.Host) == 0 {
+func (cli DimensionsClient) Get(instanceID string) (*model.Dimensions, error) {
+	if len(cli.Host) == 0 {
 		log.Debug(hostConfigMissingMsg, nil)
 		return nil, missingConfigErr
 	}
 	if len(instanceID) == 0 {
-		return nil, instanceIDRequiredErr
+		return nil, common.ErrInstanceIDRequired
 	}
 
-	url := fmt.Sprintf(dimensionsHostFMT, i.Host, instanceID)
+	url := fmt.Sprintf(dimensionsHostFMT, cli.Host, instanceID)
 	data := log.Data{
-		instanceIDKey: instanceID,
-		urlKey:        url,
+		common.InstanceIDKey: instanceID,
+		urlKey:               url,
 	}
 
 	res, err := httpGet(url)
-	defer res.Body.Close()
-
 	if err != nil {
 		data[errDetailsKey] = err.Error()
 		log.Debug(unexpectedAPIErrMsg, data)
 		return nil, err
 	}
 
+	data[statusCodeKey] = res.StatusCode
+	defer res.Body.Close()
+
 	switch res.StatusCode {
 	case 200:
 		log.Debug(okResponseMsg, data)
 	case 404:
-		log.Debug(notFoundMsg, data)
+		log.Debug(getDimensionsErrMsg, data)
 		return nil, instanceIDNotFoundErr
 	case 500:
-		log.Debug(badReqMsg, data)
+		log.Debug(getDimensionsErrMsg, data)
 		return nil, internalServerErr
 	default:
-		data[statusCodeKey] = res.StatusCode
-		log.Debug(unexpectedErrMsg, data)
+		log.Debug(getDimensionsErrMsg, data)
 		return nil, unexpectedErr
 	}
 
@@ -95,7 +90,7 @@ func (i DimensionsClientImpl) Get(instanceID string) (*model.Dimensions, error) 
 	}
 
 	var dims model.Dimensions
-	err = unmarshal(body, &dims)
+	err = json.Unmarshal(body, &dims)
 
 	if err != nil {
 		data[errDetailsKey] = err.Error()
