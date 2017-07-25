@@ -2,13 +2,13 @@ package client
 
 import (
 	"fmt"
+	"github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 	"os"
 	"sync"
-	"github.com/ONSdigital/dp-dimension-importer/common"
 )
 
 const dimensionNodeIDFMT = "_%s_%s_%s"

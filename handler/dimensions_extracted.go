@@ -7,69 +7,82 @@ import (
 	"sync"
 )
 
-type DimensionsClient interface {
-	Get(instanceID string) (*model.Dimensions, error)
-}
+const eventRecievedMsg = "Handling dimensions extracted event."
+const dimensionCliErrMsg = "Error when calling dimensions client"
+const batchProcessingStartMsg = "Beginning batch processing dimensions."
+const batchesCompleteMsg = "All batches have been processed."
+const noMoreBatchesMsg = "All batches have been submitted for processing."
+const batchErrMsg = "Batch encountered an error while attempting to process."
 
-type DatabaseClient interface {
-	BatchInsert(instanceID string, batch []model.Dimension) error
-}
+// log data keys.
+const totalDimensionsKey = "totalDimensions"
+const batchSizeKey = "batchSize"
 
-type DimensionsExtractedHandler struct {
-	DimensionsCli DimensionsClient
-	DBCli         DatabaseClient
-	BatchSize     int
-}
+var GetDimensions func(string) (*model.Dimensions, error)
 
-func (h DimensionsExtractedHandler) Handle(event model.DimensionsExtractedEvent) {
+var InsertDimensions func(instanceID string, batch []model.Dimension) error
+
+var BatchSize int
+
+var errChan = make(chan error)
+
+func HandleEvent(event model.DimensionsExtractedEvent) {
 	logData := log.Data{common.InstanceIDKey: event.InstanceID}
 
-	log.Debug("Handling dimensions extracted event.", logData)
+	log.Debug(eventRecievedMsg, logData)
 
-	dimensions, err := h.DimensionsCli.Get(event.InstanceID)
+	dimensions, err := GetDimensions(event.InstanceID)
+
 	if err != nil {
-		log.ErrorC("Error when calling dimensions client", err, logData)
+		log.ErrorC(dimensionCliErrMsg, err, logData)
 		panic(err)
 	}
 
-	logData["totalDimensions"] = len(dimensions.Items)
-	logData["batchSize"] = h.BatchSize
-	log.Debug("Beginning batch processing dimensions.", logData)
-	var wg sync.WaitGroup
+	logData[totalDimensionsKey] = len(dimensions.Items)
+	logData[batchSizeKey] = BatchSize
+	log.Debug(batchProcessingStartMsg, logData)
 
-	h.batchProcess(&wg, event.InstanceID, dimensions.Items)
-	log.Debug("batchJobs pending.", nil)
-	wg.Wait()
-	log.Debug("batchJobs completed.", nil)
+	go func() {
+		var wg sync.WaitGroup
+
+		createBatches(&wg, event.InstanceID, dimensions.Items)
+		wg.Wait()
+
+		close(errChan)
+	}()
+	for err := range errChan {
+		if err != nil {
+			log.Debug("ERROR!", nil)
+		}
+	}
+	log.Debug(batchesCompleteMsg, nil)
 }
 
-func (h DimensionsExtractedHandler) batchProcess(wg *sync.WaitGroup, instanceID string, dimensions []model.Dimension) {
+func createBatches(wg *sync.WaitGroup, instanceID string, dimensions []model.Dimension) {
 	if len(dimensions) == 0 {
-		log.Debug("All batches have been submitted for processing.", log.Data{
+		log.Debug(noMoreBatchesMsg, log.Data{
 			common.InstanceIDKey: instanceID,
 		})
 		return
 	}
 
-	if len(dimensions) <= h.BatchSize {
-		wg.Add(1)
-		go func() {
-			if err := h.DBCli.BatchInsert(instanceID, dimensions); err != nil {
-				log.ErrorC("Dimemsion batch insert failure", err, log.Data{
-					common.InstanceIDKey: instanceID,
-				})
-			}
-			defer wg.Done()
-		}()
+	if len(dimensions) <= BatchSize {
+		insertBatch(wg, instanceID, dimensions)
 		return
 	}
 
+	insertBatch(wg, instanceID, dimensions[:BatchSize])
+	// recursive call to create the next batch.
+	createBatches(wg, instanceID, dimensions[BatchSize:])
+}
+
+func insertBatch(wg *sync.WaitGroup, instID string, dims []model.Dimension) {
 	wg.Add(1)
 	go func() {
-		if err := h.DBCli.BatchInsert(instanceID, dimensions[:h.BatchSize]); err != nil {
-			log.ErrorC("Batch failed", err, nil)
+		if err := InsertDimensions(instID, dims); err != nil {
+			log.ErrorC(batchErrMsg, err, nil)
+			errChan <- err
 		}
 		defer wg.Done()
 	}()
-	h.batchProcess(wg, instanceID, dimensions[h.BatchSize:])
 }

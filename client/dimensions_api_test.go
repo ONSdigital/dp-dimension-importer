@@ -3,15 +3,16 @@ package client
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	. "github.com/smartystreets/goconvey/convey"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"reflect"
 	"testing"
+	"github.com/ONSdigital/dp-dimension-importer/common"
+	"reflect"
+	"errors"
 )
 
 const host = "http://localhost:8080"
@@ -23,23 +24,24 @@ var expectedDimensions = &model.Dimensions{InstanceId: "123", Items: []model.Dim
 
 var body []byte
 
-func TestDimensionsClientImpl_Get(t *testing.T) {
+func TestGetDimensions(t *testing.T) {
 
 	Convey("Given the client has not been configured", t, func() {
 		mock := mockIt(&Mock{
 			StatusCode:   200,
 			Error:        nil,
-			Dimensions:   expectedDimensions,
+			Body:         nil,
 			URLParam:     fmt.Sprintf(dimensionsHostFMT, host, instanceID),
 			Reader:       ioutil.ReadAll,
 			ReaderCount:  0,
 			HTTPGetCount: 0,
 		})
 
-		client := DimensionsClient{}
+		// Set the host to an empty for this test case.
+		Host = ""
 
 		Convey("When the Get is invoked", func() {
-			dims, err := client.Get(instanceID)
+			dims, err := GetDimensions(instanceID)
 
 			Convey("Then no dimenions and the appropriate error are returned.", func() {
 				So(err, ShouldResemble, missingConfigErr)
@@ -53,7 +55,6 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 	})
 
 	Convey("Given valid client configuration", t, func() {
-		client := DimensionsClient{Host: host}
 
 		Convey("When the client called with a valid instanceID", func() {
 			body, _ = json.Marshal(expectedDimensions)
@@ -61,17 +62,17 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 			mock := mockIt(&Mock{
 				StatusCode:   200,
 				Error:        nil,
-				Dimensions:   expectedDimensions,
+				Body:         dimensionsBytes(expectedDimensions),
 				URLParam:     fmt.Sprintf(dimensionsHostFMT, host, instanceID),
 				Reader:       ioutil.ReadAll,
 				ReaderCount:  0,
 				HTTPGetCount: 0,
 			})
 
-			dims, err := client.Get(instanceID)
+			dims, err := GetDimensions(instanceID)
 
 			Convey("Then the expected dimensions are returned", func() {
-				So(dims, ShouldResemble, mock.Dimensions)
+				So(dims, ShouldResemble, expectedDimensions)
 			})
 
 			Convey("And a single request is made to the Import API to get the dimensions", func() {
@@ -88,21 +89,21 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 		Convey("When the client is called with an empty instanceID value", func() {
 			mock := mockIt(&Mock{
 				StatusCode:   0,
-				Dimensions:   nil,
+				Body:         nil,
 				HTTPGetCount: 0,
 				ReaderCount:  0,
 				Error:        nil,
 				Reader:       ioutil.ReadAll,
 			})
 
-			dims, err := client.Get("")
+			dims, err := GetDimensions("")
 
 			Convey("Then an appropriate error is returned", func() {
-				So(err, ShouldEqual, instanceIDRequiredErr)
+				So(err, ShouldEqual, common.ErrInstanceIDRequired)
 			})
 
 			Convey("And no dimensions are returned", func() {
-				So(err, ShouldEqual, instanceIDRequiredErr)
+				So(dims, ShouldEqual, nil)
 			})
 
 			Convey("And 0 http GET requests are made to the Import API", func() {
@@ -115,14 +116,14 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 		Convey("When the client is invoked and returns a 404 response status", func() {
 			mock := mockIt(&Mock{
 				StatusCode:   404,
-				Dimensions:   nil,
+				Body:         nil,
 				HTTPGetCount: 0,
 				ReaderCount:  0,
 				Error:        nil,
 				Reader:       ioutil.ReadAll,
 			})
 
-			dims, err := client.Get(instanceID)
+			dims, err := GetDimensions(instanceID)
 
 			Convey("Then 1 http GET request is made to the Import API", func() {
 				So(1, ShouldEqual, mock.HTTPGetCount)
@@ -141,14 +142,14 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 		Convey("When the client is invoked and returns a 500 response status", func() {
 			mock := mockIt(&Mock{
 				StatusCode:   500,
-				Dimensions:   nil,
+				Body:         nil,
 				HTTPGetCount: 0,
 				ReaderCount:  0,
 				Error:        nil,
 				Reader:       ioutil.ReadAll,
 			})
 
-			dims, err := client.Get(instanceID)
+			dims, err := GetDimensions(instanceID)
 
 			Convey("Then 1 http GET request is made to the Import API", func() {
 				So(1, ShouldEqual, mock.HTTPGetCount)
@@ -167,14 +168,14 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 		Convey("When the client returns an unexpected HTTP status code", func() {
 			mock := mockIt(&Mock{
 				StatusCode:   503,
-				Dimensions:   nil,
+				Body:         nil,
 				HTTPGetCount: 0,
 				ReaderCount:  0,
 				Error:        nil,
 				Reader:       ioutil.ReadAll,
 			})
 
-			dims, err := client.Get(instanceID)
+			dims, err := GetDimensions(instanceID)
 
 			Convey("Then 1 http GET request is made to the Import API", func() {
 				So(mock.HTTPGetCount, ShouldEqual, 1)
@@ -195,14 +196,14 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 
 			mock := mockIt(&Mock{
 				StatusCode:   500,
-				Dimensions:   nil,
+				Body:         nil,
 				HTTPGetCount: 0,
 				ReaderCount:  0,
 				Error:        expectedErr,
 				Reader:       ioutil.ReadAll,
 			})
 
-			dims, err := client.Get(instanceID)
+			dims, err := GetDimensions(instanceID)
 
 			Convey("Then 1 HTTP GET request is made to the Import API", func() {
 				So(1, ShouldEqual, mock.HTTPGetCount)
@@ -223,7 +224,6 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 
 			mock := mockIt(&Mock{
 				StatusCode:   200,
-				Dimensions:   nil,
 				Body:         junkBody,
 				HTTPGetCount: 0,
 				ReaderCount:  0,
@@ -231,7 +231,7 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 				Reader:       ioutil.ReadAll,
 			})
 
-			dims, err := client.Get(instanceID)
+			dims, err := GetDimensions(instanceID)
 
 			Convey("Then 1 HTTP GET request was made to the Import API", func() {
 				So(mock.HTTPGetCount, ShouldEqual, 1)
@@ -244,8 +244,8 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 			Convey("And no dimensions are returned along with the appropriate error.", func() {
 				expectedType := reflect.TypeOf((*json.SyntaxError)(nil))
 				actualType := reflect.TypeOf(err)
-				So(actualType, ShouldEqual, expectedType)
 
+				So(actualType, ShouldEqual, expectedType)
 				So(dims, ShouldEqual, nil)
 			})
 
@@ -256,7 +256,7 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 
 			mock := mockIt(&Mock{
 				StatusCode:   200,
-				Dimensions:   nil,
+				Body:         nil,
 				HTTPGetCount: 0,
 				ReaderCount:  0,
 				Error:        nil,
@@ -265,7 +265,7 @@ func TestDimensionsClientImpl_Get(t *testing.T) {
 				},
 			})
 
-			dims, err := client.Get(instanceID)
+			dims, err := GetDimensions(instanceID)
 
 			Convey("Then 1 HTTP GET request was made to the Import API", func() {
 				So(mock.HTTPGetCount, ShouldEqual, 1)
@@ -289,6 +289,7 @@ func mockIt(m *Mock) *Mock {
 
 	httpGet = m.httpGet()
 	respBodyReader = m.MockReader
+	Host = host
 	return m
 }
 
@@ -296,7 +297,6 @@ type Mock struct {
 	StatusCode   int
 	HTTPGetCount int
 	ReaderCount  int
-	Dimensions   *model.Dimensions
 	Body         []byte
 	Error        error
 	URLParam     string
@@ -305,18 +305,7 @@ type Mock struct {
 
 func (m *Mock) httpGet() func(string) (*http.Response, error) {
 	m.HTTPGetCount = 0
-
-	if m.Dimensions == nil {
-		if len(m.Body) > 0 {
-			body = m.Body
-		} else {
-			body = make([]byte, 0)
-		}
-	} else {
-		body, _ = json.Marshal(m.Dimensions)
-	}
-
-	reader := bytes.NewReader(body)
+	reader := bytes.NewReader(m.Body)
 	readCloser := ioutil.NopCloser(reader)
 
 	return func(url string) (*http.Response, error) {
@@ -332,4 +321,9 @@ func (m *Mock) httpGet() func(string) (*http.Response, error) {
 func (m *Mock) MockReader(reader io.Reader) ([]byte, error) {
 	m.ReaderCount++
 	return m.Reader(reader)
+}
+
+func dimensionsBytes(d *model.Dimensions) []byte {
+	body, _ = json.Marshal(expectedDimensions)
+	return body
 }

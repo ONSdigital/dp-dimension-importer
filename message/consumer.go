@@ -7,19 +7,9 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 )
 
-type Handler interface {
-	Handle(event model.DimensionsExtractedEvent)
-}
+var DimensionsExtractedEventHandler func(event model.DimensionsExtractedEvent)
 
-type KafkaConsumer interface {
-	Consume(incoming chan kafka.Message)
-}
-
-type KafkaConsumerImpl struct {
-	EventHandler Handler
-}
-
-func (k KafkaConsumerImpl) Consume(incoming chan kafka.Message) {
+func Consume(incoming chan kafka.Message) {
 	for msg := range incoming {
 		var event model.DimensionsExtractedEvent
 		err := schema.DimensionsExtractedSchema.Unmarshal(msg.GetData(), &event)
@@ -32,6 +22,6 @@ func (k KafkaConsumerImpl) Consume(incoming chan kafka.Message) {
 			"Event": event,
 		})
 
-		k.EventHandler.Handle(event)
+		DimensionsExtractedEventHandler(event)
 	}
 }

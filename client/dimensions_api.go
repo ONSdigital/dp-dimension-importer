@@ -32,21 +32,18 @@ const urlKey = "url"
 const statusCodeKey = "statusCode"
 const errDetailsKey = "details"
 
+// Host the host to get the dimensions from.
+var Host string
+
 // httpGet abstraction around http.Get to simplify testing / mocking.
 var httpGet = http.Get
 
 // respBodyReader abstraction around ioutil.ReadAll to simplify testing / mocking.
 var respBodyReader = ioutil.ReadAll
 
-// DimensionsClient provides implementation for making HTTP GET requests to the dp-import-api to retrieve the
-// dataset dimensions for a given instanceID.
-type DimensionsClient struct {
-	Host string
-}
-
 // Get perform a HTTP GET request to the dp-import-api to retrieve the dataset dimenions for the specified instanceID
-func (cli DimensionsClient) Get(instanceID string) (*model.Dimensions, error) {
-	if len(cli.Host) == 0 {
+func GetDimensions(instanceID string) (*model.Dimensions, error) {
+	if len(Host) == 0 {
 		log.Debug(hostConfigMissingMsg, nil)
 		return nil, missingConfigErr
 	}
@@ -54,7 +51,7 @@ func (cli DimensionsClient) Get(instanceID string) (*model.Dimensions, error) {
 		return nil, common.ErrInstanceIDRequired
 	}
 
-	url := fmt.Sprintf(dimensionsHostFMT, cli.Host, instanceID)
+	url := fmt.Sprintf(dimensionsHostFMT, Host, instanceID)
 	data := log.Data{
 		common.InstanceIDKey: instanceID,
 		urlKey:               url,

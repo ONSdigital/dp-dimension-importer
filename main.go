@@ -18,7 +18,6 @@ const InstanceIDParam = "instanceID"
 
 var kafkaMsg kafka.Message
 var incoming chan kafka.Message
-var dimensionsCli client.DimensionsClient
 
 func main() {
 	cfg, err := config.Load()
@@ -32,17 +31,15 @@ func main() {
 
 	incoming = make(chan kafka.Message)
 
-	extractedEventHandler := handler.DimensionsExtractedHandler{
-		DimensionsCli: client.DimensionsClient{Host: cfg.ImportAddr},
-		DBCli:         client.NeoClientInstance(cfg.DatabaseURL, cfg.PoolSize),
-		BatchSize:     cfg.BatchSize,
-	}
+	graphClient := client.NeoClientInstance(cfg.DatabaseURL, cfg.PoolSize)
+	client.Host = cfg.ImportAddr
 
-	myConsumer := message.KafkaConsumerImpl{
-		EventHandler: extractedEventHandler,
-	}
+	handler.GetDimensions = client.GetDimensions
+	handler.InsertDimensions = graphClient.BatchInsert
+	handler.BatchSize = cfg.BatchSize
 
-	go myConsumer.Consume(incoming)
+	message.DimensionsExtractedEventHandler = handler.HandleEvent
+	go message.Consume(incoming)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/go", myHandler)
