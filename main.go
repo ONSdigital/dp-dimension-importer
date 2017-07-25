@@ -60,11 +60,11 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 // Generate manually as temp work around to simulate end to end.
 func temp() kafka.Message {
 	// Create a sample event.
-	dimensionEstractedEvent := model.DimensionsExtractedEvent{
+	dimensionExtractedEvent := model.DimensionsExtractedEvent{
 		FileURL:    "s3://customise-my-data/test.csv",
 		InstanceID: "200",
 	}
 	// Convert sample event into serialised avro.
-	bytes, _ := schema.DimensionsExtractedSchema.Marshal(dimensionEstractedEvent)
+	bytes, _ := schema.DimensionsExtractedSchema.Marshal(dimensionExtractedEvent)
 	return kafka.Message{Data: bytes}
 }
