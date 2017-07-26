@@ -7,9 +7,11 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 )
 
-var DimensionsExtractedEventHandler func(event model.DimensionsExtractedEvent)
+type EventHandler interface {
+	HandleEvent(event model.DimensionsExtractedEvent)
+}
 
-func Consume(incoming chan kafka.Message) {
+func Consume(incoming chan kafka.Message, eventHandler EventHandler) {
 	for msg := range incoming {
 		var event model.DimensionsExtractedEvent
 		err := schema.DimensionsExtractedSchema.Unmarshal(msg.GetData(), &event)
@@ -22,6 +24,9 @@ func Consume(incoming chan kafka.Message) {
 			"Event": event,
 		})
 
-		DimensionsExtractedEventHandler(event)
+		eventHandler.HandleEvent(event)
+		log.Debug("instance has been imported", log.Data{
+			"instance_id": event.InstanceID,
+		})
 	}
 }

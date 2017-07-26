@@ -9,34 +9,29 @@ import (
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 	"os"
 	"sync"
+	"strconv"
 )
 
-const dimensionNodeIDFMT = "_%s_%s_%s"
-const insertDimensionStmt = "CREATE (d:%s {name: {name}, value: {value}})"
-const nameKey = "name"
+const dimensionNodeIDFMT = "_%s"
+const insertDimensionStmt = "CREATE (d: _%s {value: {value}}) RETURN ID(d)"
+const dimensionIDKey = "dimension_id"
 const valueKey = "value"
 
-var errDimensionNameRequired = errors.New("dimension.NodeName is required but was empty")
+var errDimensionIDRequired = errors.New("dimension.Dimension_ID is required but was empty")
 var errDimensionValueRequired = errors.New("dimension.Value is required but was empty")
-var errDimensionEmpty = errors.New("dimenion invalid: both dimension.NodeName and dimension.Value are required but were both empty")
+var errDimensionEmpty = errors.New("dimenion invalid: both dimension.dimension_id and dimension.value are required but were both empty")
 
 const openConnErrMsg = "Unexpected error when attempting to open bolt connection"
 
 var once sync.Once
 
-var neo *Neo4jClient
+var driverPool bolt.DriverPool
 
-// Neo4jClient client providing functions for inserting DimensionsKey into a Neo4j Graph DB.
-type Neo4jClient struct {
-	URL        string
-	driverPool bolt.DriverPool
-}
+type Neo4j struct {}
 
-// NeoClientInstance creates and return a singleton instance of Neo4jClient if it has not already been created,
-// otherwise return the existing instance.
-func NeoClientInstance(url string, poolSize int) *Neo4jClient {
+func InitDB(url string, poolSize int) Neo4j {
 	once.Do(func() {
-		driverPool, err := bolt.NewDriverPool(url, poolSize)
+		pool, err := bolt.NewDriverPool(url, poolSize)
 		if err != nil {
 			log.ErrorC("Could not create bolt driver pool", err, log.Data{
 				"url":      url,
@@ -44,99 +39,67 @@ func NeoClientInstance(url string, poolSize int) *Neo4jClient {
 			})
 			os.Exit(1)
 		}
-		neo = &Neo4jClient{URL: url, driverPool: driverPool}
+		driverPool = pool
 	})
-	return neo
+	return Neo4j{}
 }
 
-func (neo *Neo4jClient) BatchInsert(instanceID string, dimensions []model.Dimension) error {
+func (db Neo4j) InsertDimension(instanceID string, d *model.Dimension) (*model.Dimension, error) {
 	logData := log.Data{
 		common.InstanceIDKey: instanceID,
 	}
 
-	if err := neo.validate(instanceID, dimensions); err != nil {
-		return err
+	if err := validate(instanceID, d); err != nil {
+		return nil, err
 	}
 
-	conn, err := neo.driverPool.OpenPool()
+	conn, err := driverPool.OpenPool()
 	if err != nil {
 		log.ErrorC(openConnErrMsg, err, nil)
-		return err
+		return nil, err
 	}
 
 	defer conn.Close()
 
-	batch := NewBatchJob(instanceID, dimensions)
-	pipelineStmt, err := conn.PreparePipeline(batch.stmts...)
+	createStmt := fmt.Sprintf(insertDimensionStmt, d.Dimension_ID)
+	stmt, err := conn.PrepareNeo(createStmt)
 
 	if err != nil {
-		log.ErrorC("Error creating pipelineStatement", err, logData)
-		return err
+		log.ErrorC("Error creating statement.", err, logData)
+		return nil, err
 	}
+	defer stmt.Close()
 
-	defer func() {
-		if err = pipelineStmt.Close(); err != nil {
-			log.ErrorC("Error while attempting to close statement", err, logData)
-			os.Exit(1)
-		}
-	}()
+	params := map[string]interface{}{valueKey: d.Value}
+	rows, err := stmt.QueryNeo(params)
 
-	_, err = pipelineStmt.ExecPipeline(batch.params...)
 	if err != nil {
-		log.ErrorC("Error executing pipelineStatements", err, logData)
-		return err
+		log.ErrorC("Error executing statement", err, logData)
+		return nil, err
 	}
 
-	log.Debug("Batch insert successful", batch.debug)
-	return nil
+	data, _, _ := rows.NextNeo()
+
+	nodeID, _ := data[0].(int64)
+	d.NodeId = strconv.FormatInt(nodeID, 10)
+	return d, nil
 }
 
-func (c *Neo4jClient) validate(instanceID string, dimensions []model.Dimension) error {
+func validate(instanceID string, d *model.Dimension) error {
 	if len(instanceID) == 0 {
 		return common.ErrInstanceIDRequired
 	}
-	for _, d := range dimensions {
-		if len(d.NodeName) == 0 && len(d.Value) == 0 {
-			return errDimensionEmpty
-		}
-		if len(d.NodeName) == 0 {
-			return errDimensionNameRequired
-		}
-		if len(d.Value) == 0 {
-			return errDimensionValueRequired
-		}
+	if d == nil {
+		return errors.New("dimension is nil")
+	}
+	if len(d.Dimension_ID) == 0 && len(d.Value) == 0 {
+		return errDimensionEmpty
+	}
+	if len(d.Dimension_ID) == 0 {
+		return errDimensionIDRequired
+	}
+	if len(d.Value) == 0 {
+		return errDimensionValueRequired
 	}
 	return nil
-}
-
-type batchJob struct {
-	instanceID string
-	params     []map[string]interface{}
-	stmts      []string
-	batchSize  int
-	debug      map[string]interface{}
-}
-
-func NewBatchJob(instanceID string, dimensions []model.Dimension) *batchJob {
-	b := &batchJob{
-		instanceID: instanceID,
-		params:     make([]map[string]interface{}, 0),
-		stmts:      make([]string, 0),
-		debug:      make(map[string]interface{}),
-	}
-
-	for _, d := range dimensions {
-		dimensionNodeID := fmt.Sprintf(dimensionNodeIDFMT, b.instanceID, d.NodeName, d.Value)
-		createStmt := fmt.Sprintf(insertDimensionStmt, dimensionNodeID)
-		params := map[string]interface{}{
-			nameKey:  d.NodeName,
-			valueKey: d.Value,
-		}
-
-		b.stmts = append(b.stmts, createStmt)
-		b.params = append(b.params, params)
-
-		b.debug[dimensionNodeID] = []interface{}{params}
-	}
-	return b
 }

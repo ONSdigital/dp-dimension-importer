@@ -18,71 +18,49 @@ const batchErrMsg = "Batch encountered an error while attempting to process."
 const totalDimensionsKey = "totalDimensions"
 const batchSizeKey = "batchSize"
 
-var GetDimensions func(string) (*model.Dimensions, error)
+type ImportAPIClient interface {
+	GetDimensions(instanceID string) ([]*model.Dimension, error)
+	UpdateNodeID(instanceID string, d *model.Dimension) error
+}
 
-var InsertDimensions func(instanceID string, batch []model.Dimension) error
+type DimensionsDatabase interface {
+	InsertDimension(instanceID string, dimension *model.Dimension) (*model.Dimension, error)
+}
 
-var BatchSize int
+type DimensionsExtractedEventHandler struct {
+	DimensionsStore DimensionsDatabase
+	ImportAPI       ImportAPIClient
+}
 
-var errChan = make(chan error)
-
-func HandleEvent(event model.DimensionsExtractedEvent) {
+func (h *DimensionsExtractedEventHandler) HandleEvent(event model.DimensionsExtractedEvent) {
 	logData := log.Data{common.InstanceIDKey: event.InstanceID}
 
 	log.Debug(eventRecievedMsg, logData)
 
-	dimensions, err := GetDimensions(event.InstanceID)
+	dimensions, err := h.ImportAPI.GetDimensions(event.InstanceID)
 
 	if err != nil {
 		log.ErrorC(dimensionCliErrMsg, err, logData)
 		panic(err)
 	}
 
-	logData[totalDimensionsKey] = len(dimensions.Items)
-	logData[batchSizeKey] = BatchSize
-	log.Debug(batchProcessingStartMsg, logData)
+	logData[totalDimensionsKey] = len(dimensions)
 
-	go func() {
-		var wg sync.WaitGroup
+	var wg sync.WaitGroup
+	wg.Add(len(dimensions))
 
-		createBatches(&wg, event.InstanceID, dimensions.Items)
-		wg.Wait()
-
-		close(errChan)
-	}()
-	for err := range errChan {
+	for _, d := range dimensions {
+		d, err := h.DimensionsStore.InsertDimension(event.InstanceID, d)
 		if err != nil {
-			log.Debug("ERROR!", nil)
+			log.Debug("Failed to insert dimension", log.Data{
+				"Dimension_ID": d.Dimension_ID,
+				"details":      err.Error(),
+			})
 		}
+		go func() {
+			h.ImportAPI.UpdateNodeID(event.InstanceID, d)
+			wg.Done()
+		}()
 	}
-	log.Debug(batchesCompleteMsg, nil)
-}
-
-func createBatches(wg *sync.WaitGroup, instanceID string, dimensions []model.Dimension) {
-	if len(dimensions) == 0 {
-		log.Debug(noMoreBatchesMsg, log.Data{
-			common.InstanceIDKey: instanceID,
-		})
-		return
-	}
-
-	if len(dimensions) <= BatchSize {
-		insertBatch(wg, instanceID, dimensions)
-		return
-	}
-
-	insertBatch(wg, instanceID, dimensions[:BatchSize])
-	// recursive call to create the next batch.
-	createBatches(wg, instanceID, dimensions[BatchSize:])
-}
-
-func insertBatch(wg *sync.WaitGroup, instID string, dims []model.Dimension) {
-	wg.Add(1)
-	go func() {
-		if err := InsertDimensions(instID, dims); err != nil {
-			log.ErrorC(batchErrMsg, err, nil)
-			errChan <- err
-		}
-		defer wg.Done()
-	}()
+	wg.Wait()
 }

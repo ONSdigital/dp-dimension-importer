@@ -17,7 +17,7 @@ import (
 const InstanceIDParam = "instanceID"
 
 var kafkaMsg kafka.Message
-var incoming chan kafka.Message
+var incomingKafka chan kafka.Message
 
 func main() {
 	cfg, err := config.Load()
@@ -29,17 +29,17 @@ func main() {
 		"": cfg.String(),
 	})
 
-	incoming = make(chan kafka.Message)
+	incomingKafka = make(chan kafka.Message)
 
-	graphClient := client.NeoClientInstance(cfg.DatabaseURL, cfg.PoolSize)
 	client.Host = cfg.ImportAddr
+	database := client.InitDB(cfg.DatabaseURL, cfg.PoolSize)
 
-	handler.GetDimensions = client.GetDimensions
-	handler.InsertDimensions = graphClient.BatchInsert
-	handler.BatchSize = cfg.BatchSize
+	eventHandler := &handler.DimensionsExtractedEventHandler{
+		DimensionsStore: database,
+		ImportAPI:       client.ImportAPI{},
+	}
 
-	message.DimensionsExtractedEventHandler = handler.HandleEvent
-	go message.Consume(incoming)
+	go message.Consume(incomingKafka, eventHandler)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/go", myHandler)
@@ -49,7 +49,7 @@ func main() {
 }
 
 func myHandler(w http.ResponseWriter, r *http.Request) {
-	incoming <- temp()
+	incomingKafka <- temp()
 	w.WriteHeader(200)
 	w.Write([]byte("OK"))
 }
