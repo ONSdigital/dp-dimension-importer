@@ -5,15 +5,10 @@ type DimensionsExtractedEvent struct {
 	InstanceID string `avro:"instance_id"`
 }
 
-type Dimensions struct {
-	InstanceId string      `json:"instanceId"`
-	Items      []Dimension `json:"items"`
-}
-
 type Dimension struct {
-	NodeId   string `json:"nodeId,omitempty"`
-	NodeName string `json:"nodeName"`
-	Value    string `json:"value"`
+	Dimension_ID string `json:"dimension_id"`
+	Value        string `json:"value"`
+	NodeId       string `json:"node_id,omitempty"`
 }
 
 type DimensionEntity struct {

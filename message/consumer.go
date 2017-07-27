@@ -9,9 +9,11 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 )
 
-var DimensionsExtractedEventHandler func(event model.DimensionsExtractedEvent)
+type EventHandler interface {
+	HandleEvent(event model.DimensionsExtractedEvent)
+}
 
-func Consume(consumer kafka.MessageConsumer) error {
+func Consume(consumer kafka.MessageConsumer, eventHandler EventHandler) error {
 	exitChannel := make(chan error)
 	go func() {
 		for {
@@ -31,8 +33,12 @@ func Consume(consumer kafka.MessageConsumer) error {
 					// "messageLen":    len(consumedData),
 				})
 
-				DimensionsExtractedEventHandler(event)
+				eventHandler.HandleEvent(event)
+				log.Debug("instance has been imported", log.Data{
+					"instance_id": event.InstanceID,
+				})
 				consumedMessage.Commit()
+
 			case consumerError := <-consumer.Errors():
 				log.Error(fmt.Errorf("Aborting"), log.Data{"messageReceived": consumerError})
 				consumer.Closer() <- true

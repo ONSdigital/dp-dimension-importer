@@ -11,6 +11,8 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 )
 
+var incomingKafka chan kafka.Message
+
 func main() {
 	log.Namespace = "dimension-importer"
 	cfg, err := config.Load()
@@ -28,15 +30,15 @@ func main() {
 		panic("Could not create consumer")
 	}
 
-	graphClient := client.NeoClientInstance(cfg.DatabaseURL, cfg.PoolSize)
 	client.Host = cfg.ImportAddr
+	database := client.InitDB(cfg.DatabaseURL, cfg.PoolSize)
 
-	handler.GetDimensions = client.GetDimensions
-	handler.InsertDimensions = graphClient.BatchInsert
-	handler.BatchSize = cfg.BatchSize
+	eventHandler := &handler.DimensionsExtractedEventHandler{
+		DimensionsStore: database,
+		ImportAPI:       client.ImportAPI{},
+	}
 
-	message.DimensionsExtractedEventHandler = handler.HandleEvent
-	err = message.Consume(consumer)
+	err = message.Consume(consumer, eventHandler)
 	if err != nil {
 		log.ErrorC("consumer", err, nil)
 		panic("Consumer returned error")

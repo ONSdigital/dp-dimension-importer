@@ -18,11 +18,13 @@ import (
 const host = "http://localhost:8080"
 const instanceID = "1234567890"
 
-var dimensionOne = model.Dimension{NodeId: "1111", NodeName: "Sex", Value: "Male"}
-var dimensionTwo = model.Dimension{NodeId: "1112", NodeName: "Sex", Value: "Female"}
-var expectedDimensions = &model.Dimensions{InstanceId: "123", Items: []model.Dimension{dimensionOne, dimensionTwo}}
+var dimensionOne = &model.Dimension{Dimension_ID: "666_SEX_MALE", NodeId: "1111", Value: "Male"}
+var dimensionTwo = &model.Dimension{Dimension_ID: "666_SEX_FEMALE", NodeId: "1112", Value: "Female"}
+var expectedDimensions = []*model.Dimension{dimensionOne, dimensionTwo}
 
 var body []byte
+
+var importAPI = ImportAPI{}
 
 func TestGetDimensions(t *testing.T) {
 
@@ -31,7 +33,7 @@ func TestGetDimensions(t *testing.T) {
 			StatusCode:   200,
 			Error:        nil,
 			Body:         nil,
-			URLParam:     fmt.Sprintf(dimensionsHostFMT, host, instanceID),
+			URLParam:     fmt.Sprintf(getDimensionsURIFMT, host, instanceID),
 			Reader:       ioutil.ReadAll,
 			ReaderCount:  0,
 			HTTPGetCount: 0,
@@ -41,7 +43,7 @@ func TestGetDimensions(t *testing.T) {
 		Host = ""
 
 		Convey("When the Get is invoked", func() {
-			dims, err := GetDimensions(instanceID)
+			dims, err := importAPI.GetDimensions(instanceID)
 
 			Convey("Then no dimenions and the appropriate error are returned.", func() {
 				So(err, ShouldResemble, missingConfigErr)
@@ -63,13 +65,13 @@ func TestGetDimensions(t *testing.T) {
 				StatusCode:   200,
 				Error:        nil,
 				Body:         dimensionsBytes(expectedDimensions),
-				URLParam:     fmt.Sprintf(dimensionsHostFMT, host, instanceID),
+				URLParam:     fmt.Sprintf(getDimensionsURIFMT, host, instanceID),
 				Reader:       ioutil.ReadAll,
 				ReaderCount:  0,
 				HTTPGetCount: 0,
 			})
 
-			dims, err := GetDimensions(instanceID)
+			dims, err := importAPI.GetDimensions(instanceID)
 
 			Convey("Then the expected dimensions are returned", func() {
 				So(dims, ShouldResemble, expectedDimensions)
@@ -77,7 +79,7 @@ func TestGetDimensions(t *testing.T) {
 
 			Convey("And a single request is made to the Import API to get the dimensions", func() {
 				So(1, ShouldEqual, mock.HTTPGetCount)
-				So(fmt.Sprintf(dimensionsHostFMT, host, instanceID), ShouldEqual, mock.URLParam)
+				So(fmt.Sprintf(getDimensionsURIFMT, host, instanceID), ShouldEqual, mock.URLParam)
 				So(mock.ReaderCount, ShouldEqual, 1)
 			})
 
@@ -96,7 +98,7 @@ func TestGetDimensions(t *testing.T) {
 				Reader:       ioutil.ReadAll,
 			})
 
-			dims, err := GetDimensions("")
+			dims, err := importAPI.GetDimensions("")
 
 			Convey("Then an appropriate error is returned", func() {
 				So(err, ShouldEqual, common.ErrInstanceIDRequired)
@@ -123,7 +125,7 @@ func TestGetDimensions(t *testing.T) {
 				Reader:       ioutil.ReadAll,
 			})
 
-			dims, err := GetDimensions(instanceID)
+			dims, err := importAPI.GetDimensions(instanceID)
 
 			Convey("Then 1 http GET request is made to the Import API", func() {
 				So(1, ShouldEqual, mock.HTTPGetCount)
@@ -149,7 +151,7 @@ func TestGetDimensions(t *testing.T) {
 				Reader:       ioutil.ReadAll,
 			})
 
-			dims, err := GetDimensions(instanceID)
+			dims, err := importAPI.GetDimensions(instanceID)
 
 			Convey("Then 1 http GET request is made to the Import API", func() {
 				So(1, ShouldEqual, mock.HTTPGetCount)
@@ -175,7 +177,7 @@ func TestGetDimensions(t *testing.T) {
 				Reader:       ioutil.ReadAll,
 			})
 
-			dims, err := GetDimensions(instanceID)
+			dims, err := importAPI.GetDimensions(instanceID)
 
 			Convey("Then 1 http GET request is made to the Import API", func() {
 				So(mock.HTTPGetCount, ShouldEqual, 1)
@@ -203,7 +205,7 @@ func TestGetDimensions(t *testing.T) {
 				Reader:       ioutil.ReadAll,
 			})
 
-			dims, err := GetDimensions(instanceID)
+			dims, err := importAPI.GetDimensions(instanceID)
 
 			Convey("Then 1 HTTP GET request is made to the Import API", func() {
 				So(1, ShouldEqual, mock.HTTPGetCount)
@@ -231,7 +233,7 @@ func TestGetDimensions(t *testing.T) {
 				Reader:       ioutil.ReadAll,
 			})
 
-			dims, err := GetDimensions(instanceID)
+			dims, err := importAPI.GetDimensions(instanceID)
 
 			Convey("Then 1 HTTP GET request was made to the Import API", func() {
 				So(mock.HTTPGetCount, ShouldEqual, 1)
@@ -265,7 +267,7 @@ func TestGetDimensions(t *testing.T) {
 				},
 			})
 
-			dims, err := GetDimensions(instanceID)
+			dims, err := importAPI.GetDimensions(instanceID)
 
 			Convey("Then 1 HTTP GET request was made to the Import API", func() {
 				So(mock.HTTPGetCount, ShouldEqual, 1)
@@ -323,7 +325,7 @@ func (m *Mock) MockReader(reader io.Reader) ([]byte, error) {
 	return m.Reader(reader)
 }
 
-func dimensionsBytes(d *model.Dimensions) []byte {
+func dimensionsBytes(d []*model.Dimension) []byte {
 	body, _ = json.Marshal(expectedDimensions)
 	return body
 }
