@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
-	"github.com/ONSdigital/dp-dimension-importer/common"
 	"reflect"
 	"errors"
 )
@@ -101,7 +100,7 @@ func TestGetDimensions(t *testing.T) {
 			dims, err := importAPI.GetDimensions("")
 
 			Convey("Then an appropriate error is returned", func() {
-				So(err, ShouldEqual, common.ErrInstanceIDRequired)
+				So(err, ShouldEqual, errInstanceIDRequired)
 			})
 
 			Convey("And no dimensions are returned", func() {
@@ -280,6 +279,22 @@ func TestGetDimensions(t *testing.T) {
 			Convey("And no dimensions are returned along with the appropriate error.", func() {
 				So(err, ShouldResemble, readBodyErr)
 				So(dims, ShouldEqual, nil)
+			})
+		})
+	})
+}
+
+func TestImportAPI_SetDimensionNodeID(t *testing.T) {
+
+	Convey("Given no Host has been set", t, func() {
+		Host = ""
+
+		Convey("When SetDimensionNodeID is invoked", func() {
+			api := ImportAPI{}
+			err := api.SetDimensionNodeID(instanceID, nil)
+
+			Convey("The a a missing config error is returned", func() {
+
 			})
 		})
 	})

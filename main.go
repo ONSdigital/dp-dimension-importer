@@ -31,7 +31,7 @@ func main() {
 	}
 
 	client.Host = cfg.ImportAddr
-	database := client.InitDB(cfg.DatabaseURL, cfg.PoolSize)
+	database := client.InitialiseDatabaseClient(cfg.DatabaseURL, cfg.PoolSize)
 
 	eventHandler := &handler.DimensionsExtractedEventHandler{
 		DimensionsStore: database,

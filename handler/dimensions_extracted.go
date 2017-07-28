@@ -3,28 +3,22 @@ package handler
 import (
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
-	"github.com/ONSdigital/dp-dimension-importer/common"
-	"sync"
+	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 )
 
 const eventRecievedMsg = "Handling dimensions extracted event."
 const dimensionCliErrMsg = "Error when calling dimensions client"
-const batchProcessingStartMsg = "Beginning batch processing dimensions."
-const batchesCompleteMsg = "All batches have been processed."
-const noMoreBatchesMsg = "All batches have been submitted for processing."
-const batchErrMsg = "Batch encountered an error while attempting to process."
-
-// log data keys.
-const totalDimensionsKey = "totalDimensions"
-const batchSizeKey = "batchSize"
 
 type ImportAPIClient interface {
 	GetDimensions(instanceID string) ([]*model.Dimension, error)
-	UpdateNodeID(instanceID string, d *model.Dimension) error
+	SetDimensionNodeID(instanceID string, d *model.Dimension) error
 }
 
 type DimensionsDatabase interface {
-	InsertDimension(instanceID string, dimension *model.Dimension) (*model.Dimension, error)
+	InsertDimension(dimension *model.Dimension) (*model.Dimension, error)
+	CreateUniqueConstraint(d *model.Dimension) error
+	CreateInstanceNode(instanceID string, distinctDimensions []*model.Dimension) error
+	CreateInstanceDimensionRelationships(instanceID string, distinctDimensions []*model.Dimension) error
 }
 
 type DimensionsExtractedEventHandler struct {
@@ -32,35 +26,52 @@ type DimensionsExtractedEventHandler struct {
 	ImportAPI       ImportAPIClient
 }
 
-func (h *DimensionsExtractedEventHandler) HandleEvent(event model.DimensionsExtractedEvent) {
-	logData := log.Data{common.InstanceIDKey: event.InstanceID}
+func (hdl *DimensionsExtractedEventHandler) HandleEvent(event model.DimensionsExtractedEvent) {
+	logData := log.Data{logKeys.InstanceID: event.InstanceID}
 
 	log.Debug(eventRecievedMsg, logData)
 
-	dimensions, err := h.ImportAPI.GetDimensions(event.InstanceID)
+	dimensions, err := hdl.ImportAPI.GetDimensions(event.InstanceID)
 
 	if err != nil {
 		log.ErrorC(dimensionCliErrMsg, err, logData)
 		panic(err)
 	}
 
-	logData[totalDimensionsKey] = len(dimensions)
+	logData[logKeys.DimensionsCount] = len(dimensions)
 
-	var wg sync.WaitGroup
-	wg.Add(len(dimensions))
+	// Track the uniqueDimIDs dimension types for this isnstanceID.
+	uniqueDimIDs := make(map[string]interface{})
+	uniqueDims := make([]*model.Dimension, 0)
 
 	for _, d := range dimensions {
-		d, err := h.DimensionsStore.InsertDimension(event.InstanceID, d)
+		if _, ok := uniqueDimIDs[d.Dimension_ID]; !ok {
+			uniqueDimIDs[d.Dimension_ID] = nil
+			uniqueDims = append(uniqueDims, d)
+
+			if err := hdl.DimensionsStore.CreateUniqueConstraint(d); err != nil {
+				log.ErrorC("unexected error while attempting to create uniqueDimIDs dimension constaint.", err, nil)
+			}
+		}
+
+		d, err := hdl.DimensionsStore.InsertDimension(d)
 		if err != nil {
 			log.Debug("Failed to insert dimension", log.Data{
-				"Dimension_ID": d.Dimension_ID,
-				"details":      err.Error(),
+				logKeys.DimensionID:  d.Dimension_ID,
+				logKeys.ErrorDetails: err.Error(),
 			})
 		}
-		go func() {
-			h.ImportAPI.UpdateNodeID(event.InstanceID, d)
-			wg.Done()
-		}()
+
+		if err := hdl.ImportAPI.SetDimensionNodeID(event.InstanceID, d); err != nil {
+			log.ErrorC("Unexpected error while updating dimension node_id.", err, nil)
+		}
 	}
-	wg.Wait()
+
+	if err := hdl.DimensionsStore.CreateInstanceNode(event.InstanceID, uniqueDims); err != nil {
+		panic(err)
+	}
+
+	if err := hdl.DimensionsStore.CreateInstanceDimensionRelationships(event.InstanceID, uniqueDims); err != nil {
+		panic(err)
+	}
 }
