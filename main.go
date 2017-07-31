@@ -36,6 +36,7 @@ func main() {
 	eventHandler := &handler.DimensionsExtractedEventHandler{
 		DimensionsStore: database,
 		ImportAPI:       client.ImportAPI{},
+		BatchSize:       100, // TODO Move to config
 	}
 
 	err = message.Consume(consumer, eventHandler)

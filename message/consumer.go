@@ -7,6 +7,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
+	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 )
 
 type EventHandler interface {
@@ -35,7 +36,7 @@ func Consume(consumer kafka.MessageConsumer, eventHandler EventHandler) error {
 
 				eventHandler.HandleEvent(event)
 				log.Debug("instance has been imported", log.Data{
-					"instance_id": event.InstanceID,
+					logKeys.InstanceID: event.InstanceID,
 				})
 				consumedMessage.Commit()
 
