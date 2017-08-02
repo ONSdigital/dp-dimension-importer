@@ -10,7 +10,6 @@ import (
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/dp-dimension-importer/logging"
-	"io/ioutil"
 )
 
 var incomingKafka chan kafka.Message
@@ -22,8 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	//logging.Init(os.Stdout, os.Stdout)
-	logging.Init(os.Stdout, ioutil.Discard, os.Stdout)
+	logging.Init(cfg.LogLevel)
 	logging.Debug.Printf("Application configuration:, %v", cfg)
 
 	consumer, err := kafka.NewConsumerGroup(cfg.KafkaAddr, cfg.DimensionsExtractedTopic, log.Namespace, kafka.OffsetNewest)

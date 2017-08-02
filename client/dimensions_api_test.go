@@ -28,7 +28,7 @@ var importAPI = ImportAPI{}
 
 func TestGetDimensions(t *testing.T) {
 
-	logging.Init(ioutil.Discard, ioutil.Discard, ioutil.Discard)
+	logging.Init(logging.DebugLevel)
 
 	Convey("Given the client has not been configured", t, func() {
 		mock := mockIt(&GetDimensionsMock{

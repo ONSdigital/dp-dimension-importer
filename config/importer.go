@@ -13,6 +13,7 @@ type Config struct {
 	ImportAddr               string   `env:"IMPORT_ADDR" flag:"import-addr" flagDesc:"The address of Kafka topic for inbound messages."`
 	DatabaseURL              string   `env:"DB_URL" flag:"db-url" flagDesc:"The URL of the dimensions database."`
 	PoolSize                 int      `env:"DB_POOL_SIZE" flag:"db-pool-size" flagDesc:"The database connection pool size."`
+	LogLevel                 string   `env:"LOG_LEVEL" flag:"log-level" flagDesc:"The Level of the log output"`
 }
 
 func (c *Config) String() string {
@@ -28,6 +29,7 @@ func Load() (*Config, error) {
 		PoolSize:                 20,
 		KafkaAddr:                []string{"localhost:9092"},
 		DimensionsExtractedTopic: "dimensions-extracted",
+		LogLevel:                 "error",
 	}
 
 	err := gofigure.Gofigure(&cfg)

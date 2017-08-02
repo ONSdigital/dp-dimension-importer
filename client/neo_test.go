@@ -8,7 +8,6 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/logging"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"fmt"
-	"os"
 )
 
 var (
@@ -20,8 +19,7 @@ var (
 )
 
 func TestNeo4j_CreateUniqueConstraint(t *testing.T) {
-	//logging.Init(ioutil.Discard, ioutil.Discard, ioutil.Discard)
-	logging.Init(os.Stdout, os.Stdout, os.Stdout)
+	logging.Init(logging.DebugLevel)
 
 	Convey("Given the driver pool has been correctly configured ", t, func() {
 		mockConn := &NeoConnMock{
