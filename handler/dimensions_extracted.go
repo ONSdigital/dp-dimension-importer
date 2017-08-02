@@ -5,9 +5,10 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"time"
+	"github.com/ONSdigital/dp-dimension-importer/logging"
 )
 
-const eventRecievedMsg = "Handling dimensions extracted event."
+const logEventRecieved = "Handling dimensions extracted event | %v"
 const dimensionCliErrMsg = "Error when calling dimensions client"
 const uniqueConstraintErr = "Unexected error while attempting to create unique Dimension ID constaint."
 const insertDimErr = "Unexpected error while attempting to insert dimension"
@@ -16,20 +17,18 @@ const createInstanceErr = "Unexpected error while attempting to create instance"
 
 type ImportAPIClient interface {
 	GetDimensions(instanceID string) ([]*model.Dimension, error)
-	SetDimensionNodeID(instanceID string, d *model.Dimension) error
+	PutDimensionNodeID(instanceID string, d *model.Dimension) error
 }
 
 type DimensionsDatabase interface {
 	// InsertDimension persist a dimension into the database
-	InsertDimension(dimension *model.Dimension) (*model.Dimension, error)
+	InsertDimension(i model.Instance, d *model.Dimension) (*model.Dimension, error)
 	// CreateUniqueConstraint create a unique constrain for this dimension type.
 	CreateUniqueConstraint(d *model.Dimension) error
 	// CreateInstance create an instance entity in the database.
 	CreateInstance(instance model.Instance) error
 	// AddInstanceDimensions update the Instance entity with the distinct dimensions types the dataset contains.
 	AddInstanceDimensions(instance model.Instance) error
-	// RelateDimensionsToInstance create a One-to-Many relationship from the instance entity to each of the dimensions it has.
-	RelateDimensionsToInstance(instance model.Instance, dimensions []*model.Dimension) error
 }
 
 // DimensionsExtractedEventHandler provides functions for handling DimensionsExtractedEvents.
@@ -44,8 +43,7 @@ type DimensionsExtractedEventHandler struct {
 // and makes a PUT request to the Import API with the database ID of each Dimension entity.
 func (handler *DimensionsExtractedEventHandler) HandleEvent(event model.DimensionsExtractedEvent) {
 	logData := log.Data{logKeys.InstanceID: event.InstanceID}
-
-	log.Debug(eventRecievedMsg, logData)
+	logging.Debug.Printf(logEventRecieved, logData)
 
 	start := time.Now()
 	dimensions, err := handler.ImportAPI.GetDimensions(event.InstanceID)
@@ -63,36 +61,23 @@ func (handler *DimensionsExtractedEventHandler) HandleEvent(event model.Dimensio
 		panic(err)
 	}
 
-	batches := createBatches(100, dimensions, make([][]*model.Dimension, 0))
-
-	for _, currentBatch := range batches {
-		log.Debug("Processing dimensions batch", log.Data{
-			"size": len(currentBatch),
-		})
-
-		for _, dimension := range currentBatch {
-
-			if instance.IsDimensionDistinct(event.InstanceID, dimension) {
-				if err := handler.DimensionsStore.CreateUniqueConstraint(dimension); err != nil {
-					log.ErrorC(uniqueConstraintErr, err, nil)
-				}
-			}
-
-			d, err := handler.DimensionsStore.InsertDimension(dimension)
-			if err != nil {
-				log.Debug(insertDimErr, log.Data{
-					logKeys.DimensionID:  d.Dimension_ID,
-					logKeys.ErrorDetails: err.Error(),
-				})
-			}
-
-			if err := handler.ImportAPI.SetDimensionNodeID(event.InstanceID, d); err != nil {
-				log.ErrorC(updateNodeIDErr, err, nil)
+	for _, dimension := range dimensions {
+		if instance.IsDimensionDistinct(event.InstanceID, dimension) {
+			if err := handler.DimensionsStore.CreateUniqueConstraint(dimension); err != nil {
+				log.ErrorC(uniqueConstraintErr, err, nil)
 			}
 		}
 
-		if err := handler.DimensionsStore.RelateDimensionsToInstance(*instance, currentBatch); err != nil {
-			panic(err)
+		d, err := handler.DimensionsStore.InsertDimension(*instance, dimension)
+		if err != nil {
+			log.Debug(insertDimErr, log.Data{
+				logKeys.DimensionID:  d.Dimension_ID,
+				logKeys.ErrorDetails: err.Error(),
+			})
+		}
+
+		if err := handler.ImportAPI.PutDimensionNodeID(event.InstanceID, d); err != nil {
+			log.ErrorC(updateNodeIDErr, err, nil)
 		}
 	}
 
@@ -101,22 +86,8 @@ func (handler *DimensionsExtractedEventHandler) HandleEvent(event model.Dimensio
 		panic(err)
 	}
 
-	log.Debug("Total time to process req", log.Data{
+	logging.Trace.Printf("Event processing complete. %v", log.Data{
 		"dimensions": len(dimensions),
 		"seconds":    time.Since(start).Seconds(),
 	})
-}
-
-func createBatches(batchSize int, input []*model.Dimension, batches [][]*model.Dimension) [][]*model.Dimension {
-	if len(input) == 0 {
-		return batches
-	}
-
-	if len(input) <= batchSize {
-		batches = append(batches, input)
-		return batches
-	}
-
-	batches = append(batches, input[:batchSize])
-	return createBatches(batchSize, input[batchSize:], batches)
 }

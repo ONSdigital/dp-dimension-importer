@@ -2,39 +2,35 @@ package client
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
+	"github.com/ONSdigital/dp-dimension-importer/logging"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 	"io/ioutil"
 	"net/http"
-	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 )
 
-// import API Get DimensionsKey URL format
-const getDimensionsURIFMT = "%s/instances/%s/dimensions"
-const putDimensionNodeIDURI = "%s/instances/%s/dimensions/%s/node_id/%s"
+const (
+	unmarshallingErr      = "Unexpected error while unmarshalling response"
+	unexpectedAPIErr      = "Unexpected error returned when calling Import API: %v"
+	hostConfigMissingErr  = "DimensionsClient requires an API host to be configured"
+	marshalDimensionErr   = "Unexpected error while marshalling dimenison"
+	instanceIDRequiredErr = "instanceID is required but is empty"
 
-// error messages
-const getDimensionsSuccessMsg = "Get Dimensions success"
-const getDimensionsErrMsg = "Get dimensions returned error status"
-const unmarshallingErrMsg = "Unexpected error while unmarshalling response"
-const unexpectedAPIErrMsg = "Unexpected error returned when calling Import API"
-const hostConfigMissingMsg = "DimensionsClient requires an API host to be configured"
-const marshalDimensionErr = "Unexpected error while marshalling dimenison"
-const createSetNodeIDReqErr = "Unexpecter error creating request struct"
-const setDimensionNodeIDErr = "Set Dimension node_id returned error status"
-const setDimensionNodeIDReqErr = "Error sending set Dimension node_id request"
-const setDimNodeIDSuccessMsg = "Set Dimension node_id success"
+	getDimensionsURIFMT  = "%s/instances/%s/dimensions"
+	getDimensionsSuccess = "Import-API Get Dimensions success: %v"
+	getDimensionsErr     = "Get dimensions returned error status"
 
-// errors
-var instanceIDNotFoundErr = errors.New(getDimensionsErrMsg)
-var internalServerErr = errors.New(getDimensionsErrMsg)
-var unexpectedErr = errors.New(getDimensionsErrMsg)
-var missingConfigErr = errors.New("DimensionsClient is missing required configuration.")
-var setDimNodeIdErr = errors.New(setDimensionNodeIDErr)
-var errInstanceIDRequired = errors.New("instanceID is required but is empty")
-
+	createPutNodeIDReqErr  = "Unexpecter error creating request struct: %v"
+	putDimensionNodeIDURI  = "%s/instances/%s/dimensions/%s/node_id/%s"
+	putDimNodeIDSuccessLog = "Import-API PUT dimension node_id success: %v"
+	putDimNodeIDReqErr     = "Error sending set Dimension node_id request: %v"
+	putDimNodeIDErr        = "Set Dimension node_id returned error status: %v"
+	dimensionNilErr        = "Dimension is required but was nil"
+)
+// HTTPClient interface for making HTTP requests.
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
@@ -50,16 +46,17 @@ var httpGet = http.Get
 // respBodyReader abstraction around ioutil.ReadAll to simplify testing / mocking.
 var respBodyReader = ioutil.ReadAll
 
+// ImportAPI provides methods for getting dimensions for a given instanceID and updating the node_id of a specific dimension.
 type ImportAPI struct{}
 
-// Get perform a HTTP GET request to the dp-import-api to retrieve the dataset dimenions for the specified instanceID
+// GetDimensions perform a HTTP GET request to the dp-import-api to retrieve the dataset dimenions for the specified instanceID
 func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error) {
 	if len(Host) == 0 {
-		log.Debug(hostConfigMissingMsg, nil)
-		return nil, missingConfigErr
+		logging.Error.Print(hostConfigMissingErr)
+		return nil, errors.New(hostConfigMissingErr)
 	}
 	if len(instanceID) == 0 {
-		return nil, errInstanceIDRequired
+		return nil, errors.New(instanceIDRequiredErr)
 	}
 
 	url := fmt.Sprintf(getDimensionsURIFMT, Host, instanceID)
@@ -71,7 +68,7 @@ func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error
 	res, err := httpGet(url)
 	if err != nil {
 		data[logKeys.ErrorDetails] = err.Error()
-		log.Debug(unexpectedAPIErrMsg, data)
+		logging.Error.Printf(unexpectedAPIErr, data)
 		return nil, err
 	}
 
@@ -80,16 +77,16 @@ func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error
 
 	switch res.StatusCode {
 	case 200:
-		log.Debug(getDimensionsSuccessMsg, data)
+		logging.Debug.Printf(getDimensionsSuccess, data)
 	case 404:
-		log.Debug(getDimensionsErrMsg, data)
-		return nil, instanceIDNotFoundErr
+		log.Debug(getDimensionsErr, data)
+		return nil, errors.New(getDimensionsErr)
 	case 500:
-		log.Debug(getDimensionsErrMsg, data)
-		return nil, internalServerErr
+		log.Debug(getDimensionsErr, data)
+		return nil, errors.New(getDimensionsErr)
 	default:
-		log.Debug(getDimensionsErrMsg, data)
-		return nil, unexpectedErr
+		log.Debug(getDimensionsErr, data)
+		return nil, errors.New(getDimensionsErr)
 	}
 
 	body, err := respBodyReader(res.Body)
@@ -102,19 +99,22 @@ func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error
 
 	if err != nil {
 		data[logKeys.ErrorDetails] = err.Error()
-		log.Debug(unmarshallingErrMsg, data)
+		log.Debug(unmarshallingErr, data)
 		return nil, err
 	}
 	return dims, nil
 }
-
-func (api ImportAPI) SetDimensionNodeID(instanceID string, d *model.Dimension) error {
+// PutDimensionNodeID make a HTTP put request to update the node_id of the specified dimension.
+func (api ImportAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) error {
 	if len(Host) == 0 {
-		log.Debug(hostConfigMissingMsg, nil)
-		return missingConfigErr
+		logging.Error.Print(hostConfigMissingErr)
+		return errors.New(hostConfigMissingErr)
 	}
 	if len(instanceID) == 0 {
-		return errInstanceIDRequired
+		return errors.New(instanceIDRequiredErr)
+	}
+	if d == nil {
+		return errors.New(dimensionNilErr)
 	}
 
 	logData := make(map[string]interface{}, 0)
@@ -127,13 +127,15 @@ func (api ImportAPI) SetDimensionNodeID(instanceID string, d *model.Dimension) e
 
 	req, err := http.NewRequest(http.MethodPut, url, nil)
 	if err != nil {
-		log.ErrorC(createSetNodeIDReqErr, err, nil)
+		logData[logKeys.ErrorDetails] = err.Error()
+		logging.Error.Printf(createPutNodeIDReqErr, logData)
 		return err
 	}
 
 	resp, err := httpCli.Do(req)
 	if err != nil {
-		log.ErrorC(setDimensionNodeIDReqErr, err, logData)
+		logData[logKeys.ErrorDetails] = err.Error()
+		logging.Error.Printf(putDimNodeIDReqErr, logData)
 		return err
 	}
 
@@ -142,16 +144,16 @@ func (api ImportAPI) SetDimensionNodeID(instanceID string, d *model.Dimension) e
 	logData[logKeys.RespStatusCode] = resp.StatusCode
 	switch resp.StatusCode {
 	case 200:
-		log.Debug(setDimNodeIDSuccessMsg, logData)
+		logging.Debug.Printf(putDimNodeIDSuccessLog, logData)
 		return nil
 	case 404:
-		log.Debug(setDimensionNodeIDErr, logData)
-		return setDimNodeIdErr
+		logging.Error.Printf(putDimNodeIDErr, logData)
+		return errors.New(putDimNodeIDErr)
 	case 500:
-		log.Debug(setDimensionNodeIDErr, logData)
-		return setDimNodeIdErr
+		logging.Error.Printf(putDimNodeIDErr, logData)
+		return errors.New(putDimNodeIDErr)
 	default:
-		log.Debug(setDimensionNodeIDErr, logData)
-		return setDimNodeIdErr
+		logging.Error.Printf(putDimNodeIDErr, logData)
+		return errors.New(putDimNodeIDErr)
 	}
 }

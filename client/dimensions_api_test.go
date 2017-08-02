@@ -12,6 +12,7 @@ import (
 	"testing"
 	"reflect"
 	"errors"
+	"github.com/ONSdigital/dp-dimension-importer/logging"
 )
 
 const host = "http://localhost:8080"
@@ -27,8 +28,10 @@ var importAPI = ImportAPI{}
 
 func TestGetDimensions(t *testing.T) {
 
+	logging.Init(ioutil.Discard, ioutil.Discard, ioutil.Discard)
+
 	Convey("Given the client has not been configured", t, func() {
-		mock := mockIt(&Mock{
+		mock := mockIt(&GetDimensionsMock{
 			StatusCode:   200,
 			Error:        nil,
 			Body:         nil,
@@ -45,7 +48,7 @@ func TestGetDimensions(t *testing.T) {
 			dims, err := importAPI.GetDimensions(instanceID)
 
 			Convey("Then no dimenions and the appropriate error are returned.", func() {
-				So(err, ShouldResemble, missingConfigErr)
+				So(err, ShouldResemble, errors.New(hostConfigMissingErr))
 				So(dims, ShouldEqual, nil)
 			})
 
@@ -60,7 +63,7 @@ func TestGetDimensions(t *testing.T) {
 		Convey("When the client called with a valid instanceID", func() {
 			body, _ = json.Marshal(expectedDimensions)
 
-			mock := mockIt(&Mock{
+			mock := mockIt(&GetDimensionsMock{
 				StatusCode:   200,
 				Error:        nil,
 				Body:         dimensionsBytes(expectedDimensions),
@@ -88,7 +91,7 @@ func TestGetDimensions(t *testing.T) {
 		})
 
 		Convey("When the client is called with an empty instanceID value", func() {
-			mock := mockIt(&Mock{
+			mock := mockIt(&GetDimensionsMock{
 				StatusCode:   0,
 				Body:         nil,
 				HTTPGetCount: 0,
@@ -100,7 +103,7 @@ func TestGetDimensions(t *testing.T) {
 			dims, err := importAPI.GetDimensions("")
 
 			Convey("Then an appropriate error is returned", func() {
-				So(err, ShouldEqual, errInstanceIDRequired)
+				So(err, ShouldResemble, errors.New(instanceIDRequiredErr))
 			})
 
 			Convey("And no dimensions are returned", func() {
@@ -115,7 +118,7 @@ func TestGetDimensions(t *testing.T) {
 		})
 
 		Convey("When the client is invoked and returns a 404 response status", func() {
-			mock := mockIt(&Mock{
+			mock := mockIt(&GetDimensionsMock{
 				StatusCode:   404,
 				Body:         nil,
 				HTTPGetCount: 0,
@@ -131,7 +134,7 @@ func TestGetDimensions(t *testing.T) {
 			})
 
 			Convey("And no dimensions are returned along with the appropriate error", func() {
-				So(err, ShouldResemble, instanceIDNotFoundErr)
+				So(err, ShouldResemble, errors.New(getDimensionsErr))
 				So(dims, ShouldEqual, nil)
 			})
 
@@ -141,7 +144,7 @@ func TestGetDimensions(t *testing.T) {
 		})
 
 		Convey("When the client is invoked and returns a 500 response status", func() {
-			mock := mockIt(&Mock{
+			mock := mockIt(&GetDimensionsMock{
 				StatusCode:   500,
 				Body:         nil,
 				HTTPGetCount: 0,
@@ -157,7 +160,7 @@ func TestGetDimensions(t *testing.T) {
 			})
 
 			Convey("And no dimensions are returned along with the appropriate error", func() {
-				So(err, ShouldResemble, internalServerErr)
+				So(err, ShouldResemble, errors.New(getDimensionsErr))
 				So(dims, ShouldEqual, nil)
 			})
 
@@ -167,7 +170,7 @@ func TestGetDimensions(t *testing.T) {
 		})
 
 		Convey("When the client returns an unexpected HTTP status code", func() {
-			mock := mockIt(&Mock{
+			mock := mockIt(&GetDimensionsMock{
 				StatusCode:   503,
 				Body:         nil,
 				HTTPGetCount: 0,
@@ -188,14 +191,14 @@ func TestGetDimensions(t *testing.T) {
 
 			Convey("And no dimensions and the appropriate error are returned", func() {
 				So(dims, ShouldEqual, nil)
-				So(err, ShouldEqual, unexpectedErr)
+				So(err, ShouldResemble, errors.New(getDimensionsErr))
 			})
 		})
 
 		Convey("When the client is invoked and the HTTP request returns an error", func() {
 			expectedErr := errors.New("Unexpected error")
 
-			mock := mockIt(&Mock{
+			mock := mockIt(&GetDimensionsMock{
 				StatusCode:   500,
 				Body:         nil,
 				HTTPGetCount: 0,
@@ -223,7 +226,7 @@ func TestGetDimensions(t *testing.T) {
 		Convey("When unmarshalling the response returns an error", func() {
 			junkBody := []byte("This is not a dimension")
 
-			mock := mockIt(&Mock{
+			mock := mockIt(&GetDimensionsMock{
 				StatusCode:   200,
 				Body:         junkBody,
 				HTTPGetCount: 0,
@@ -255,7 +258,7 @@ func TestGetDimensions(t *testing.T) {
 		Convey("When reading the response body return an error", func() {
 			readBodyErr := errors.New("Read body error")
 
-			mock := mockIt(&Mock{
+			mock := mockIt(&GetDimensionsMock{
 				StatusCode:   200,
 				Body:         nil,
 				HTTPGetCount: 0,
@@ -288,19 +291,147 @@ func TestImportAPI_SetDimensionNodeID(t *testing.T) {
 
 	Convey("Given no Host has been set", t, func() {
 		Host = ""
+		httpCliMock := &httpClientMock{}
+		httpCli = httpCliMock
 
-		Convey("When SetDimensionNodeID is invoked", func() {
+		Convey("When PutDimensionNodeID is invoked", func() {
 			api := ImportAPI{}
-			err := api.SetDimensionNodeID(instanceID, nil)
+			err := api.PutDimensionNodeID(instanceID, nil)
 
-			Convey("The a a missing config error is returned", func() {
+			Convey("Then a a missing config error is returned", func() {
+				So(err, ShouldResemble, errors.New(hostConfigMissingErr))
+			})
 
+			Convey("And httpClient is never invoked", func() {
+				So(httpCliMock.invocations, ShouldEqual, 0)
+			})
+		})
+	})
+
+	Convey("Given the client has been correctly configured.", t, func() {
+		Host = "http://localhost:8080/test"
+		httpCliMock := &httpClientMock{}
+		httpCli = httpCliMock
+
+		Convey("When PutDimensionNodeID is invoked with an empty instanceID", func() {
+			api := ImportAPI{}
+			err := api.PutDimensionNodeID("", nil)
+
+			Convey("Then a a missing config error is returned", func() {
+				So(err, ShouldResemble, errors.New(instanceIDRequiredErr))
+			})
+
+			Convey("And httpClient is never invoked", func() {
+				So(httpCliMock.invocations, ShouldEqual, 0)
+			})
+		})
+
+		Convey("When PutDimensionNodeID is invoked with an empty dimension", func() {
+			httpCliMock := &httpClientMock{}
+			httpCli = httpCliMock
+
+			api := ImportAPI{}
+			err := api.PutDimensionNodeID("1234", nil)
+
+			Convey("Then the expected error is returned.", func() {
+				So(err, ShouldResemble, errors.New(dimensionNilErr))
+			})
+
+			Convey("And httpClient is never invoked", func() {
+				So(httpCliMock.invocations, ShouldEqual, 0)
+			})
+		})
+
+		Convey("When httpClient returns an error", func() {
+			expected := errors.New("HttpCli error")
+
+			httpCliMock := &httpClientMock{}
+			httpCli = httpCliMock
+			httpCliMock.WhenDoReturn(nil, expected)
+
+			api := ImportAPI{}
+			err := api.PutDimensionNodeID("1234", dimensionOne)
+
+			Convey("Then the expected error is returned.", func() {
+				So(err, ShouldResemble, expected)
+			})
+
+			Convey("And httpClient is invoked 1 time", func() {
+				So(httpCliMock.invocations, ShouldEqual, 1)
+			})
+		})
+
+		Convey("When http client returns a 200 status", func() {
+			httpCliMock := &httpClientMock{}
+			httpCli = httpCliMock
+			httpCliMock.WhenDoReturn(MockResponse(200), nil)
+
+			api := ImportAPI{}
+			err := api.PutDimensionNodeID(instanceID, dimensionOne)
+
+			Convey("Then httpClient has been invoked 1 time", func() {
+				So(httpCliMock.invocations, ShouldEqual, 1)
+			})
+
+			Convey("And no error is returned", func() {
+				So(err, ShouldEqual, nil)
+			})
+		})
+
+		Convey("When http client returns a 404 status", func() {
+			httpCliMock := &httpClientMock{}
+			httpCli = httpCliMock
+			httpCliMock.WhenDoReturn(MockResponse(404), nil)
+
+			api := ImportAPI{}
+			err := api.PutDimensionNodeID(instanceID, dimensionOne)
+
+			Convey("Then httpClient has been invoked 1 time", func() {
+				So(httpCliMock.invocations, ShouldEqual, 1)
+			})
+
+			Convey("And the expected error is returned", func() {
+				So(err, ShouldResemble, errors.New(putDimNodeIDErr))
+			})
+		})
+
+		Convey("When http client return a 500 status", func() {
+			httpCliMock := &httpClientMock{}
+			httpCli = httpCliMock
+			httpCliMock.WhenDoReturn(MockResponse(500), nil)
+
+			api := ImportAPI{}
+			err := api.PutDimensionNodeID(instanceID, dimensionOne)
+
+			Convey("Then httpClient has been invoked 1 time", func() {
+				So(httpCliMock.invocations, ShouldEqual, 1)
+			})
+
+			Convey("And the expected error is returned", func() {
+				So(err, ShouldResemble, errors.New(putDimNodeIDErr))
+			})
+		})
+
+		Convey("When http client returns an unexpected HTTP status", func() {
+			httpCliMock := &httpClientMock{}
+			httpCli = httpCliMock
+			httpCliMock.WhenDoReturn(MockResponse(503), nil)
+
+			api := ImportAPI{}
+			err := api.PutDimensionNodeID(instanceID, dimensionOne)
+
+			Convey("Then httpClient has been invoked 1 time", func() {
+				So(httpCliMock.invocations, ShouldEqual, 1)
+			})
+
+			Convey("And the expected error is returned", func() {
+				So(err, ShouldResemble, errors.New(putDimNodeIDErr))
 			})
 		})
 	})
 }
 
-func mockIt(m *Mock) *Mock {
+func mockIt(m *GetDimensionsMock) *GetDimensionsMock {
 	m.ReaderCount = 0
 	m.HTTPGetCount = 0
 
@@ -310,7 +441,7 @@ func mockIt(m *Mock) *Mock {
 	return m
 }
 
-type Mock struct {
+type GetDimensionsMock struct {
 	StatusCode   int
 	HTTPGetCount int
 	ReaderCount  int
@@ -320,7 +451,7 @@ type Mock struct {
 	Reader       func(reader io.Reader) ([]byte, error)
 }
 
-func (m *Mock) httpGet() func(string) (*http.Response, error) {
+func (m *GetDimensionsMock) httpGet() func(string) (*http.Response, error) {
 	m.HTTPGetCount = 0
 	reader := bytes.NewReader(m.Body)
 	readCloser := ioutil.NopCloser(reader)
@@ -335,7 +466,7 @@ func (m *Mock) httpGet() func(string) (*http.Response, error) {
 	}
 }
 
-func (m *Mock) MockReader(reader io.Reader) ([]byte, error) {
+func (m *GetDimensionsMock) MockReader(reader io.Reader) ([]byte, error) {
 	m.ReaderCount++
 	return m.Reader(reader)
 }
@@ -343,4 +474,26 @@ func (m *Mock) MockReader(reader io.Reader) ([]byte, error) {
 func dimensionsBytes(d []*model.Dimension) []byte {
 	body, _ = json.Marshal(expectedDimensions)
 	return body
+}
+
+type httpClientMock struct {
+	response    *http.Response
+	err         error
+	invocations int
+}
+
+func (cli *httpClientMock) WhenDoReturn(r *http.Response, err error) {
+	cli.response = r
+	cli.err = err
+}
+
+func (cli *httpClientMock) Do(req *http.Request) (*http.Response, error) {
+	cli.invocations = cli.invocations + 1
+	return cli.response, cli.err
+}
+
+func MockResponse(statusCode int) *http.Response {
+	reader := bytes.NewReader(make([]byte, 0))
+	readCloser := ioutil.NopCloser(reader)
+	return &http.Response{Body: readCloser, StatusCode: statusCode}
 }
