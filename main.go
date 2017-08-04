@@ -7,9 +7,9 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/handler"
 	"github.com/ONSdigital/dp-dimension-importer/message"
+	"github.com/ONSdigital/dp-dimension-importer/repository"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"github.com/ONSdigital/dp-dimension-importer/repository"
 )
 
 var incomingKafka chan kafka.Message

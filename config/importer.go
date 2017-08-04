@@ -6,6 +6,7 @@ import (
 	"github.com/ian-kent/gofigure"
 )
 
+// Config struct to hold application configuration.
 type Config struct {
 	BindAddr                 string   `env:"BIND_ADDR" flag:"bind-addr" flagDesc:"The port to bind to."`
 	KafkaAddr                []string `env:"KAFKA_ADDR" flag:"kafka-addr" flagDesc:"The address of Kafka topic for inbound messages."`
@@ -21,6 +22,7 @@ func (c *Config) String() string {
 	return string(b)
 }
 
+// Load load the configuration & apply defaults where necessary
 func Load() (*Config, error) {
 	cfg := Config{
 		BindAddr:                 ":21000",

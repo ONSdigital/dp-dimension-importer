@@ -13,20 +13,20 @@ import (
 
 const (
 	unmarshallingErr      = "Unexpected error while unmarshalling response"
-	unexpectedAPIErr      = "Unexpected error returned when calling Import API: %v"
+	unexpectedAPIErr      = "Unexpected error returned when calling Import API"
 	hostConfigMissingErr  = "DimensionsClient requires an API host to be configured"
 	marshalDimensionErr   = "Unexpected error while marshalling dimenison"
 	instanceIDRequiredErr = "instanceID is required but is empty"
 
 	getDimensionsURIFMT  = "%s/instances/%s/dimensions"
-	getDimensionsSuccess = "Import-API Get Dimensions success: %v"
+	getDimensionsSuccess = "Import-API Get Dimensions success"
 	getDimensionsErr     = "Get dimensions returned error status"
 
-	createPutNodeIDReqErr  = "Unexpecter error creating request struct: %v"
+	createPutNodeIDReqErr  = "Unexpecter error creating request struct"
 	putDimensionNodeIDURI  = "%s/instances/%s/dimensions/%s/node_id/%s"
-	putDimNodeIDSuccessLog = "Import-API PUT dimension node_id success: %v"
-	putDimNodeIDReqErr     = "Error sending set Dimension node_id request: %v"
-	putDimNodeIDErr        = "Set Dimension node_id returned error status: %v"
+	putDimNodeIDSuccessLog = "Import-API PUT dimension node_id success"
+	putDimNodeIDReqErr     = "Error sending set Dimension node_id request"
+	putDimNodeIDErr        = "Set Dimension node_id returned error status"
 	dimensionNilErr        = "Dimension is required but was nil"
 )
 
@@ -76,18 +76,10 @@ func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error
 	data[logKeys.RespStatusCode] = res.StatusCode
 	defer res.Body.Close()
 
-	switch res.StatusCode {
-	case 200:
-		log.Debug(getDimensionsSuccess, data)
-	case 404:
-		log.Debug(getDimensionsErr, data)
-		return nil, errors.New(getDimensionsErr)
-	case 500:
-		log.Debug(getDimensionsErr, data)
-		return nil, errors.New(getDimensionsErr)
-	default:
-		log.Debug(getDimensionsErr, data)
-		return nil, errors.New(getDimensionsErr)
+	if res.StatusCode != 200 {
+		err := errors.New(getDimensionsErr)
+		log.ErrorC(getDimensionsErr, err, data)
+		return nil, err
 	}
 
 	body, err := respBodyReader(res.Body)
@@ -103,6 +95,8 @@ func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error
 		log.Debug(unmarshallingErr, data)
 		return nil, err
 	}
+
+	log.Debug(getDimensionsSuccess, data)
 	return dims, nil
 }
 
@@ -122,10 +116,10 @@ func (api ImportAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) e
 
 	logData := make(map[string]interface{}, 0)
 	logData[logKeys.InstanceID] = instanceID
-	logData[logKeys.DimensionsKey] = d.Dimension_ID
-	logData[logKeys.NodeID] = d.NodeId
+	logData[logKeys.DimensionsKey] = d.DimensionID
+	logData[logKeys.NodeID] = d.NodeID
 
-	url := fmt.Sprintf(putDimensionNodeIDURI, Host, instanceID, d.Dimension_ID, d.NodeId)
+	url := fmt.Sprintf(putDimensionNodeIDURI, Host, instanceID, d.DimensionID, d.NodeID)
 	logData[logKeys.URL] = url
 
 	req, err := http.NewRequest(http.MethodPut, url, nil)
@@ -145,11 +139,12 @@ func (api ImportAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) e
 	defer resp.Body.Close()
 	logData[logKeys.RespStatusCode] = resp.StatusCode
 
-	if resp.StatusCode == 200 {
-		log.Debug(putDimNodeIDSuccessLog, logData)
-		return nil
+	if resp.StatusCode != 200 {
+		err = errors.New(putDimNodeIDErr)
+		log.ErrorC(putDimNodeIDErr, err, logData)
+		return err
 	}
-	err = errors.New(putDimNodeIDErr)
-	log.ErrorC(putDimNodeIDErr, err, logData)
-	return err
+
+	//log.Debug(putDimNodeIDSuccessLog, logData)
+	return nil
 }

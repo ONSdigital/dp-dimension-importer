@@ -3,17 +3,19 @@ package message
 import (
 	"fmt"
 
+	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 )
 
+// EventHandler defines an EventHandler.
 type EventHandler interface {
 	HandleEvent(event model.DimensionsExtractedEvent) error
 }
 
+// Consume consume incoming kafka messages delegating to the appropriate EventHandler or handling errors.
 func Consume(consumer kafka.MessageConsumer, eventHandler EventHandler) error {
 	exitChannel := make(chan error)
 	go func() {

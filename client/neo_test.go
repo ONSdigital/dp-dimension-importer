@@ -1,19 +1,19 @@
 package client
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 	"errors"
+	"fmt"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	"fmt"
+	. "github.com/smartystreets/goconvey/convey"
+	"testing"
 )
 
 var (
 	dim = &model.Dimension{
-		Dimension_ID: "_123456789_Geography",
+		DimensionID: "_123456789_Geography",
 		Value:        "UK",
-		NodeId:       "1",
+		NodeID:       "1",
 	}
 )
 

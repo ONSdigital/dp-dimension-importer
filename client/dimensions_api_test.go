@@ -3,22 +3,22 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	. "github.com/smartystreets/goconvey/convey"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"testing"
 	"reflect"
-	"errors"
+	"testing"
 )
 
 const host = "http://localhost:8080"
 const instanceID = "1234567890"
 
-var dimensionOne = &model.Dimension{Dimension_ID: "666_SEX_MALE", NodeId: "1111", Value: "Male"}
-var dimensionTwo = &model.Dimension{Dimension_ID: "666_SEX_FEMALE", NodeId: "1112", Value: "Female"}
+var dimensionOne = &model.Dimension{DimensionID: "666_SEX_MALE", NodeID: "1111", Value: "Male"}
+var dimensionTwo = &model.Dimension{DimensionID: "666_SEX_FEMALE", NodeID: "1112", Value: "Female"}
 var expectedDimensions = []*model.Dimension{dimensionOne, dimensionTwo}
 
 var body []byte

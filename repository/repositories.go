@@ -1,9 +1,9 @@
 package repository
 
 import (
+	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
-	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 )
 
 const uniqueConstraintErr = "Unexected error while attempting to create unique Dimension ID constaint."
@@ -38,19 +38,19 @@ type DimensionRepository struct {
 }
 
 func (repo DimensionRepository) Insert(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
-	if _, exists := repo.ConstraintsCache[dimension.Dimension_ID]; !exists {
+	if _, exists := repo.ConstraintsCache[dimension.DimensionID]; !exists {
 		if err := repo.Database.CreateUniqueConstraint(dimension); err != nil {
 			log.ErrorC(uniqueConstraintErr, err, nil)
 			return nil, err
 		}
-		repo.ConstraintsCache[dimension.Dimension_ID] = dimension.Dimension_ID
+		repo.ConstraintsCache[dimension.DimensionID] = dimension.DimensionID
 		instance.AddDimension(dimension)
 	}
 
 	dimension, err := repo.Database.InsertDimension(instance, dimension)
 	if err != nil {
 		log.Debug(insertDimErr, log.Data{
-			logKeys.DimensionID:  dimension.Dimension_ID,
+			logKeys.DimensionID:  dimension.DimensionID,
 			logKeys.ErrorDetails: err.Error(),
 		})
 		return nil, err

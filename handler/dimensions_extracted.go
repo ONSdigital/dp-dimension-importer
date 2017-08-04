@@ -1,11 +1,11 @@
 package handler
 
 import (
+	"errors"
+	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
-	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"time"
-	"errors"
 )
 
 //go:generate moq -out generated_mocks.go . ImportAPIClient InstanceRepository DimensionRepository
@@ -17,22 +17,25 @@ const (
 	createInstanceErr   = "Unexpected error while attempting to create instance"
 	importAPINilErr     = "DimensionsExtractedEventHandler.ImportAPI expected but was nil"
 	createDimRepoNilErr = "DimensionsExtractedEventHandler.CreateDimensionRepository expected but was nil"
-	InstanceRepoNilErr  = "DimensionsExtractedEventHandler.InstanceRepository expected but was nil"
+	instanceRepoNilErr  = "DimensionsExtractedEventHandler.InstanceRepository expected but was nil"
 	instanceIDNilErr    = "DimensionsExtractedEvent.InstanceID is required but was nil"
 	insertDimErr        = "Error while attempting to insert dimension"
 	addInsanceDimsErr   = "InstanceRepository.AddDimensions returned an error"
 )
 
+// ImportAPIClient defines interface of an Import API client,
 type ImportAPIClient interface {
 	GetDimensions(instanceID string) ([]*model.Dimension, error)
 	PutDimensionNodeID(instanceID string, dimension *model.Dimension) error
 }
 
+// InstanceRepository defines an Instance repository
 type InstanceRepository interface {
 	Create(instance *model.Instance) error
 	AddDimensions(instance *model.Instance) error
 }
 
+// DimensionRepository defines a Dimensions repository
 type DimensionRepository interface {
 	Insert(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error)
 }
@@ -52,7 +55,7 @@ func (hdlr *DimensionsExtractedEventHandler) HandleEvent(event model.DimensionsE
 		return errors.New(importAPINilErr)
 	}
 	if hdlr.InstanceRepository == nil {
-		return errors.New(InstanceRepoNilErr)
+		return errors.New(instanceRepoNilErr)
 	}
 	if hdlr.CreateDimensionRepository == nil {
 		return errors.New(createDimRepoNilErr)
@@ -75,8 +78,8 @@ func (hdlr *DimensionsExtractedEventHandler) HandleEvent(event model.DimensionsE
 	}
 
 	logData[logKeys.DimensionsCount] = len(dimensions)
-
 	instance := &model.Instance{InstanceID: event.InstanceID, Dimensions: make([]interface{}, 0)}
+
 	if err := hdlr.InstanceRepository.Create(instance); err != nil {
 		log.ErrorC(createInstanceErr, err, logData)
 		return errors.New(createInstanceErr)
@@ -85,7 +88,7 @@ func (hdlr *DimensionsExtractedEventHandler) HandleEvent(event model.DimensionsE
 	dimensionRepository := hdlr.CreateDimensionRepository()
 	for _, dimension := range dimensions {
 		if dimension, err = dimensionRepository.Insert(instance, dimension); err != nil {
-			logData[logKeys.DimensionID] = dimension.Dimension_ID
+			logData[logKeys.DimensionID] = dimension.DimensionID
 			log.ErrorC(insertDimErr, err, nil)
 			return err
 		}
