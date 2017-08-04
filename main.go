@@ -9,7 +9,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"github.com/ONSdigital/dp-dimension-importer/logging"
+	"github.com/ONSdigital/dp-dimension-importer/repository"
 )
 
 var incomingKafka chan kafka.Message
@@ -21,8 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logging.Init(cfg.LogLevel)
-	logging.Debug.Printf("Application configuration:, %v", cfg)
+	log.Debug("Application configuration", log.Data{"config": cfg})
 
 	consumer, err := kafka.NewConsumerGroup(cfg.KafkaAddr, cfg.DimensionsExtractedTopic, log.Namespace, kafka.OffsetNewest)
 	if err != nil {
@@ -31,12 +30,19 @@ func main() {
 	}
 
 	client.Host = cfg.ImportAddr
-	database := client.InitialiseDatabaseClient(cfg.DatabaseURL, cfg.PoolSize)
+	database := client.NewDatabase(cfg.DatabaseURL, cfg.PoolSize)
+
+	createDimensionRepoFunc := func() handler.DimensionRepository {
+		return repository.DimensionRepository{
+			Database:         database,
+			ConstraintsCache: map[string]string{},
+		}
+	}
 
 	eventHandler := &handler.DimensionsExtractedEventHandler{
-		DimensionsStore: database,
-		ImportAPI:       client.ImportAPI{},
-		BatchSize:       100, // TODO Move to config
+		CreateDimensionRepository: createDimensionRepoFunc,
+		InstanceRepository:        &repository.InstanceRepository{Database: database},
+		ImportAPI:                 client.ImportAPI{},
 	}
 
 	err = message.Consume(consumer, eventHandler)

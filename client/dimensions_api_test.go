@@ -12,7 +12,6 @@ import (
 	"testing"
 	"reflect"
 	"errors"
-	"github.com/ONSdigital/dp-dimension-importer/logging"
 )
 
 const host = "http://localhost:8080"
@@ -27,8 +26,6 @@ var body []byte
 var importAPI = ImportAPI{}
 
 func TestGetDimensions(t *testing.T) {
-
-	logging.Init(logging.DebugLevel)
 
 	Convey("Given the client has not been configured", t, func() {
 		mock := mockIt(&GetDimensionsMock{

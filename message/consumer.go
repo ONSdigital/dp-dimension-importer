@@ -11,7 +11,7 @@ import (
 )
 
 type EventHandler interface {
-	HandleEvent(event model.DimensionsExtractedEvent)
+	HandleEvent(event model.DimensionsExtractedEvent) error
 }
 
 func Consume(consumer kafka.MessageConsumer, eventHandler EventHandler) error {

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
-	"github.com/ONSdigital/dp-dimension-importer/logging"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
 	"io/ioutil"
@@ -30,6 +29,7 @@ const (
 	putDimNodeIDErr        = "Set Dimension node_id returned error status: %v"
 	dimensionNilErr        = "Dimension is required but was nil"
 )
+
 // HTTPClient interface for making HTTP requests.
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
@@ -52,8 +52,9 @@ type ImportAPI struct{}
 // GetDimensions perform a HTTP GET request to the dp-import-api to retrieve the dataset dimenions for the specified instanceID
 func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error) {
 	if len(Host) == 0 {
-		logging.Error.Print(hostConfigMissingErr)
-		return nil, errors.New(hostConfigMissingErr)
+		err := errors.New(hostConfigMissingErr)
+		log.ErrorC(hostConfigMissingErr, err, nil)
+		return nil, err
 	}
 	if len(instanceID) == 0 {
 		return nil, errors.New(instanceIDRequiredErr)
@@ -68,7 +69,7 @@ func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error
 	res, err := httpGet(url)
 	if err != nil {
 		data[logKeys.ErrorDetails] = err.Error()
-		logging.Error.Printf(unexpectedAPIErr, data)
+		log.ErrorC(unexpectedAPIErr, err, data)
 		return nil, err
 	}
 
@@ -77,7 +78,7 @@ func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error
 
 	switch res.StatusCode {
 	case 200:
-		logging.Debug.Printf(getDimensionsSuccess, data)
+		log.Debug(getDimensionsSuccess, data)
 	case 404:
 		log.Debug(getDimensionsErr, data)
 		return nil, errors.New(getDimensionsErr)
@@ -104,11 +105,13 @@ func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error
 	}
 	return dims, nil
 }
+
 // PutDimensionNodeID make a HTTP put request to update the node_id of the specified dimension.
 func (api ImportAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) error {
 	if len(Host) == 0 {
-		logging.Error.Print(hostConfigMissingErr)
-		return errors.New(hostConfigMissingErr)
+		err := errors.New(hostConfigMissingErr)
+		log.ErrorC(hostConfigMissingErr, err, nil)
+		return err
 	}
 	if len(instanceID) == 0 {
 		return errors.New(instanceIDRequiredErr)
@@ -128,32 +131,25 @@ func (api ImportAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) e
 	req, err := http.NewRequest(http.MethodPut, url, nil)
 	if err != nil {
 		logData[logKeys.ErrorDetails] = err.Error()
-		logging.Error.Printf(createPutNodeIDReqErr, logData)
+		log.ErrorC(createPutNodeIDReqErr, err, logData)
 		return err
 	}
 
 	resp, err := httpCli.Do(req)
 	if err != nil {
 		logData[logKeys.ErrorDetails] = err.Error()
-		logging.Error.Printf(putDimNodeIDReqErr, logData)
+		log.ErrorC(putDimNodeIDReqErr, err, logData)
 		return err
 	}
 
 	defer resp.Body.Close()
-
 	logData[logKeys.RespStatusCode] = resp.StatusCode
-	switch resp.StatusCode {
-	case 200:
-		logging.Debug.Printf(putDimNodeIDSuccessLog, logData)
+
+	if resp.StatusCode == 200 {
+		log.Debug(putDimNodeIDSuccessLog, logData)
 		return nil
-	case 404:
-		logging.Error.Printf(putDimNodeIDErr, logData)
-		return errors.New(putDimNodeIDErr)
-	case 500:
-		logging.Error.Printf(putDimNodeIDErr, logData)
-		return errors.New(putDimNodeIDErr)
-	default:
-		logging.Error.Printf(putDimNodeIDErr, logData)
-		return errors.New(putDimNodeIDErr)
 	}
+	err = errors.New(putDimNodeIDErr)
+	log.ErrorC(putDimNodeIDErr, err, logData)
+	return err
 }

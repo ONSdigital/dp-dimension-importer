@@ -3,7 +3,6 @@ package client
 import (
 	"fmt"
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
-	"github.com/ONSdigital/dp-dimension-importer/logging"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
@@ -12,6 +11,21 @@ import (
 	"strconv"
 	"sync"
 )
+
+//go:generate moq -out generated_bolt_mocks.go . NeoConn NeoDriverPool NeoStmt
+
+// NeoConn type to easliy allow MOQ to generate a mock from the bolt.Conn interface
+type NeoConn bolt.Conn
+
+// NeoStmt type to easliy allow MOQ to generate a mock from the bolt.Stmt interface
+type NeoStmt bolt.Stmt
+
+type NeoDriverPool interface {
+	OpenPool() (bolt.Conn, error)
+}
+
+// Neo4j client provides functions for inserting dimension, instances and relationships into a Neo4j database.
+type Neo4j struct{}
 
 const (
 	// Create a unique constraint on the dimension type value.
@@ -41,29 +55,22 @@ const (
 	dimensionInvalidErr       = "Dimension invalid: both dimension.dimension_id and dimension.value are required but were both empty"
 	dimensionRequiredErr      = "Dimension is required but was nil"
 	nodeIDCastErr             = "Unexpected error while casting NodeID to int64"
+	instanceIDReqErr          = "Instance.InstanceID is required but was empty"
 )
 
 var (
-	once          sync.Once
-	driverPool    bolt.DriverPool
+	once sync.Once
+	//driverPool    bolt.DriverPool
 	neoDriverPool NeoDriverPool
 )
 
-type NeoDriverPool interface {
-	OpenPool() (bolt.Conn, error)
-}
-
-// Neo4j client provides functions for inserting dimension, instances and relationships into a Neo4j database.
-type Neo4j struct{}
-
-// InitialiseDatabaseClient creates a new instance of the Neo4j client and does the initial setup required for the
+// NewDatabase creates a new instance of the Neo4j client and does the initial setup required for the
 // client to connect to the database instance.
-func InitialiseDatabaseClient(url string, poolSize int) Neo4j {
+func NewDatabase(url string, poolSize int) Neo4j {
 	once.Do(func() {
-		//var pool NeoDriverPool
 		pool, err := bolt.NewDriverPool(url, poolSize)
 		if err != nil {
-			logging.Error.Printf(errDrivePoolInit, log.Data{
+			log.ErrorC(errDrivePoolInit, err, log.Data{
 				logKeys.URL:      url,
 				logKeys.PoolSize: poolSize,
 			})
@@ -74,19 +81,19 @@ func InitialiseDatabaseClient(url string, poolSize int) Neo4j {
 	return Neo4j{}
 }
 
-func (neo Neo4j) InsertDimension(i model.Instance, d *model.Dimension) (*model.Dimension, error) {
+func (neo Neo4j) InsertDimension(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 	logData := log.Data{
-		logKeys.DimensionID: d.Dimension_ID,
-		valueKey:            d.Value,
+		logKeys.DimensionID: dimension.Dimension_ID,
+		valueKey:            dimension.Value,
 	}
 
 	var err error
-	if err = validate(d); err != nil {
+	if err = validate(dimension); err != nil {
 		log.ErrorC(insertDimValidationMsg, err, logData)
 		return nil, err
 	}
 
-	params := map[string]interface{}{valueKey: d.Value}
+	params := map[string]interface{}{valueKey: dimension.Value}
 	logData[stmtParamsKey] = params
 
 	var conn bolt.Conn
@@ -97,8 +104,7 @@ func (neo Neo4j) InsertDimension(i model.Instance, d *model.Dimension) (*model.D
 	defer conn.Close()
 
 	var neoStmt bolt.Stmt
-	args := []interface{}{i.GetInstanceLabel(), d.GetDimensionLabel()}
-	if neoStmt, err = neo.createStmt(conn, logData, createDimensionAndInstanceRelStmt, args); err != nil {
+	if neoStmt, err = neo.createStmt(conn, logData, createDimensionAndInstanceRelStmt, instance.GetLabel(), dimension.GetLabel()); err != nil {
 		return nil, err
 	}
 	defer neoStmt.Close()
@@ -121,61 +127,66 @@ func (neo Neo4j) InsertDimension(i model.Instance, d *model.Dimension) (*model.D
 	if !ok {
 		return nil, errors.New(nodeIDCastErr)
 	}
-	d.NodeId = strconv.FormatInt(nodeID, 10)
-	//logData[logKeys.NodeID] = nodeID
-	//log.Debug(insertDimSuccessMsg, logData)
-	logging.Debug.Print(insertDimSuccessMsg)
-	return d, nil
+	dimension.NodeId = strconv.FormatInt(nodeID, 10)
+	logData[logKeys.NodeID] = nodeID
+	log.Debug(insertDimSuccessMsg, logData)
+
+	return dimension, nil
 }
 
 // CreateUniqueConstraint create a unique constrain on the Demension entity name and the value property.
-func (neo Neo4j) CreateUniqueConstraint(d *model.Dimension) error {
-	if err := validate(d); err != nil {
-		logging.Error.Print(dimensionRequiredErr)
+func (neo Neo4j) CreateUniqueConstraint(dimension *model.Dimension) error {
+	if err := validate(dimension); err != nil {
+		log.ErrorC(dimensionRequiredErr, err, nil)
 		return err
 	}
 
 	logDebug := log.Data{
-		logKeys.DimensionID: d.GetDimensionLabel(),
+		logKeys.DimensionID: dimension.GetLabel(),
 		stmtKey:             uniqueDimConstStmt,
 	}
-	logging.Debug.Printf("Creating unique constraint on dimension: %v", logDebug)
+	log.Debug("Creating unique constraint on dimension", logDebug)
 
 	var err error
 	var conn bolt.Conn
 	if conn, err = neoDriverPool.OpenPool(); err != nil {
-		logging.Error.Printf(openConnErrMsg, err)
-		return err
-	}
-	defer conn.Close()
-
-	var neoStmt bolt.Stmt
-	if neoStmt, err = neo.createStmt(conn, logDebug, uniqueDimConstStmt, []interface{}{d.GetDimensionLabel()}); err != nil {
-		logging.Error.Printf("Error creating Neo Statment: %v", err)
-		return err
-	}
-	defer neoStmt.Close()
-
-	if _, err = neoStmt.ExecNeo(nil); err != nil {
-		logDebug[logKeys.ErrorDetails] = err.Error()
-		logging.Error.Printf("Error executing unique constraint Statment: %v", logDebug)
-		return err
-	}
-	return nil
-}
-
-func (neo Neo4j) CreateInstance(instance model.Instance) error {
-	logDebug := make(map[string]interface{})
-	var err error
-	var conn bolt.Conn
-	if conn, err = driverPool.OpenPool(); err != nil {
 		log.ErrorC(openConnErrMsg, err, nil)
 		return err
 	}
 	defer conn.Close()
 
 	var neoStmt bolt.Stmt
-	if neoStmt, err = neo.createStmt(conn, logDebug, createInstanceStmt, []interface{}{instance.GetInstanceLabel()}); err != nil {
+	if neoStmt, err = neo.createStmt(conn, logDebug, uniqueDimConstStmt, dimension.GetLabel()); err != nil {
+		log.ErrorC("Error creating Neo Statment", err, nil)
+		return err
+	}
+	defer neoStmt.Close()
+
+	if _, err = neoStmt.ExecNeo(nil); err != nil {
+		logDebug[logKeys.ErrorDetails] = err.Error()
+		log.ErrorC("Error executing unique constraint Statment", err, logDebug)
+		return err
+	}
+	return nil
+}
+
+func (neo Neo4j) CreateInstance(instance *model.Instance) error {
+	if len(instance.InstanceID) == 0 {
+		err := errors.New(instanceIDReqErr)
+		log.ErrorC(instanceIDReqErr, err, nil)
+		return err
+	}
+	logDebug := make(map[string]interface{})
+	var err error
+	var conn bolt.Conn
+	if conn, err = neoDriverPool.OpenPool(); err != nil {
+		log.ErrorC(openConnErrMsg, err, nil)
+		return err
+	}
+	defer conn.Close()
+
+	var neoStmt bolt.Stmt
+	if neoStmt, err = neo.createStmt(conn, logDebug, createInstanceStmt, instance.GetLabel()); err != nil {
 		log.ErrorC("CreateInstance: Failed to create statment.", err, logDebug)
 		return err
 	}
@@ -188,29 +199,24 @@ func (neo Neo4j) CreateInstance(instance model.Instance) error {
 	return nil
 }
 
-func (neo Neo4j) AddInstanceDimensions(instance model.Instance) error {
+func (neo Neo4j) AddInstanceDimensions(instance *model.Instance) error {
 	logDebug := make(map[string]interface{})
 	var err error
 	var conn bolt.Conn
-	if conn, err = driverPool.OpenPool(); err != nil {
+	if conn, err = neoDriverPool.OpenPool(); err != nil {
 		log.ErrorC(openConnErrMsg, err, nil)
 		return err
 	}
 	defer conn.Close()
 
 	var neoStmt bolt.Stmt
-	if neoStmt, err = neo.createStmt(conn, logDebug, addInstanceDimensionsStmt, []interface{}{instance.GetInstanceLabel()}); err != nil {
+	if neoStmt, err = neo.createStmt(conn, logDebug, addInstanceDimensionsStmt, instance.GetLabel()); err != nil {
 		log.ErrorC("CreateInstance: Failed to create statment.", err, nil)
 		return err
 	}
 	defer neoStmt.Close()
 
-	dimensionNames := make([]interface{}, 0)
-	for _, name := range instance.GetDistinctDimensionNames() {
-		dimensionNames = append(dimensionNames, name)
-	}
-
-	createInstParams := map[string]interface{}{"dimensions_list": dimensionNames}
+	createInstParams := map[string]interface{}{"dimensions_list": instance.GetDimensions()}
 	if _, err = neoStmt.ExecNeo(createInstParams); err != nil {
 		log.ErrorC("CreateInstance: Failed to create instance.", err, nil)
 		return err
@@ -218,7 +224,7 @@ func (neo Neo4j) AddInstanceDimensions(instance model.Instance) error {
 	return nil
 }
 
-func (neo Neo4j) createStmt(conn bolt.Conn, logData map[string]interface{}, stmtFmt string, args []interface{}) (bolt.Stmt, error) {
+func (neo Neo4j) createStmt(conn bolt.Conn, logData map[string]interface{}, stmtFmt string, args ... interface{}) (bolt.Stmt, error) {
 	stmt := fmt.Sprintf(stmtFmt, args...)
 	logData[stmtKey] = stmt
 
