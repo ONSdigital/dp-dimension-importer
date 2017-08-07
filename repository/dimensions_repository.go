@@ -3,26 +3,27 @@ package repository
 import (
 	"errors"
 	"fmt"
+	"strconv"
+
+	"github.com/ONSdigital/dp-dimension-importer/client"
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	"strconv"
-	"github.com/ONSdigital/dp-dimension-importer/client"
 )
 
 const (
 	// Create a unique constraint on the dimension type value.
-	uniqueDimConstStmt = "CREATE CONSTRAINT ON (d:%s) ASSERT d.value IS UNIQUE"
+	uniqueDimConstStmt = "CREATE CONSTRAINT ON (d:`%s`) ASSERT d.value IS UNIQUE"
 
 	// Create the dimension node and the HAS_DIMENSION relationship to the Instance it belongs to.
-	createDimensionAndInstanceRelStmt = "MATCH (i:%s) CREATE (d:%s {value: {value}}) CREATE (i)-[:HAS_DIMENSION]->(d) RETURN ID(d)"
+	createDimensionAndInstanceRelStmt = "MATCH (i:`%s`) CREATE (d:`%s` {value: {value}}) CREATE (i)-[:HAS_DIMENSION]->(d) RETURN ID(d)"
 
 	stmtKey                   = "statment"
 	stmtParamsKey             = "params"
 	valueKey                  = "value"
-	dimensionsKey                = "dimensions"
-	dimensionsList               = "dimensions_list"
+	dimensionsKey             = "dimensions"
+	dimensionsList            = "dimensions_list"
 	uniqueConstErr            = "Error executing unique constraint Statment"
 	uniqueConstSuccess        = "Successfully created unique constraint on dimension"
 	dimensionNilErr           = "Dimension is required but was nil"

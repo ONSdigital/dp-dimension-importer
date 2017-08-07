@@ -1,19 +1,20 @@
 package repository
 
 import (
-	"github.com/ONSdigital/go-ns/log"
-	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
-	"github.com/ONSdigital/dp-dimension-importer/model"
 	"errors"
 	"fmt"
+
+	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
+	"github.com/ONSdigital/dp-dimension-importer/model"
+	"github.com/ONSdigital/go-ns/log"
 )
 
 const (
 	// Create an Insatnce node.
-	createInstanceStmt = "CREATE (i:%s) RETURN i"
+	createInstanceStmt = "CREATE (i:`%s`) RETURN i"
 
 	// Update the Instance node with the list of dimension types it contains.
-	addInstanceDimensionsStmt = "MATCH (i:%s) SET i.dimensions = {dimensions_list}"
+	addInstanceDimensionsStmt = "MATCH (i:`%s`) SET i.dimensions = {dimensions_list}"
 
 	instanceIDReqErr             = "Instance.InstanceID is required but was empty"
 	createInstanceExecErr        = "Error while executing to create Instance statement."
