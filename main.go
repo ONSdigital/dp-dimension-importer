@@ -29,12 +29,18 @@ func main() {
 		panic("Could not create consumer")
 	}
 
+	insertedEventProducer, err := kafka.NewProducer(cfg.KafkaAddr, cfg.DimensionsInsertedTopic, 0)
+	if err != nil {
+		log.ErrorC("kafka producer error", err, log.Data{"topic": cfg.DimensionsInsertedTopic})
+		os.Exit(1)
+	}
+
 	client.Host = cfg.ImportAddr
 	database := client.NewDatabase(cfg.DatabaseURL, cfg.PoolSize)
 
 	newDimensionInserterFunc := func() handler.DimensionRepository {
 		return repository.DimensionRepository{
-			Neo: database,
+			Neo:              database,
 			ConstraintsCache: map[string]string{},
 		}
 	}
@@ -45,7 +51,7 @@ func main() {
 		ImportAPI:            client.ImportAPI{},
 	}
 
-	err = message.Consume(consumer, eventHandler)
+	err = message.Consume(consumer, insertedEventProducer, eventHandler)
 	if err != nil {
 		log.ErrorC("consumer", err, nil)
 		panic("Consumer returned error")

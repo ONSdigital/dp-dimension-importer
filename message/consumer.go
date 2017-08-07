@@ -16,7 +16,7 @@ type EventHandler interface {
 }
 
 // Consume consume incoming kafka messages delegating to the appropriate EventHandler or handling errors.
-func Consume(consumer kafka.MessageConsumer, eventHandler EventHandler) error {
+func Consume(consumer kafka.MessageConsumer, producer kafka.MessageProducer, eventHandler EventHandler) error {
 	exitChannel := make(chan error)
 	go func() {
 		for {
@@ -40,12 +40,23 @@ func Consume(consumer kafka.MessageConsumer, eventHandler EventHandler) error {
 				log.Debug("instance has been imported", log.Data{
 					logKeys.InstanceID: event.InstanceID,
 				})
+				if err := Produce(producer, event.InstanceID, event.FileURL); err != nil {
+					exitChannel <- err
+					return
+				}
 				consumedMessage.Commit()
 
 			case consumerError := <-consumer.Errors():
 				log.Error(fmt.Errorf("Aborting"), log.Data{"messageReceived": consumerError})
 				consumer.Closer() <- true
+				producer.Closer() <- true
 				exitChannel <- consumerError
+				return
+			case producerError := <-producer.Errors():
+				log.Error(fmt.Errorf("Aborting"), log.Data{"messageReceived": producerError})
+				consumer.Closer() <- true
+				producer.Closer() <- true
+				exitChannel <- producerError
 				return
 			}
 		}
