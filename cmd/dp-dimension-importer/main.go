@@ -3,7 +3,9 @@ package main
 import (
 	"os"
 
+	"fmt"
 	"github.com/ONSdigital/dp-dimension-importer/client"
+	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/handler"
 	"github.com/ONSdigital/dp-dimension-importer/message"
@@ -36,18 +38,28 @@ func main() {
 	}
 
 	client.Host = cfg.ImportAddr
-	database := client.NewDatabase(cfg.DatabaseURL, cfg.PoolSize)
+	fmt.Println(cfg.ImportAuthToken)
+	client.AuthToken = cfg.ImportAuthToken
+
+	var databaseClient *client.Neo4j
+	if databaseClient, err = client.NewDatabase(cfg.DatabaseURL, cfg.PoolSize); err != nil {
+		log.ErrorC("Unexpected error while to create database connection pool", err, log.Data{
+			logKeys.URL:      cfg.DatabaseURL,
+			logKeys.PoolSize: cfg.PoolSize,
+		})
+		os.Exit(1)
+	}
 
 	newDimensionInserterFunc := func() handler.DimensionRepository {
 		return repository.DimensionRepository{
-			Neo:              database,
+			Neo:              *databaseClient,
 			ConstraintsCache: map[string]string{},
 		}
 	}
 
 	eventHandler := &handler.DimensionsExtractedEventHandler{
 		NewDimensionInserter: newDimensionInserterFunc,
-		InstanceRepository:   &repository.InstanceRepository{Neo: database},
+		InstanceRepository:   &repository.InstanceRepository{Neo: databaseClient},
 		ImportAPI:            client.ImportAPI{},
 	}
 

@@ -34,6 +34,8 @@ const (
 	insertDimValidationMsg    = "InsertDimension: dimension failed validation"
 	errExecutingStatment      = "Error executing statement"
 	errReturningRows          = "Error return query rows"
+	uniqueConstraintErr       = "Unexected error while attempting to create unique Dimension ID constaint."
+	insertDimErr              = "Unexpected error while attempting to create dimension"
 )
 
 type NeoDatabase interface {

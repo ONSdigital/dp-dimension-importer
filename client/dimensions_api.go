@@ -29,6 +29,9 @@ const (
 	putDimNodeIDReqErr     = "Error sending set Dimension node_id request"
 	putDimNodeIDErr        = "Set Dimension node_id returned error status"
 	dimensionNilErr        = "Dimension is required but was nil"
+	unauthorisedResponse   = "Import API returned Unauthorized response status"
+	forbiddenResponse      = "Import API returned Forbidden response status"
+	authTokenHeader        = "Internal-token"
 )
 
 // HTTPClient interface for making HTTP requests.
@@ -40,6 +43,9 @@ var httpCli HTTPClient = &http.Client{}
 
 // Host the host to get the dimensions from.
 var Host string
+
+// AuthToken Import API authentication token.
+var AuthToken string
 
 // httpGet abstraction around http.Get to simplify testing / mocking.
 var httpGet = http.Get
@@ -129,7 +135,7 @@ func (api ImportAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) e
 		log.ErrorC(createPutNodeIDReqErr, err, logData)
 		return err
 	}
-	req.Header.Set("Internal-token", "FD0108EA-825D-411C-9B1D-41EF7727F465")
+	req.Header.Set(authTokenHeader, AuthToken)
 	resp, err := httpCli.Do(req)
 	if err != nil {
 		logData[logKeys.ErrorDetails] = err.Error()
@@ -141,11 +147,26 @@ func (api ImportAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) e
 	logData[logKeys.RespStatusCode] = resp.StatusCode
 
 	if resp.StatusCode != 200 {
+
+		switch resp.StatusCode {
+		case 401:
+			err = errors.New(unauthorisedResponse)
+			log.ErrorC(unauthorisedResponse, err, logData)
+			return err
+		case 403:
+			err = errors.New(forbiddenResponse)
+			log.ErrorC(forbiddenResponse, err, logData)
+			return err
+		default:
+			err = errors.New(putDimNodeIDErr)
+			log.ErrorC(putDimNodeIDErr, err, logData)
+			return err
+		}
+
 		err = errors.New(putDimNodeIDErr)
 		log.ErrorC(putDimNodeIDErr, err, logData)
 		return err
 	}
 
-	//log.Debug(putDimNodeIDSuccessLog, logData)
 	return nil
 }
