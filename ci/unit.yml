@@ -9,7 +9,7 @@ image_resource:
     tag: 1.8.3
 
 inputs:
-  - name: dp-import-api
+  - name: dp-dimension-importer
     path: go/src/github.com/ONSdigital/dp-dimension-importer
 
 run:
