@@ -10,6 +10,8 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/repository"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
+	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
+	"fmt"
 )
 
 var incomingKafka chan kafka.Message
@@ -30,18 +32,28 @@ func main() {
 	}
 
 	client.Host = cfg.ImportAddr
-	database := client.NewDatabase(cfg.DatabaseURL, cfg.PoolSize)
+	fmt.Println(cfg.ImportAuthToken)
+	client.AuthToken = cfg.ImportAuthToken
+
+	var databaseClient *client.Neo4j
+	if databaseClient, err = client.NewDatabase(cfg.DatabaseURL, cfg.PoolSize); err != nil {
+		log.ErrorC("Unexpected error while to create database connection pool", err, log.Data{
+			logKeys.URL:      cfg.DatabaseURL,
+			logKeys.PoolSize: cfg.PoolSize,
+		})
+		os.Exit(1)
+	}
 
 	newDimensionInserterFunc := func() handler.DimensionRepository {
 		return repository.DimensionRepository{
-			Neo: database,
+			Neo:              *databaseClient,
 			ConstraintsCache: map[string]string{},
 		}
 	}
 
 	eventHandler := &handler.DimensionsExtractedEventHandler{
 		NewDimensionInserter: newDimensionInserterFunc,
-		InstanceRepository:   &repository.InstanceRepository{Neo: database},
+		InstanceRepository:   &repository.InstanceRepository{Neo: databaseClient},
 		ImportAPI:            client.ImportAPI{},
 	}
 

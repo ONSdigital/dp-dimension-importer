@@ -4,7 +4,6 @@ import (
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	"os"
 	"sync"
 	"errors"
 )
@@ -17,8 +16,10 @@ type NeoConn bolt.Conn
 // NeoStmt type to easliy allow MOQ to generate a mock from the bolt.Stmt interface
 type NeoStmt bolt.Stmt
 
+// NeoQueryRows type to easliy allow MOQ to generate a mock from the bolt.Rows interface
 type NeoQueryRows bolt.Rows
 
+// NeoResult type to easliy allow MOQ to generate a mock from the bolt.Result interface
 type NeoResult bolt.Result
 
 // NeoDriverPool defines interface for bolt driver pool
@@ -26,15 +27,20 @@ type NeoDriverPool interface {
 	OpenPool() (bolt.Conn, error)
 }
 
-type NewDriverPool func(connStr string, max int) (bolt.DriverPool, error)
-
 // Neo4j client provides functions for inserting dimension, instances and relationships into a Neo4j database.
 type Neo4j struct{}
 
-const (
-	stmtKey       = "statment"
-	stmtParamsKey = "params"
+// NeoRows type to hold bolt.Rows data. Is necessary as bolt.Rows is automatically closed if you don't do anything with
+// them meaning they cannot be passed back to the calling func. Stuct mirrors bolt.Rows and allows row data to be
+// copied into an idenical structure which can be passed back keeping a clean separation between neo specific things and
+// the business logic.
+type NeoRows struct {
+	Data [][]interface{}
+}
 
+const (
+	stmtKey              = "statment"
+	stmtParamsKey        = "params"
 	openConnErr          = "Error while attempting to open connection"
 	errExecutingStatment = "Error while attempting to execute statement"
 	errDrivePoolInit     = "Error while attempting to initialize neo4j driver pool"
@@ -46,31 +52,31 @@ const (
 
 var (
 	once          sync.Once
-	newDriverPool NewDriverPool = bolt.NewDriverPool
+	newDriverPool func(connStr string, max int) (bolt.DriverPool, error) = bolt.NewDriverPool
 	neoDriverPool NeoDriverPool
 )
 
-type NeoRows struct {
-	Data [][]interface{}
-}
-
 // NewDatabase creates a new instance of the Neo4j client and does the initial setup required for the
 // client to connect to the database instance.
-func NewDatabase(url string, poolSize int) Neo4j {
+func NewDatabase(url string, poolSize int) (*Neo4j, error) {
+	var err error
+
 	once.Do(func() {
-		pool, err := bolt.NewDriverPool(url, poolSize)
-		if err != nil {
-			log.ErrorC(errDrivePoolInit, err, log.Data{
-				logKeys.URL:      url,
-				logKeys.PoolSize: poolSize,
-			})
-			os.Exit(1)
-		}
-		neoDriverPool = pool
+		neoDriverPool, err = newDriverPool(url, poolSize)
 	})
-	return Neo4j{}
+
+	if err != nil {
+		log.ErrorC(errDrivePoolInit, err, log.Data{
+			logKeys.URL:      url,
+			logKeys.PoolSize: poolSize,
+		})
+		return nil, err
+	} else {
+		return &Neo4j{}, nil
+	}
 }
 
+// Query execute a query against neo.
 func (neo Neo4j) Query(query string, params map[string]interface{}) (*NeoRows, error) {
 	if len(query) == 0 {
 		return nil, errors.New(errQueryWasEmpty)
@@ -109,6 +115,7 @@ func (neo Neo4j) Query(query string, params map[string]interface{}) (*NeoRows, e
 	return neoRows, nil
 }
 
+// ExecStmt execute a statement against neo.
 func (neo Neo4j) ExecStmt(stmt string, params map[string]interface{}) (bolt.Result, error) {
 	if len(stmt) == 0 {
 		return nil, errors.New(errStmtWasEmpty)
