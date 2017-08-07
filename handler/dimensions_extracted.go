@@ -16,7 +16,7 @@ const (
 	updateNodeIDErr     = "Unexpected error while calling ImportAPI.SetDimensionNodeID"
 	createInstanceErr   = "Unexpected error while attempting to create instance"
 	importAPINilErr     = "DimensionsExtractedEventHandler.ImportAPI expected but was nil"
-	createDimRepoNilErr = "DimensionsExtractedEventHandler.CreateDimensionRepository expected but was nil"
+	createDimRepoNilErr = "DimensionsExtractedEventHandler.NewDimensionInserter expected but was nil"
 	instanceRepoNilErr  = "DimensionsExtractedEventHandler.InstanceRepository expected but was nil"
 	instanceIDNilErr    = "DimensionsExtractedEvent.InstanceID is required but was nil"
 	insertDimErr        = "Error while attempting to insert dimension"
@@ -42,9 +42,9 @@ type DimensionRepository interface {
 
 // DimensionsExtractedEventHandler provides functions for handling DimensionsExtractedEvents.
 type DimensionsExtractedEventHandler struct {
-	CreateDimensionRepository func() DimensionRepository
-	InstanceRepository        InstanceRepository
-	ImportAPI                 ImportAPIClient
+	NewDimensionInserter func() DimensionRepository
+	InstanceRepository   InstanceRepository
+	ImportAPI            ImportAPIClient
 }
 
 // HandleEvent retrieves the dimensions for specified instanceID from the Import API, creates an MyInstance entity for
@@ -57,7 +57,7 @@ func (hdlr *DimensionsExtractedEventHandler) HandleEvent(event model.DimensionsE
 	if hdlr.InstanceRepository == nil {
 		return errors.New(instanceRepoNilErr)
 	}
-	if hdlr.CreateDimensionRepository == nil {
+	if hdlr.NewDimensionInserter == nil {
 		return errors.New(createDimRepoNilErr)
 	}
 	if len(event.InstanceID) == 0 {
@@ -71,8 +71,10 @@ func (hdlr *DimensionsExtractedEventHandler) HandleEvent(event model.DimensionsE
 	log.Debug(logEventRecieved, logData)
 
 	start := time.Now()
-	dimensions, err := hdlr.ImportAPI.GetDimensions(event.InstanceID)
-	if err != nil {
+	var dimensions []*model.Dimension
+	var err error
+
+	if dimensions, err = hdlr.ImportAPI.GetDimensions(event.InstanceID); err != nil {
 		log.ErrorC(dimensionCliErrMsg, err, logData)
 		return errors.New(dimensionCliErrMsg)
 	}
@@ -80,26 +82,27 @@ func (hdlr *DimensionsExtractedEventHandler) HandleEvent(event model.DimensionsE
 	logData[logKeys.DimensionsCount] = len(dimensions)
 	instance := &model.Instance{InstanceID: event.InstanceID, Dimensions: make([]interface{}, 0)}
 
-	if err := hdlr.InstanceRepository.Create(instance); err != nil {
+	if err = hdlr.InstanceRepository.Create(instance); err != nil {
 		log.ErrorC(createInstanceErr, err, logData)
 		return errors.New(createInstanceErr)
 	}
 
-	dimensionRepository := hdlr.CreateDimensionRepository()
+	dimensionInserter := hdlr.NewDimensionInserter()
+
 	for _, dimension := range dimensions {
-		if dimension, err = dimensionRepository.Insert(instance, dimension); err != nil {
+		if dimension, err = dimensionInserter.Insert(instance, dimension); err != nil {
 			logData[logKeys.DimensionID] = dimension.DimensionID
 			log.ErrorC(insertDimErr, err, nil)
 			return err
 		}
 
-		if err := hdlr.ImportAPI.PutDimensionNodeID(event.InstanceID, dimension); err != nil {
+		if err = hdlr.ImportAPI.PutDimensionNodeID(event.InstanceID, dimension); err != nil {
 			log.ErrorC(updateNodeIDErr, err, nil)
 			return errors.New(updateNodeIDErr)
 		}
 	}
 
-	if err := hdlr.InstanceRepository.AddDimensions(instance); err != nil {
+	if err = hdlr.InstanceRepository.AddDimensions(instance); err != nil {
 		log.ErrorC(addInsanceDimsErr, err, logData)
 		return errors.New(addInsanceDimsErr)
 	}

@@ -32,17 +32,17 @@ func main() {
 	client.Host = cfg.ImportAddr
 	database := client.NewDatabase(cfg.DatabaseURL, cfg.PoolSize)
 
-	createDimensionRepoFunc := func() handler.DimensionRepository {
+	newDimensionInserterFunc := func() handler.DimensionRepository {
 		return repository.DimensionRepository{
-			Database:         database,
+			Neo: database,
 			ConstraintsCache: map[string]string{},
 		}
 	}
 
 	eventHandler := &handler.DimensionsExtractedEventHandler{
-		CreateDimensionRepository: createDimensionRepoFunc,
-		InstanceRepository:        &repository.InstanceRepository{Database: database},
-		ImportAPI:                 client.ImportAPI{},
+		NewDimensionInserter: newDimensionInserterFunc,
+		InstanceRepository:   &repository.InstanceRepository{Neo: database},
+		ImportAPI:            client.ImportAPI{},
 	}
 
 	err = message.Consume(consumer, eventHandler)

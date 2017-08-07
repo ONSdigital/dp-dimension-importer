@@ -50,7 +50,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 		}
 
 		handler := DimensionsExtractedEventHandler{
-			CreateDimensionRepository: func() DimensionRepository {
+			NewDimensionInserter: func() DimensionRepository {
 				return dimensionRepository
 			},
 			InstanceRepository: instanceRepositoryMock,
@@ -317,7 +317,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 		handler := DimensionsExtractedEventHandler{
 			ImportAPI:          nil,
 			InstanceRepository: instanceRepositoryMock,
-			CreateDimensionRepository: func() DimensionRepository {
+			NewDimensionInserter: func() DimensionRepository {
 				return dimensionRepository
 			},
 		}
@@ -344,7 +344,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 		handler := DimensionsExtractedEventHandler{
 			ImportAPI:          importAPIMock,
 			InstanceRepository: nil,
-			CreateDimensionRepository: func() DimensionRepository {
+			NewDimensionInserter: func() DimensionRepository {
 				return dimensionRepository
 			},
 		}
@@ -368,9 +368,9 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 		instanceRepositoryMock := &InstanceRepositoryMock{}
 
 		handler := DimensionsExtractedEventHandler{
-			ImportAPI:                 importAPIMock,
-			InstanceRepository:        instanceRepositoryMock,
-			CreateDimensionRepository: nil,
+			ImportAPI:            importAPIMock,
+			InstanceRepository:   instanceRepositoryMock,
+			NewDimensionInserter: nil,
 		}
 		Convey("When HandleEvent is called", func() {
 			event := model.DimensionsExtractedEvent{InstanceID: testInstanceID}
