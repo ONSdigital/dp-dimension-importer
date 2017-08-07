@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
-	"io/ioutil"
-	"net/http"
 )
 
 const (
@@ -128,7 +129,7 @@ func (api ImportAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) e
 		log.ErrorC(createPutNodeIDReqErr, err, logData)
 		return err
 	}
-
+	req.Header.Set("Internal-token", "FD0108EA-825D-411C-9B1D-41EF7727F465")
 	resp, err := httpCli.Do(req)
 	if err != nil {
 		logData[logKeys.ErrorDetails] = err.Error()
