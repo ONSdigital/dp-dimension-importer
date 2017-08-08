@@ -24,7 +24,7 @@ const (
 	getDimensionsErr     = "Get dimensions returned error status"
 
 	createPutNodeIDReqErr  = "Unexpecter error creating request struct"
-	putDimensionNodeIDURI  = "%s/instances/%s/dimensions/%s/node_id/%s"
+	putDimensionNodeIDURI  = "%s/instances/%s/dimensions/%s/options/%s/node_id/%s"
 	putDimNodeIDSuccessLog = "Import-API PUT dimension node_id success"
 	putDimNodeIDReqErr     = "Error sending set Dimension node_id request"
 	putDimNodeIDErr        = "Set Dimension node_id returned error status"
@@ -126,7 +126,7 @@ func (api ImportAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) e
 	logData[logKeys.DimensionsKey] = d.DimensionID
 	logData[logKeys.NodeID] = d.NodeID
 
-	url := fmt.Sprintf(putDimensionNodeIDURI, Host, instanceID, d.DimensionID, d.NodeID)
+	url := fmt.Sprintf(putDimensionNodeIDURI, Host, instanceID, d.DimensionID, d.Value, d.NodeID)
 	logData[logKeys.URL] = url
 
 	req, err := http.NewRequest(http.MethodPut, url, nil)
