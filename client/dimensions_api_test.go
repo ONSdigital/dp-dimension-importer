@@ -1,45 +1,44 @@
 package client
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	. "github.com/smartystreets/goconvey/convey"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"reflect"
 	"testing"
+	"github.com/ONSdigital/dp-dimension-importer/mocks"
+	"net/http"
+	"io"
+	"encoding/json"
+	"bytes"
+	"io/ioutil"
+	"reflect"
 )
 
-const host = "http://localhost:8080"
-const instanceID = "1234567890"
+const (
+	host       = "http://localhost:8080"
+	instanceID = "1234567890"
+	authToken  = "pa55w0rd"
+)
 
+var expectedErr = errors.New("BOOM!")
 var dimensionOne = &model.Dimension{DimensionID: "666_SEX_MALE", NodeID: "1111", Value: "Male"}
 var dimensionTwo = &model.Dimension{DimensionID: "666_SEX_FEMALE", NodeID: "1112", Value: "Female"}
 var expectedDimensions = []*model.Dimension{dimensionOne, dimensionTwo}
 
 var body []byte
 
-var importAPI = ImportAPI{}
-
 func TestGetDimensions(t *testing.T) {
 
 	Convey("Given the client has not been configured", t, func() {
-		mock := mockIt(&GetDimensionsMock{
-			StatusCode:   200,
-			Error:        nil,
-			Body:         nil,
-			URLParam:     fmt.Sprintf(getDimensionsURIFMT, host, instanceID),
-			Reader:       ioutil.ReadAll,
-			ReaderCount:  0,
-			HTTPGetCount: 0,
-		})
+		httpClientMock := &mocks.HTTPClientMock{}
+		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
 
 		// Set the host to an empty for this test case.
-		Host = ""
+		importAPI := ImportAPI{
+			ImportHost:         "",
+			HTTPClient:         httpClientMock,
+			ResponseBodyReader: respBodyReaderMock,
+		}
 
 		Convey("When the Get is invoked", func() {
 			dims, err := importAPI.GetDimensions(instanceID)
@@ -49,200 +48,208 @@ func TestGetDimensions(t *testing.T) {
 				So(dims, ShouldEqual, nil)
 			})
 
-			Convey("And 0 HTTP GET requests are made to the Import API", func() {
-				So(mock.HTTPGetCount, ShouldEqual, 0)
+			Convey("And HTTPClient.Do and ResponseBodyReader.ReadAll are never called", func() {
+				So(len(httpClientMock.DoCalls()), ShouldEqual, 0)
+				So(len(respBodyReaderMock.ReadCalls()), ShouldEqual, 0)
 			})
 		})
 	})
 
 	Convey("Given valid client configuration", t, func() {
+		httpClientMock := &mocks.HTTPClientMock{}
+		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
 
 		Convey("When the client called with a valid instanceID", func() {
 			body, _ = json.Marshal(expectedDimensions)
+			reader := bytes.NewBuffer(body)
+			readCloser := ioutil.NopCloser(reader)
 
-			mock := mockIt(&GetDimensionsMock{
-				StatusCode:   200,
-				Error:        nil,
-				Body:         dimensionsBytes(expectedDimensions),
-				URLParam:     fmt.Sprintf(getDimensionsURIFMT, host, instanceID),
-				Reader:       ioutil.ReadAll,
-				ReaderCount:  0,
-				HTTPGetCount: 0,
-			})
+			// set up mocks.
+			httpClientMock.DoFunc = func(req *http.Request) (*http.Response, error) {
+				return &http.Response{Body: readCloser, StatusCode: 200}, nil
+			}
+
+			respBodyReaderMock.ReadFunc = func(r io.Reader) ([]byte, error) {
+				return body, nil
+			}
+
+			importAPI := ImportAPI{
+				ImportHost:         "http://localhost:8080",
+				HTTPClient:         httpClientMock,
+				ResponseBodyReader: respBodyReaderMock,
+			}
 
 			dims, err := importAPI.GetDimensions(instanceID)
 
-			Convey("Then the expected dimensions are returned", func() {
+			Convey("Then the expected response is returned with no error", func() {
 				So(dims, ShouldResemble, expectedDimensions)
+				So(err, ShouldEqual, nil)
 			})
 
-			Convey("And a single request is made to the Import API to get the dimensions", func() {
-				So(1, ShouldEqual, mock.HTTPGetCount)
-				So(fmt.Sprintf(getDimensionsURIFMT, host, instanceID), ShouldEqual, mock.URLParam)
-				So(mock.ReaderCount, ShouldEqual, 1)
+			Convey("And HTTPClient.Do is called 1 time", func() {
+				So(len(httpClientMock.DoCalls()), ShouldEqual, 1)
 			})
 
-			Convey("And no error is returned", func() {
-				So(nil, ShouldEqual, err)
+			Convey("And ResponseBodyReader.ReadAll is called 1 time with the expected parameters", func() {
+				calls := respBodyReaderMock.ReadCalls()
+				So(len(calls), ShouldEqual, 1)
+				So(calls[0].R, ShouldResemble, readCloser)
 			})
 		})
+	})
 
-		Convey("When the client is called with an empty instanceID value", func() {
-			mock := mockIt(&GetDimensionsMock{
-				StatusCode:   0,
-				Body:         nil,
-				HTTPGetCount: 0,
-				ReaderCount:  0,
-				Error:        nil,
-				Reader:       ioutil.ReadAll,
-			})
+	Convey("Given an empty instanceID is provided", t, func() {
+		httpClientMock := &mocks.HTTPClientMock{}
+		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
+
+		Convey("When GetDimensions is invoked", func() {
+			importAPI := ImportAPI{
+				ImportHost:         "http://localhost:8080",
+				HTTPClient:         httpClientMock,
+				ResponseBodyReader: respBodyReaderMock,
+			}
 
 			dims, err := importAPI.GetDimensions("")
 
-			Convey("Then an appropriate error is returned", func() {
+			Convey("Then the expected error is returned", func() {
+				So(dims, ShouldEqual, nil)
 				So(err, ShouldResemble, errors.New(instanceIDRequiredErr))
 			})
-
-			Convey("And no dimensions are returned", func() {
-				So(dims, ShouldEqual, nil)
-			})
-
-			Convey("And 0 http GET requests are made to the Import API", func() {
-				So(0, ShouldEqual, mock.HTTPGetCount)
-				So(0, ShouldEqual, mock.ReaderCount)
-				So(dims, ShouldEqual, nil)
-			})
 		})
+	})
 
-		Convey("When the client is invoked and returns a 404 response status", func() {
-			mock := mockIt(&GetDimensionsMock{
-				StatusCode:   404,
-				Body:         nil,
-				HTTPGetCount: 0,
-				ReaderCount:  0,
-				Error:        nil,
-				Reader:       ioutil.ReadAll,
-			})
+	Convey("Given HTTPClient.Do will return an error", t, func() {
+		httpClientMock := &mocks.HTTPClientMock{
+			DoFunc: func(req *http.Request) (*http.Response, error) {
+				return nil, expectedErr
+			},
+		}
+		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
+
+		Convey("When GetDimensions is invoked", func() {
+			importAPI := ImportAPI{
+				ImportHost:         "http://localhost:8080",
+				HTTPClient:         httpClientMock,
+				ResponseBodyReader: respBodyReaderMock,
+			}
 
 			dims, err := importAPI.GetDimensions(instanceID)
 
-			Convey("Then 1 http GET request is made to the Import API", func() {
-				So(1, ShouldEqual, mock.HTTPGetCount)
-			})
-
-			Convey("And no dimensions are returned along with the appropriate error", func() {
-				So(err, ShouldResemble, errors.New(getDimensionsErr))
+			Convey("Then the expected error response is returned", func() {
 				So(dims, ShouldEqual, nil)
-			})
-
-			Convey("And the response body is never read", func() {
-				So(0, ShouldEqual, mock.ReaderCount)
-			})
-		})
-
-		Convey("When the client is invoked and returns a 500 response status", func() {
-			mock := mockIt(&GetDimensionsMock{
-				StatusCode:   500,
-				Body:         nil,
-				HTTPGetCount: 0,
-				ReaderCount:  0,
-				Error:        nil,
-				Reader:       ioutil.ReadAll,
-			})
-
-			dims, err := importAPI.GetDimensions(instanceID)
-
-			Convey("Then 1 http GET request is made to the Import API", func() {
-				So(1, ShouldEqual, mock.HTTPGetCount)
-			})
-
-			Convey("And no dimensions are returned along with the appropriate error", func() {
-				So(err, ShouldResemble, errors.New(getDimensionsErr))
-				So(dims, ShouldEqual, nil)
-			})
-
-			Convey("And the response body is never read.", func() {
-				So(0, ShouldEqual, mock.ReaderCount)
-			})
-		})
-
-		Convey("When the client returns an unexpected HTTP status code", func() {
-			mock := mockIt(&GetDimensionsMock{
-				StatusCode:   503,
-				Body:         nil,
-				HTTPGetCount: 0,
-				ReaderCount:  0,
-				Error:        nil,
-				Reader:       ioutil.ReadAll,
-			})
-
-			dims, err := importAPI.GetDimensions(instanceID)
-
-			Convey("Then 1 http GET request is made to the Import API", func() {
-				So(mock.HTTPGetCount, ShouldEqual, 1)
-			})
-
-			Convey("And the response body is never read", func() {
-				So(1, ShouldEqual, mock.HTTPGetCount)
-			})
-
-			Convey("And no dimensions and the appropriate error are returned", func() {
-				So(dims, ShouldEqual, nil)
-				So(err, ShouldResemble, errors.New(getDimensionsErr))
-			})
-		})
-
-		Convey("When the client is invoked and the HTTP request returns an error", func() {
-			expectedErr := errors.New("Unexpected error")
-
-			mock := mockIt(&GetDimensionsMock{
-				StatusCode:   500,
-				Body:         nil,
-				HTTPGetCount: 0,
-				ReaderCount:  0,
-				Error:        expectedErr,
-				Reader:       ioutil.ReadAll,
-			})
-
-			dims, err := importAPI.GetDimensions(instanceID)
-
-			Convey("Then 1 HTTP GET request is made to the Import API", func() {
-				So(1, ShouldEqual, mock.HTTPGetCount)
-			})
-
-			Convey("And no dimensions are returned along with the appropriate error.", func() {
 				So(err, ShouldResemble, expectedErr)
-				So(dims, ShouldEqual, nil)
 			})
 
-			Convey("And the response body is never read.", func() {
-				So(mock.ReaderCount, ShouldEqual, 0)
+			Convey("And HTTPClient.Do is called 1 time", func() {
+				So(len(httpClientMock.DoCalls()), ShouldEqual, 1)
+			})
+
+			Convey("And ResponseBodyReader.ReadAll is never called", func() {
+				So(len(respBodyReaderMock.ReadCalls()), ShouldEqual, 0)
 			})
 		})
+	})
 
-		Convey("When unmarshalling the response returns an error", func() {
-			junkBody := []byte("This is not a dimension")
+	Convey("Given HTTPClient.Do returns a non 200 response status", t, func() {
+		httpClientMock := &mocks.HTTPClientMock{
+			DoFunc: func(req *http.Request) (*http.Response, error) {
+				return Response([]byte{}, 400, nil)
+			},
+		}
+		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
 
-			mock := mockIt(&GetDimensionsMock{
-				StatusCode:   200,
-				Body:         junkBody,
-				HTTPGetCount: 0,
-				ReaderCount:  0,
-				Error:        nil,
-				Reader:       ioutil.ReadAll,
-			})
+		Convey("When GetDimensions is invoked", func() {
+			importAPI := ImportAPI{
+				ImportHost:         "http://localhost:8080",
+				HTTPClient:         httpClientMock,
+				ResponseBodyReader: respBodyReaderMock,
+			}
 
 			dims, err := importAPI.GetDimensions(instanceID)
 
-			Convey("Then 1 HTTP GET request was made to the Import API", func() {
-				So(mock.HTTPGetCount, ShouldEqual, 1)
+			Convey("Then the expected error response is returned", func() {
+				So(dims, ShouldEqual, nil)
+				So(err, ShouldResemble, errors.New(getDimensionsErr))
 			})
 
-			Convey("And the response body was read once.", func() {
-				So(mock.ReaderCount, ShouldEqual, 1)
+			Convey("And HTTPClient.Do is called 1 time", func() {
+				So(len(httpClientMock.DoCalls()), ShouldEqual, 1)
 			})
 
-			Convey("And no dimensions are returned along with the appropriate error.", func() {
+			Convey("And ResponseBodyReader.ReadAll is never called", func() {
+				So(len(respBodyReaderMock.ReadCalls()), ShouldEqual, 0)
+			})
+		})
+	})
+
+	Convey("Given ResponseBodyReader.ReadAll returns an error", t, func() {
+		body, _ = json.Marshal(expectedDimensions)
+		reader := bytes.NewBuffer(body)
+		readCloser := ioutil.NopCloser(reader)
+
+		httpClientMock := &mocks.HTTPClientMock{
+			DoFunc: func(req *http.Request) (*http.Response, error) {
+				return Response(body, 200, nil)
+			},
+		}
+		respBodyReaderMock := &mocks.ResponseBodyReaderMock{
+			ReadFunc: func(r io.Reader) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		Convey("When GetDimensions is invoked", func() {
+			importAPI := ImportAPI{
+				ImportHost:         "http://localhost:8080",
+				HTTPClient:         httpClientMock,
+				ResponseBodyReader: respBodyReaderMock,
+			}
+
+			dims, err := importAPI.GetDimensions(instanceID)
+
+			Convey("Then the expected error response is returned", func() {
+				So(dims, ShouldEqual, nil)
+				So(err, ShouldResemble, expectedErr)
+			})
+
+			Convey("And HTTPClient.Do is called 1 time", func() {
+				So(len(httpClientMock.DoCalls()), ShouldEqual, 1)
+			})
+
+			Convey("And ResponseBodyReader.ReadAll is called 1 time with the expected parameters", func() {
+				calls := respBodyReaderMock.ReadCalls()
+				So(len(calls), ShouldEqual, 1)
+				So(calls[0].R, ShouldResemble, readCloser)
+			})
+		})
+	})
+
+	Convey("Given unmarshalling the response body returns an error", t, func() {
+		body := []byte("INVALID DIMENSIONS BYTES")
+		reader := bytes.NewBuffer(body)
+		readCloser := ioutil.NopCloser(reader)
+
+		httpClientMock := &mocks.HTTPClientMock{
+			DoFunc: func(req *http.Request) (*http.Response, error) {
+				return Response(body, 200, nil)
+			},
+		}
+		respBodyReaderMock := &mocks.ResponseBodyReaderMock{
+			ReadFunc: func(r io.Reader) ([]byte, error) {
+				return body, nil
+			},
+		}
+
+		Convey("When GetDimensions is invoked", func() {
+			importAPI := ImportAPI{
+				ImportHost:         "http://localhost:8080",
+				HTTPClient:         httpClientMock,
+				ResponseBodyReader: respBodyReaderMock,
+			}
+
+			dims, err := importAPI.GetDimensions(instanceID)
+
+			Convey("Then the expected error response is returned", func() {
 				expectedType := reflect.TypeOf((*json.SyntaxError)(nil))
 				actualType := reflect.TypeOf(err)
 
@@ -250,247 +257,253 @@ func TestGetDimensions(t *testing.T) {
 				So(dims, ShouldEqual, nil)
 			})
 
-		})
-
-		Convey("When reading the response body return an error", func() {
-			readBodyErr := errors.New("Read body error")
-
-			mock := mockIt(&GetDimensionsMock{
-				StatusCode:   200,
-				Body:         nil,
-				HTTPGetCount: 0,
-				ReaderCount:  0,
-				Error:        nil,
-				Reader: func(io.Reader) ([]byte, error) {
-					return nil, readBodyErr
-				},
+			Convey("And HTTPClient.Do is called 1 time", func() {
+				So(len(httpClientMock.DoCalls()), ShouldEqual, 1)
 			})
 
-			dims, err := importAPI.GetDimensions(instanceID)
-
-			Convey("Then 1 HTTP GET request was made to the Import API", func() {
-				So(mock.HTTPGetCount, ShouldEqual, 1)
-			})
-
-			Convey("And the response body was read once.", func() {
-				So(mock.ReaderCount, ShouldEqual, 1)
-			})
-
-			Convey("And no dimensions are returned along with the appropriate error.", func() {
-				So(err, ShouldResemble, readBodyErr)
-				So(dims, ShouldEqual, nil)
+			Convey("And ResponseBodyReader.ReadAll is called 1 time with the expected parameters", func() {
+				calls := respBodyReaderMock.ReadCalls()
+				So(len(calls), ShouldEqual, 1)
+				So(calls[0].R, ShouldResemble, readCloser)
 			})
 		})
 	})
 }
 
-func TestImportAPI_SetDimensionNodeID(t *testing.T) {
+func TestImportAPI_PutDimensionNodeID(t *testing.T) {
+	// mocks
 
-	Convey("Given no Host has been set", t, func() {
-		Host = ""
-		httpCliMock := &httpClientMock{}
-		httpCli = httpCliMock
+	Convey("Given importAPI.Host has not been set", t, func() {
+		httpCliMock := &mocks.HTTPClientMock{}
 
-		Convey("When PutDimensionNodeID is invoked", func() {
-			api := ImportAPI{}
-			err := api.PutDimensionNodeID(instanceID, nil)
+		importAPI := ImportAPI{
+			ImportHost: "",
+			HTTPClient: httpCliMock,
+		}
 
-			Convey("Then a a missing config error is returned", func() {
+		Convey("When PutDimensionNodeID is called", func() {
+			err := importAPI.PutDimensionNodeID(instanceID, dimensionOne)
+
+			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(hostConfigMissingErr))
 			})
 
-			Convey("And httpClient is never invoked", func() {
-				So(httpCliMock.invocations, ShouldEqual, 0)
+			Convey("And api.HTTPClient.DO is never invoked", func() {
+				calls := len(httpCliMock.DoCalls())
+				So(calls, ShouldEqual, 0)
 			})
 		})
 	})
 
-	Convey("Given the client has been correctly configured.", t, func() {
-		Host = "http://localhost:8080/test"
-		httpCliMock := &httpClientMock{}
-		httpCli = httpCliMock
+	Convey("Given no instanceID is provided", t, func() {
+		httpCliMock := &mocks.HTTPClientMock{}
 
-		Convey("When PutDimensionNodeID is invoked with an empty instanceID", func() {
-			api := ImportAPI{}
-			err := api.PutDimensionNodeID("", nil)
+		importAPI := ImportAPI{
+			ImportHost: host,
+			HTTPClient: httpCliMock,
+		}
 
-			Convey("Then a a missing config error is returned", func() {
+		Convey("When PutDimensionNodeID is called", func() {
+			err := importAPI.PutDimensionNodeID("", dimensionOne)
+
+			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(instanceIDRequiredErr))
 			})
 
-			Convey("And httpClient is never invoked", func() {
-				So(httpCliMock.invocations, ShouldEqual, 0)
+			Convey("And api.HTTPClient.DO is never invoked", func() {
+				calls := len(httpCliMock.DoCalls())
+				So(calls, ShouldEqual, 0)
 			})
 		})
+	})
 
-		Convey("When PutDimensionNodeID is invoked with an empty dimension", func() {
-			httpCliMock := &httpClientMock{}
-			httpCli = httpCliMock
+	Convey("Given no dimension is provided", t, func() {
+		httpCliMock := &mocks.HTTPClientMock{}
 
-			api := ImportAPI{}
-			err := api.PutDimensionNodeID("1234", nil)
+		importAPI := ImportAPI{
+			ImportHost: host,
+			HTTPClient: httpCliMock,
+		}
 
-			Convey("Then the expected error is returned.", func() {
+		Convey("When PutDimensionNodeID is called", func() {
+			err := importAPI.PutDimensionNodeID(instanceID, nil)
+
+			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(dimensionNilErr))
 			})
 
-			Convey("And httpClient is never invoked", func() {
-				So(httpCliMock.invocations, ShouldEqual, 0)
+			Convey("And api.HTTPClient.DO is never invoked", func() {
+				calls := len(httpCliMock.DoCalls())
+				So(calls, ShouldEqual, 0)
 			})
 		})
+	})
 
-		Convey("When httpClient returns an error", func() {
-			expected := errors.New("HttpCli error")
+	Convey("Given a dimension with an empty dimensionID", t, func() {
+		httpCliMock := &mocks.HTTPClientMock{}
 
-			httpCliMock := &httpClientMock{}
-			httpCli = httpCliMock
-			httpCliMock.WhenDoReturn(nil, expected)
+		importAPI := ImportAPI{
+			ImportHost: host,
+			HTTPClient: httpCliMock,
+		}
 
-			api := ImportAPI{}
-			err := api.PutDimensionNodeID("1234", dimensionOne)
+		Convey("When PutDimensionNodeID is called", func() {
+			err := importAPI.PutDimensionNodeID(instanceID, &model.Dimension{})
 
-			Convey("Then the expected error is returned.", func() {
-				So(err, ShouldResemble, expected)
+			Convey("Then the expected error is returned", func() {
+				So(err, ShouldResemble, errors.New(dimensionIDReqErr))
 			})
 
-			Convey("And httpClient is invoked 1 time", func() {
-				So(httpCliMock.invocations, ShouldEqual, 1)
+			Convey("And api.HTTPClient.DO is never invoked", func() {
+				calls := len(httpCliMock.DoCalls())
+				So(calls, ShouldEqual, 0)
 			})
 		})
+	})
 
-		Convey("When http client returns a 200 status", func() {
-			httpCliMock := &httpClientMock{}
-			httpCli = httpCliMock
-			httpCliMock.WhenDoReturn(MockResponse(200), nil)
+	Convey("Given HTTPClient.Do returns an error", t, func() {
+		httpCliMock := &mocks.HTTPClientMock{}
 
-			api := ImportAPI{}
-			err := api.PutDimensionNodeID(instanceID, dimensionOne)
+		importAPI := ImportAPI{
+			ImportHost: host,
+			HTTPClient: httpCliMock,
+			AuthToken:  authToken,
+		}
+		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
+			return nil, expectedErr
+		}
 
-			Convey("Then httpClient has been invoked 1 time", func() {
-				So(httpCliMock.invocations, ShouldEqual, 1)
+		Convey("When PutDimensionNodeID is called", func() {
+			err := importAPI.PutDimensionNodeID(instanceID, dimensionOne)
+
+			Convey("Then the expected error is returned", func() {
+				So(err, ShouldResemble, expectedErr)
 			})
 
-			Convey("And no error is returned", func() {
+			Convey("And api.HTTPClient.Do is called 1 time", func() {
+				calls := len(httpCliMock.DoCalls())
+				So(calls, ShouldEqual, 1)
+			})
+
+			Convey("And the auth token is set as a request header", func() {
+				req := httpCliMock.DoCalls()[0].Req
+				actual := req.Header[authTokenHeader]
+				So(actual[0], ShouldEqual, authToken)
+			})
+		})
+	})
+
+	Convey("Given HTTPClient.Do returns an 401 status", t, func() {
+		httpCliMock := &mocks.HTTPClientMock{}
+
+		importAPI := ImportAPI{
+			ImportHost: host,
+			HTTPClient: httpCliMock,
+			AuthToken:  authToken,
+		}
+		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
+			return Response([]byte{}, 401, nil)
+		}
+
+		Convey("When PutDimensionNodeID is called", func() {
+			err := importAPI.PutDimensionNodeID(instanceID, dimensionOne)
+
+			Convey("Then the expected error is returned", func() {
+				So(err, ShouldResemble, errors.New(unauthorisedResponse))
+			})
+
+			Convey("And api.HTTPClient.Do is called 1 time", func() {
+				calls := len(httpCliMock.DoCalls())
+				So(calls, ShouldEqual, 1)
+			})
+		})
+	})
+
+	Convey("Given HTTPClient.Do returns an 403 status", t, func() {
+		httpCliMock := &mocks.HTTPClientMock{}
+
+		importAPI := ImportAPI{
+			ImportHost: host,
+			HTTPClient: httpCliMock,
+			AuthToken:  authToken,
+		}
+		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
+			return Response([]byte{}, 403, nil)
+		}
+
+		Convey("When PutDimensionNodeID is called", func() {
+			err := importAPI.PutDimensionNodeID(instanceID, dimensionOne)
+
+			Convey("Then the expected error is returned", func() {
+				So(err, ShouldResemble, errors.New(forbiddenResponse))
+			})
+
+			Convey("And api.HTTPClient.Do is called 1 time", func() {
+				calls := len(httpCliMock.DoCalls())
+				So(calls, ShouldEqual, 1)
+			})
+		})
+	})
+
+	Convey("Given HTTPClient.Do returns an unexpected status", t, func() {
+		httpCliMock := &mocks.HTTPClientMock{}
+
+		importAPI := ImportAPI{
+			ImportHost: host,
+			HTTPClient: httpCliMock,
+			AuthToken:  authToken,
+		}
+		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
+			return Response([]byte{}, 500, nil)
+		}
+
+		Convey("When PutDimensionNodeID is called", func() {
+			err := importAPI.PutDimensionNodeID(instanceID, dimensionOne)
+
+			Convey("Then the expected error is returned", func() {
+				So(err, ShouldResemble, errors.New(putDimNodeIDErr))
+			})
+
+			Convey("And api.HTTPClient.Do is called 1 time", func() {
+				calls := len(httpCliMock.DoCalls())
+				So(calls, ShouldEqual, 1)
+			})
+		})
+	})
+
+	Convey("Given HTTPClient.Do returns a 200 status", t, func() {
+		httpCliMock := &mocks.HTTPClientMock{}
+
+		importAPI := ImportAPI{
+			ImportHost: host,
+			HTTPClient: httpCliMock,
+			AuthToken:  authToken,
+		}
+		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
+			return Response([]byte{}, 200, nil)
+		}
+
+		Convey("When PutDimensionNodeID is called", func() {
+			err := importAPI.PutDimensionNodeID(instanceID, dimensionOne)
+
+			Convey("Then no error is returned", func() {
 				So(err, ShouldEqual, nil)
 			})
-		})
 
-		Convey("When http client returns a 404 status", func() {
-			httpCliMock := &httpClientMock{}
-			httpCli = httpCliMock
-			httpCliMock.WhenDoReturn(MockResponse(404), nil)
-
-			api := ImportAPI{}
-			err := api.PutDimensionNodeID(instanceID, dimensionOne)
-
-			Convey("Then httpClient has been invoked 1 time", func() {
-				So(httpCliMock.invocations, ShouldEqual, 1)
-			})
-
-			Convey("And the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(putDimNodeIDErr))
-			})
-		})
-
-		Convey("When http client return a 500 status", func() {
-			httpCliMock := &httpClientMock{}
-			httpCli = httpCliMock
-			httpCliMock.WhenDoReturn(MockResponse(500), nil)
-
-			api := ImportAPI{}
-			err := api.PutDimensionNodeID(instanceID, dimensionOne)
-
-			Convey("Then httpClient has been invoked 1 time", func() {
-				So(httpCliMock.invocations, ShouldEqual, 1)
-			})
-
-			Convey("And the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(putDimNodeIDErr))
-			})
-		})
-
-		Convey("When http client returns an unexpected HTTP status", func() {
-			httpCliMock := &httpClientMock{}
-			httpCli = httpCliMock
-			httpCliMock.WhenDoReturn(MockResponse(503), nil)
-
-			api := ImportAPI{}
-			err := api.PutDimensionNodeID(instanceID, dimensionOne)
-
-			Convey("Then httpClient has been invoked 1 time", func() {
-				So(httpCliMock.invocations, ShouldEqual, 1)
-			})
-
-			Convey("And the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(putDimNodeIDErr))
+			Convey("And api.HTTPClient.Do is called 1 time", func() {
+				calls := len(httpCliMock.DoCalls())
+				So(calls, ShouldEqual, 1)
 			})
 		})
 	})
 }
 
-func mockIt(m *GetDimensionsMock) *GetDimensionsMock {
-	m.ReaderCount = 0
-	m.HTTPGetCount = 0
-
-	httpGet = m.httpGet()
-	respBodyReader = m.MockReader
-	Host = host
-	return m
-}
-
-type GetDimensionsMock struct {
-	StatusCode   int
-	HTTPGetCount int
-	ReaderCount  int
-	Body         []byte
-	Error        error
-	URLParam     string
-	Reader       func(reader io.Reader) ([]byte, error)
-}
-
-func (m *GetDimensionsMock) httpGet() func(string) (*http.Response, error) {
-	m.HTTPGetCount = 0
-	reader := bytes.NewReader(m.Body)
+func Response(body []byte, statusCode int, err error) (*http.Response, error) {
+	reader := bytes.NewBuffer(body)
 	readCloser := ioutil.NopCloser(reader)
 
-	return func(url string) (*http.Response, error) {
-		res := http.Response{
-			Body:       readCloser,
-			StatusCode: m.StatusCode,
-		}
-		m.HTTPGetCount++
-		return &res, m.Error
-	}
-}
-
-func (m *GetDimensionsMock) MockReader(reader io.Reader) ([]byte, error) {
-	m.ReaderCount++
-	return m.Reader(reader)
-}
-
-func dimensionsBytes(d []*model.Dimension) []byte {
-	body, _ = json.Marshal(expectedDimensions)
-	return body
-}
-
-type httpClientMock struct {
-	response    *http.Response
-	err         error
-	invocations int
-}
-
-func (cli *httpClientMock) WhenDoReturn(r *http.Response, err error) {
-	cli.response = r
-	cli.err = err
-}
-
-func (cli *httpClientMock) Do(req *http.Request) (*http.Response, error) {
-	cli.invocations = cli.invocations + 1
-	return cli.response, cli.err
-}
-
-func MockResponse(statusCode int) *http.Response {
-	reader := bytes.NewReader(make([]byte, 0))
-	readCloser := ioutil.NopCloser(reader)
-	return &http.Response{Body: readCloser, StatusCode: statusCode}
+	return &http.Response{
+		StatusCode: statusCode,
+		Body:       readCloser,
+	}, err
 }

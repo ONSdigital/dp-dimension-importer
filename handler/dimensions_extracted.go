@@ -8,19 +8,20 @@ import (
 	"time"
 )
 
-//go:generate moq -out generated_mocks.go . ImportAPIClient InstanceRepository DimensionRepository
+//go:generate moq -out ../mocks/dimensions_extracted_generated_mocks.go -pkg mocks . ImportAPIClient InstanceRepository DimensionRepository
 
 const (
-	logEventRecieved    = "Handling dimensions extracted event"
-	dimensionCliErrMsg  = "Error when calling dimensions client"
-	updateNodeIDErr     = "Unexpected error while calling ImportAPI.SetDimensionNodeID"
-	createInstanceErr   = "Unexpected error while attempting to create instance"
-	importAPINilErr     = "DimensionsExtractedEventHandler.ImportAPI expected but was nil"
-	createDimRepoNilErr = "DimensionsExtractedEventHandler.NewDimensionInserter expected but was nil"
-	instanceRepoNilErr  = "DimensionsExtractedEventHandler.InstanceRepository expected but was nil"
-	instanceIDNilErr    = "DimensionsExtractedEvent.InstanceID is required but was nil"
-	insertDimErr        = "Error while attempting to insert dimension"
-	addInsanceDimsErr   = "InstanceRepository.AddDimensions returned an error"
+	logEventRecieved        = "Handling dimensions extracted event"
+	dimensionCliErrMsg      = "Error when calling dimensions client"
+	updateNodeIDErr         = "Unexpected error while calling ImportAPI.SetDimensionNodeID"
+	createInstanceErr       = "Unexpected error while attempting to create instance"
+	importAPINilErr         = "DimensionsExtractedEventHandler.ImportAPI expected but was nil"
+	createDimRepoNilErr     = "DimensionsExtractedEventHandler.NewDimensionInserter expected but was nil"
+	instanceRepoNilErr      = "DimensionsExtractedEventHandler.InstanceRepository expected but was nil"
+	instanceIDNilErr        = "DimensionsExtractedEvent.InstanceID is required but was nil"
+	insertDimErr            = "Error while attempting to insert dimension"
+	addInsanceDimsErr       = "InstanceRepository.AddDimensions returned an error"
+	eventProcessingComplete = "Event processing complete"
 )
 
 // ImportAPIClient defines interface of an Import API client,
@@ -107,7 +108,7 @@ func (hdlr *DimensionsExtractedEventHandler) HandleEvent(event model.DimensionsE
 		return errors.New(addInsanceDimsErr)
 	}
 
-	logData["timeTaken"] = time.Since(start).Seconds()
-	log.Debug("Event processing complete", logData)
+	logData[logKeys.ProcessingTime] = time.Since(start).Seconds()
+	log.Debug(eventProcessingComplete, logData)
 	return nil
 }

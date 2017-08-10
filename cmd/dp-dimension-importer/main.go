@@ -7,14 +7,19 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/client"
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/config"
-	"github.com/ONSdigital/dp-dimension-importer/handler"
-	"github.com/ONSdigital/dp-dimension-importer/message"
-	"github.com/ONSdigital/dp-dimension-importer/repository"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
+	"io"
+	"io/ioutil"
 )
 
 var incomingKafka chan kafka.Message
+
+type responseBodyReader struct{}
+
+func (r responseBodyReader) Read(reader io.Reader) ([]byte, error) {
+	return ioutil.ReadAll(reader)
+}
 
 func main() {
 	log.Namespace = "dimension-importer"
@@ -28,7 +33,7 @@ func main() {
 	consumer, err := kafka.NewConsumerGroup(cfg.KafkaAddr, cfg.DimensionsExtractedTopic, log.Namespace, kafka.OffsetNewest)
 	if err != nil {
 		log.ErrorC("Could not create consumer", err, nil)
-		panic("Could not create consumer")
+		os.Exit(1)
 	}
 
 	insertedEventProducer, err := kafka.NewProducer(cfg.KafkaAddr, cfg.DimensionsInsertedTopic, 0)
@@ -41,8 +46,8 @@ func main() {
 	fmt.Println(cfg.ImportAuthToken)
 	client.AuthToken = cfg.ImportAuthToken
 
-	var databaseClient *client.Neo4j
-	if databaseClient, err = client.NewDatabase(cfg.DatabaseURL, cfg.PoolSize); err != nil {
+	var neo4jClient *client.Neo4j
+	if neo4jClient, err = client.NewNeo4j(cfg.DatabaseURL, cfg.PoolSize); err != nil {
 		log.ErrorC("Unexpected error while to create database connection pool", err, log.Data{
 			logKeys.URL:      cfg.DatabaseURL,
 			logKeys.PoolSize: cfg.PoolSize,
@@ -52,15 +57,22 @@ func main() {
 
 	newDimensionInserterFunc := func() handler.DimensionRepository {
 		return repository.DimensionRepository{
-			Neo:              *databaseClient,
+			Neo4jCli:         *neo4jClient,
 			ConstraintsCache: map[string]string{},
 		}
 	}
 
+	importAPI := client.ImportAPI{
+		ResponseBodyReader: responseBodyReader{},
+		HTTPClient:         &http.Client{},
+		AuthToken:          cfg.ImportAuthToken,
+		ImportHost:         cfg.ImportAddr,
+	}
+
 	eventHandler := &handler.DimensionsExtractedEventHandler{
 		NewDimensionInserter: newDimensionInserterFunc,
-		InstanceRepository:   &repository.InstanceRepository{Neo: databaseClient},
-		ImportAPI:            client.ImportAPI{},
+		InstanceRepository:   &repository.InstanceRepository{Neo4j: neo4jClient},
+		ImportAPI:            importAPI,
 	}
 
 	err = message.Consume(consumer, insertedEventProducer, eventHandler)

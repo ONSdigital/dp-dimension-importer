@@ -8,11 +8,6 @@ import (
 	"github.com/ian-kent/gofigure"
 )
 
-const (
-	found    = "FOUND"
-	notFound = "NOT FOUND"
-)
-
 // Config struct to hold application configuration.
 type Config struct {
 	BindAddr                 string   `env:"BIND_ADDR" flag:"bind-addr" flagDesc:"The port to bind to."`
@@ -26,9 +21,9 @@ type Config struct {
 }
 
 func (c *Config) String() string {
-	authTokenFound := notFound
+	authTokenFound := "NOT FOUND"
 	if len(c.ImportAuthToken) > 0 {
-		authTokenFound = found
+		authTokenFound = "FOUND"
 	}
 
 	masked := Config(*c)
