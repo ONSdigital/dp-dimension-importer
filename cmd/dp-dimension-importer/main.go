@@ -3,14 +3,17 @@ package main
 import (
 	"os"
 
-	"fmt"
 	"github.com/ONSdigital/dp-dimension-importer/client"
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/config"
+	"github.com/ONSdigital/dp-dimension-importer/handler"
+	"github.com/ONSdigital/dp-dimension-importer/message"
+	"github.com/ONSdigital/dp-dimension-importer/repository"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"io"
 	"io/ioutil"
+	"net/http"
 )
 
 var incomingKafka chan kafka.Message
@@ -41,10 +44,6 @@ func main() {
 		log.ErrorC("kafka producer error", err, log.Data{"topic": cfg.DimensionsInsertedTopic})
 		os.Exit(1)
 	}
-
-	client.Host = cfg.ImportAddr
-	fmt.Println(cfg.ImportAuthToken)
-	client.AuthToken = cfg.ImportAuthToken
 
 	var neo4jClient *client.Neo4j
 	if neo4jClient, err = client.NewNeo4j(cfg.DatabaseURL, cfg.PoolSize); err != nil {
