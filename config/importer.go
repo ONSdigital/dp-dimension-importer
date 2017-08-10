@@ -3,15 +3,9 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/ian-kent/gofigure"
-	"github.com/ONSdigital/go-ns/log"
 	"errors"
-)
-
-
-const (
-	found = "FOUND"
-	notFound = "NOT FOUND"
+	"github.com/ONSdigital/go-ns/log"
+	"github.com/ian-kent/gofigure"
 )
 
 // Config struct to hold application configuration.
@@ -26,9 +20,9 @@ type Config struct {
 }
 
 func (c *Config) String() string {
-	authTokenFound := notFound
+	authTokenFound := "NOT FOUND"
 	if len(c.ImportAuthToken) > 0 {
-		authTokenFound = found
+		authTokenFound = "FOUND"
 	}
 
 	masked := Config(*c)

@@ -20,15 +20,10 @@ type Dimension struct {
 	NodeID      string `json:"node_id,omitempty"`
 }
 
-// GetLabel returns the a formatted label for the dimensions in the format '_$DIMENSION_ID'
-func (d *Dimension) GetLabel() string {
-	return "_" + d.DimensionID
-}
-
 // GetName return the name or type of Dimension e.g. sex, geography time etc.
 func (d *Dimension) GetName(instanceID string) string {
 	instID := fmt.Sprintf("_%s_", instanceID)
-	dimLabel := d.GetLabel()
+	dimLabel := "_" + d.DimensionID
 	result := strings.Replace(dimLabel, instID, "", 2)
 	return result
 }
@@ -52,9 +47,4 @@ func (i *Instance) AddDimension(d *Dimension) {
 // GetDimensions returns a slice of distinct dimensions name/types for this instance.
 func (i *Instance) GetDimensions() []interface{} {
 	return i.Dimensions
-}
-
-// GetLabel return the node label for this instance.
-func (i *Instance) GetLabel() string {
-	return fmt.Sprintf(instanceLabelFmt, i.GetID())
 }

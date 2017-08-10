@@ -19,4 +19,6 @@ const (
 	DimensionsCount = "dimensionsCount"
 	// PoolSize database connection pool size key for logging details
 	PoolSize = "poolSize"
+	// ProcessingTime logging details key for time taken to processing instance.
+	ProcessingTime = "proccessingTime"
 )

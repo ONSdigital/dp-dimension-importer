@@ -6,6 +6,9 @@ import (
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	. "github.com/smartystreets/goconvey/convey"
 	"errors"
+	"github.com/ONSdigital/dp-dimension-importer/mocks"
+	"github.com/ONSdigital/dp-dimension-importer/common"
+
 )
 
 var (
@@ -23,13 +26,14 @@ func TestNeo4j_Query(t *testing.T) {
 		params := map[string]interface{}{"param1": "Valar dohaeris"}
 
 		// mocks
-		mockConn := &NeoConnMock{}
-		mockDriverPool := &NeoDriverPoolMock{}
-		mockStmt := &NeoStmtMock{}
-		mockRows := &NeoQueryRowsMock{}
+		mockConn := &mocks.NeoConnMock{}
+		mockDriverPool := &mocks.NeoDriverPoolMock{}
+		mockStmt := &mocks.NeoStmtMock{}
+		mockRows := &mocks.NeoQueryRowsMock{}
 
-		neoDriverPool = mockDriverPool
-		neo := Neo4j{}
+		neo := Neo4j{
+			driverPool: mockDriverPool,
+		}
 
 		Convey("Given an empty statement", func() {
 			query = ""
@@ -67,7 +71,7 @@ func TestNeo4j_Query(t *testing.T) {
 			}
 			mockRows.CloseFunc = closeNoErr
 
-			expectedRows := &NeoRows{Data: [][]interface{}{[]interface{}{1}}}
+			expectedRows := &common.NeoRows{Data: [][]interface{}{[]interface{}{1}}}
 			neoRows, err := neo.Query(query, params)
 
 			Convey("Then the expected result should be returned and no errors", func() {
@@ -250,13 +254,14 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 		params := map[string]interface{}{"param1": "Valar dohaeris"}
 
 		// mocks
-		mockConn := &NeoConnMock{}
-		mockDriverPool := &NeoDriverPoolMock{}
-		mockStmt := &NeoStmtMock{}
-		mockResult := &NeoResultMock{}
+		mockConn := &mocks.NeoConnMock{}
+		mockDriverPool := &mocks.NeoDriverPoolMock{}
+		mockStmt := &mocks.NeoStmtMock{}
+		mockResult := &mocks.NeoResultMock{}
 
-		neoDriverPool = mockDriverPool
-		neo := Neo4j{}
+		neo := Neo4j{
+			driverPool: mockDriverPool,
+		}
 
 		Convey("When ExecStmt is called with valid parameters", func() {
 			// set up mocks.

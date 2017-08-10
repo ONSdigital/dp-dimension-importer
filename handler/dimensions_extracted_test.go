@@ -5,6 +5,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+	"github.com/ONSdigital/dp-dimension-importer/mocks"
 )
 
 var testInstanceID = "1234567890"
@@ -25,7 +26,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 	Convey("Given the handler has been configured", t, func() {
 		// Set up mocks
-		instanceRepositoryMock := &InstanceRepositoryMock{
+		instanceRepositoryMock := &mocks.InstanceRepositoryMock{
 			AddDimensionsFunc: func(instance *model.Instance) error {
 				return nil
 			},
@@ -34,13 +35,13 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			},
 		}
 
-		dimensionRepository := &DimensionRepositoryMock{
+		dimensionRepository := &mocks.DimensionRepositoryMock{
 			InsertFunc: func(instance *model.Instance, d *model.Dimension) (*model.Dimension, error) {
 				return d, nil
 			},
 		}
 
-		importAPIMock := &ImportAPIClientMock{
+		importAPIMock := &mocks.ImportAPIClientMock{
 			GetDimensionsFunc: func(instanceID string) ([]*model.Dimension, error) {
 				return []*model.Dimension{d1, d2}, nil
 			},
@@ -311,8 +312,8 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 	})
 
 	Convey("Given handler.ImportAPI has not been configured", t, func() {
-		instanceRepositoryMock := &InstanceRepositoryMock{}
-		dimensionRepository := &DimensionRepositoryMock{}
+		instanceRepositoryMock := &mocks.InstanceRepositoryMock{}
+		dimensionRepository := &mocks.DimensionRepositoryMock{}
 
 		handler := DimensionsExtractedEventHandler{
 			ImportAPI:          nil,
@@ -338,8 +339,8 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 	})
 
 	Convey("Given handler.InstanceRepository has not been configured", t, func() {
-		dimensionRepository := &DimensionRepositoryMock{}
-		importAPIMock := &ImportAPIClientMock{}
+		dimensionRepository := &mocks.DimensionRepositoryMock{}
+		importAPIMock := &mocks.ImportAPIClientMock{}
 
 		handler := DimensionsExtractedEventHandler{
 			ImportAPI:          importAPIMock,
@@ -364,8 +365,8 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 	})
 
 	Convey("Given handler.InstanceRepository has not been configured", t, func() {
-		importAPIMock := &ImportAPIClientMock{}
-		instanceRepositoryMock := &InstanceRepositoryMock{}
+		importAPIMock := &mocks.ImportAPIClientMock{}
+		instanceRepositoryMock := &mocks.InstanceRepositoryMock{}
 
 		handler := DimensionsExtractedEventHandler{
 			ImportAPI:            importAPIMock,
