@@ -13,6 +13,7 @@ type Config struct {
 	BindAddr                 string   `env:"BIND_ADDR" flag:"bind-addr" flagDesc:"The port to bind to."`
 	KafkaAddr                []string `env:"KAFKA_ADDR" flag:"kafka-addr" flagDesc:"The address of Kafka topic for inbound messages."`
 	DimensionsExtractedTopic string   `env:"DIMENSIONS_EXTRACTED_TOPIC" flag:"dimensions-extracted-topic" flagDesc:"The Kafka topic supplying dimension messages"`
+	DimensionsInsertedTopic  string   `env:"DIMENSIONS_INSERTED_TOPIC" flag:"dimensions-inserted-topic" flagDesc:"The Kafka topic for imported dimension complete messages"`
 	ImportAddr               string   `env:"IMPORT_ADDR" flag:"import-addr" flagDesc:"The address of Kafka topic for inbound messages."`
 	ImportAuthToken          string   `env:"IMPORT_AUTH_TOKEN" flag:"import-auth-token" flagDesc:"Authentication token required to make PUT requests to import api."`
 	DatabaseURL              string   `env:"DB_URL" flag:"db-url" flagDesc:"The URL of the dimensions database."`
@@ -41,6 +42,7 @@ func Load() (*Config, error) {
 		PoolSize:                 20,
 		KafkaAddr:                []string{"localhost:9092"},
 		DimensionsExtractedTopic: "dimensions-extracted",
+		DimensionsInsertedTopic:  "dimensions-inserted",
 	}
 
 	err := gofigure.Gofigure(&cfg)

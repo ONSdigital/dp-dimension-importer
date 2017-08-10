@@ -20,6 +20,17 @@ type Dimension struct {
 	NodeID      string `json:"node_id,omitempty"`
 }
 
+// DimensionsInsertedEvent represents a 'Dimensions Inserted' kafka message
+type DimensionsInsertedEvent struct {
+	FileURL    string `avro:"file_url"`
+	InstanceID string `avro:"instance_id"`
+}
+
+// GetLabel returns the a formatted label for the dimensions in the format '_$DIMENSION_ID'
+func (d *Dimension) GetLabel() string {
+	return "_" + d.DimensionID
+}
+
 // GetName return the name or type of Dimension e.g. sex, geography time etc.
 func (d *Dimension) GetName(instanceID string) string {
 	instID := fmt.Sprintf("_%s_", instanceID)

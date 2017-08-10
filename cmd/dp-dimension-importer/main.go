@@ -39,6 +39,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	insertedEventProducer, err := kafka.NewProducer(cfg.KafkaAddr, cfg.DimensionsInsertedTopic, 0)
+	if err != nil {
+		log.ErrorC("kafka producer error", err, log.Data{"topic": cfg.DimensionsInsertedTopic})
+		os.Exit(1)
+	}
+
 	var neo4jClient *client.Neo4j
 	if neo4jClient, err = client.NewNeo4j(cfg.DatabaseURL, cfg.PoolSize); err != nil {
 		log.ErrorC("Unexpected error while to create database connection pool", err, log.Data{
@@ -68,7 +74,7 @@ func main() {
 		ImportAPI:            importAPI,
 	}
 
-	err = message.Consume(consumer, eventHandler)
+	err = message.Consume(consumer, insertedEventProducer, eventHandler)
 	if err != nil {
 		log.ErrorC("consumer", err, nil)
 		panic("Consumer returned error")
