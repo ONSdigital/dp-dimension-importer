@@ -10,6 +10,7 @@ import (
 
 var (
 	lockImportAPIClientMockGetDimensions      sync.RWMutex
+	lockImportAPIClientMockGetInstance        sync.RWMutex
 	lockImportAPIClientMockPutDimensionNodeID sync.RWMutex
 )
 
@@ -21,6 +22,9 @@ var (
 //         mockedImportAPIClient := &ImportAPIClientMock{
 //             GetDimensionsFunc: func(instanceID string) ([]*model.Dimension, error) {
 // 	               panic("TODO: mock out the GetDimensions method")
+//             },
+//             GetInstanceFunc: func(instanceID string) (*model.Instance, error) {
+// 	               panic("TODO: mock out the GetInstance method")
 //             },
 //             PutDimensionNodeIDFunc: func(instanceID string, dimension *model.Dimension) error {
 // 	               panic("TODO: mock out the PutDimensionNodeID method")
@@ -35,6 +39,9 @@ type ImportAPIClientMock struct {
 	// GetDimensionsFunc mocks the GetDimensions method.
 	GetDimensionsFunc func(instanceID string) ([]*model.Dimension, error)
 
+	// GetInstanceFunc mocks the GetInstance method.
+	GetInstanceFunc func(instanceID string) (*model.Instance, error)
+
 	// PutDimensionNodeIDFunc mocks the PutDimensionNodeID method.
 	PutDimensionNodeIDFunc func(instanceID string, dimension *model.Dimension) error
 
@@ -42,6 +49,11 @@ type ImportAPIClientMock struct {
 	calls struct {
 		// GetDimensions holds details about calls to the GetDimensions method.
 		GetDimensions []struct {
+			// InstanceID is the instanceID argument value.
+			InstanceID string
+		}
+		// GetInstance holds details about calls to the GetInstance method.
+		GetInstance []struct {
 			// InstanceID is the instanceID argument value.
 			InstanceID string
 		}
@@ -83,6 +95,37 @@ func (mock *ImportAPIClientMock) GetDimensionsCalls() []struct {
 	lockImportAPIClientMockGetDimensions.RLock()
 	calls = mock.calls.GetDimensions
 	lockImportAPIClientMockGetDimensions.RUnlock()
+	return calls
+}
+
+// GetInstance calls GetInstanceFunc.
+func (mock *ImportAPIClientMock) GetInstance(instanceID string) (*model.Instance, error) {
+	if mock.GetInstanceFunc == nil {
+		panic("moq: ImportAPIClientMock.GetInstanceFunc is nil but ImportAPIClient.GetInstance was just called")
+	}
+	callInfo := struct {
+		InstanceID string
+	}{
+		InstanceID: instanceID,
+	}
+	lockImportAPIClientMockGetInstance.Lock()
+	mock.calls.GetInstance = append(mock.calls.GetInstance, callInfo)
+	lockImportAPIClientMockGetInstance.Unlock()
+	return mock.GetInstanceFunc(instanceID)
+}
+
+// GetInstanceCalls gets all the calls that were made to GetInstance.
+// Check the length with:
+//     len(mockedImportAPIClient.GetInstanceCalls())
+func (mock *ImportAPIClientMock) GetInstanceCalls() []struct {
+	InstanceID string
+} {
+	var calls []struct {
+		InstanceID string
+	}
+	lockImportAPIClientMockGetInstance.RLock()
+	calls = mock.calls.GetInstance
+	lockImportAPIClientMockGetInstance.RUnlock()
 	return calls
 }
 

@@ -22,6 +22,10 @@ const (
 	marshalDimensionErr   = "Unexpected error while marshalling dimenison"
 	instanceIDRequiredErr = "instanceID is required but is empty"
 
+	getInstanceURIFMT  = "%s/instances/%s"
+	getInstanceSuccess = "Import-API Get instance success"
+	getInstanceErr     = "Get instance returned error status"
+
 	getDimensionsURIFMT  = "%s/instances/%s/dimensions"
 	getDimensionsSuccess = "Import-API Get Dimensions success"
 	getDimensionsErr     = "Get dimensions returned error status"
@@ -56,6 +60,61 @@ type ImportAPI struct {
 	AuthToken          string
 	ResponseBodyReader ResponseBodyReader
 	HTTPClient         HTTPClient
+}
+
+// GetInstance returns instance data from the import API.
+func (api ImportAPI) GetInstance(instanceID string) (*model.Instance, error) {
+
+	if len(api.ImportHost) == 0 {
+		err := errors.New(hostConfigMissingErr)
+		log.ErrorC(hostConfigMissingErr, err, nil)
+		return nil, err
+	}
+
+	if len(instanceID) == 0 {
+		return nil, errors.New(instanceIDRequiredErr)
+	}
+
+	url := fmt.Sprintf(getInstanceURIFMT, api.ImportHost, instanceID)
+	data := log.Data{
+		logKeys.InstanceID: instanceID,
+		logKeys.URL:        url,
+	}
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		log.ErrorC(newReqErr, err, data)
+		return nil, err
+	}
+
+	res, err := api.HTTPClient.Do(req)
+	if err != nil {
+		data[logKeys.ErrorDetails] = err.Error()
+		log.ErrorC(unexpectedAPIErr, err, data)
+		return nil, err
+	}
+
+	data[logKeys.RespStatusCode] = res.StatusCode
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		err := errors.New(getInstanceErr)
+		log.ErrorC(getInstanceErr, err, data)
+		return nil, err
+	}
+
+	body, err := api.ResponseBodyReader.Read(res.Body)
+	if err != nil {
+		log.ErrorC(readRespBodyErr, err, data)
+		return nil, err
+	}
+
+	var instance *model.Instance
+	JSONErr := json.Unmarshal(body, &instance)
+	if JSONErr != nil {
+		return nil, JSONErr
+	}
+	return instance, nil
 }
 
 // GetDimensions perform a HTTP GET request to the dp-import-api to retrieve the dataset dimenions for the specified instanceID

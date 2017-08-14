@@ -13,6 +13,7 @@ import (
 const (
 	logEventRecieved        = "Handling dimensions extracted event"
 	dimensionCliErrMsg      = "Error when calling dimensions client"
+	instanceErrMsg          = "Error when calling the import API to retrieve instance data"
 	updateNodeIDErr         = "Unexpected error while calling ImportAPI.SetDimensionNodeID"
 	createInstanceErr       = "Unexpected error while attempting to create instance"
 	importAPINilErr         = "DimensionsExtractedEventHandler.ImportAPI expected but was nil"
@@ -28,6 +29,7 @@ const (
 type ImportAPIClient interface {
 	GetDimensions(instanceID string) ([]*model.Dimension, error)
 	PutDimensionNodeID(instanceID string, dimension *model.Dimension) error
+	GetInstance(instanceID string) (*model.Instance, error)
 }
 
 // InstanceRepository defines an Instance repository
@@ -81,7 +83,13 @@ func (hdlr *DimensionsExtractedEventHandler) HandleEvent(event model.DimensionsE
 	}
 
 	logData[logKeys.DimensionsCount] = len(dimensions)
-	instance := &model.Instance{InstanceID: event.InstanceID, Dimensions: make([]interface{}, 0)}
+
+	// retrieve the CSV header from the import API and attach it to the instance node allowing it to be used after import.
+	instance, err := hdlr.ImportAPI.GetInstance(event.InstanceID)
+	if err != nil {
+		log.ErrorC(instanceErrMsg, err, logData)
+		return errors.New(instanceErrMsg)
+	}
 
 	if err = hdlr.InstanceRepository.Create(instance); err != nil {
 		log.ErrorC(createInstanceErr, err, logData)

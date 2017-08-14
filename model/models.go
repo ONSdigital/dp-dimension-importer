@@ -41,7 +41,8 @@ func (d *Dimension) GetName(instanceID string) string {
 
 // Instance struct to hold instance information.
 type Instance struct {
-	InstanceID string
+	InstanceID string   `json:"instance_id,omitempty"`
+	CSVHeader  []string `json:"headers"`
 	Dimensions []interface{}
 }
 
@@ -58,4 +59,9 @@ func (i *Instance) AddDimension(d *Dimension) {
 // GetDimensions returns a slice of distinct dimensions name/types for this instance.
 func (i *Instance) GetDimensions() []interface{} {
 	return i.Dimensions
+}
+
+// GetHeader returns the value of each cell in the CSV header.
+func (i *Instance) GetHeader() []string {
+	return i.CSVHeader
 }
