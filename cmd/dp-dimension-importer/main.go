@@ -75,6 +75,6 @@ func main() {
 	err = message.Consume(consumer, insertedEventProducer, eventHandler)
 	if err != nil {
 		log.ErrorC("consumer", err, nil)
-		panic("Consumer returned error")
+		os.Exit(1)
 	}
 }
