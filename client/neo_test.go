@@ -1,14 +1,13 @@
 package client
 
 import (
+	"errors"
+	"github.com/ONSdigital/dp-dimension-importer/common"
+	"github.com/ONSdigital/dp-dimension-importer/mocks"
 	"github.com/ONSdigital/dp-dimension-importer/model"
-	"testing"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	. "github.com/smartystreets/goconvey/convey"
-	"errors"
-	"github.com/ONSdigital/dp-dimension-importer/mocks"
-	"github.com/ONSdigital/dp-dimension-importer/common"
-
+	"testing"
 )
 
 var (

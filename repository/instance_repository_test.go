@@ -1,13 +1,13 @@
 package repository
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
-	"github.com/ONSdigital/dp-dimension-importer/mocks"
 	"errors"
+	"fmt"
+	"github.com/ONSdigital/dp-dimension-importer/mocks"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	"fmt"
+	. "github.com/smartystreets/goconvey/convey"
+	"testing"
 )
 
 var expectedErr = errors.New("I am Expected")

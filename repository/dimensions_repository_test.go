@@ -1,14 +1,14 @@
 package repository
 
 import (
+	"errors"
+	"fmt"
+	"github.com/ONSdigital/dp-dimension-importer/common"
+	"github.com/ONSdigital/dp-dimension-importer/mocks"
+	"github.com/ONSdigital/dp-dimension-importer/model"
+	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
-	"github.com/ONSdigital/dp-dimension-importer/mocks"
-	"errors"
-	"github.com/ONSdigital/dp-dimension-importer/model"
-	"github.com/ONSdigital/dp-dimension-importer/common"
-	"fmt"
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
 var instance = &model.Instance{InstanceID: instanceID}

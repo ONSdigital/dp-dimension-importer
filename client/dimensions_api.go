@@ -29,17 +29,17 @@ const (
 	getDimensionsSuccess = "Import-API Get Dimensions success"
 	getDimensionsErr     = "Get dimensions returned error status"
 
-	createPutNodeIDReqErr  = "Unexpecter error creating request struct"
-	putDimensionNodeIDURI  = "%s/instances/%s/dimensions/%s/options/%s/node_id/%s"
-	putDimNodeIDReqErr     = "Error sending set Dimension node_id request"
-	putDimNodeIDErr        = "Set Dimension node_id returned error status"
-	dimensionNilErr        = "Dimension is required but was nil"
-	dimensionIDReqErr      = "DimensionID is required but was empty"
-	unauthorisedResponse   = "Import API returned Unauthorized response status"
-	forbiddenResponse      = "Import API returned Forbidden response status"
-	authTokenHeader        = "Internal-Token"
-	readRespBodyErr        = "Unexpected error while attempting to read response body"
-	newReqErr              = "Unexpected error while attempting to create new http.Request"
+	createPutNodeIDReqErr = "Unexpecter error creating request struct"
+	putDimensionNodeIDURI = "%s/instances/%s/dimensions/%s/options/%s/node_id/%s"
+	putDimNodeIDReqErr    = "Error sending set Dimension node_id request"
+	putDimNodeIDErr       = "Set Dimension node_id returned error status"
+	dimensionNilErr       = "Dimension is required but was nil"
+	dimensionIDReqErr     = "DimensionID is required but was empty"
+	unauthorisedResponse  = "Import API returned Unauthorized response status"
+	forbiddenResponse     = "Import API returned Forbidden response status"
+	authTokenHeader       = "Internal-Token"
+	readRespBodyErr       = "Unexpected error while attempting to read response body"
+	newReqErr             = "Unexpected error while attempting to create new http.Request"
 )
 
 // ResponseBodyReader defines a http response body reader.
