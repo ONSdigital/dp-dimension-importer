@@ -16,8 +16,6 @@ import (
 	"net/http"
 )
 
-var incomingKafka chan kafka.Message
-
 type responseBodyReader struct{}
 
 func (r responseBodyReader) Read(reader io.Reader) ([]byte, error) {
