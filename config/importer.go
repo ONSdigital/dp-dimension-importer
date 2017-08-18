@@ -34,7 +34,7 @@ func Load() (*Config, error) {
 	err := gofigure.Gofigure(&cfg)
 
 	if len(cfg.ImportAuthToken) == 0 {
-		err := errors.New("Error while attempting to load config. ImportAuthToken is required but has not been configured.")
+		err := errors.New("error while attempting to load config. import api auth token is required but has not been configured.")
 		log.Error(err, nil)
 		return nil, err
 	}

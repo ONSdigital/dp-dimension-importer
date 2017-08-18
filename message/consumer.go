@@ -28,8 +28,8 @@ func Consume(consumer kafka.MessageConsumer, producer kafka.MessageProducer, eve
 					return
 				}
 
-				log.Debug("Recieved DimensionsExtractedEvent", log.Data{
-					"Event": event,
+				log.Debug("received dimensions extracted event", log.Data{
+					"event": event,
 				})
 
 				eventHandler.HandleEvent(event)
@@ -43,13 +43,13 @@ func Consume(consumer kafka.MessageConsumer, producer kafka.MessageProducer, eve
 				consumedMessage.Commit()
 
 			case consumerError := <-consumer.Errors():
-				log.Error(fmt.Errorf("Aborting"), log.Data{"messageReceived": consumerError})
+				log.Error(fmt.Errorf("aborting"), log.Data{"message_received": consumerError})
 				consumer.Closer() <- true
 				producer.Closer() <- true
 				exitChannel <- consumerError
 				return
 			case producerError := <-producer.Errors():
-				log.Error(fmt.Errorf("Aborting"), log.Data{"messageReceived": producerError})
+				log.Error(fmt.Errorf("aborting"), log.Data{"message_received": producerError})
 				consumer.Closer() <- true
 				producer.Closer() <- true
 				exitChannel <- producerError

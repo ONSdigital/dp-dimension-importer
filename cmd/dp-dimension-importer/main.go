@@ -29,11 +29,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Debug("Application configuration", log.Data{"config": cfg})
+	log.Debug("application configuration", log.Data{"config": cfg})
 
 	consumer, err := kafka.NewConsumerGroup(cfg.KafkaAddr, cfg.DimensionsExtractedTopic, log.Namespace, kafka.OffsetNewest)
 	if err != nil {
-		log.ErrorC("Could not create consumer", err, nil)
+		log.ErrorC("could not create consumer", err, nil)
 		os.Exit(1)
 	}
 
@@ -45,7 +45,7 @@ func main() {
 
 	var neo4jClient *client.Neo4j
 	if neo4jClient, err = client.NewNeo4j(cfg.DatabaseURL, cfg.PoolSize); err != nil {
-		log.ErrorC("Unexpected error while to create database connection pool", err, log.Data{
+		log.ErrorC("unexpected error while to create database connection pool", err, log.Data{
 			logKeys.URL:      cfg.DatabaseURL,
 			logKeys.PoolSize: cfg.PoolSize,
 		})

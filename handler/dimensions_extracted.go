@@ -12,18 +12,18 @@ import (
 //go:generate moq -out ../mocks/dimensions_extracted_generated_mocks.go -pkg mocks . ImportAPIClient InstanceRepository DimensionRepository
 
 const (
-	logEventRecieved        = "Handling dimensions extracted event"
-	dimensionCliErrMsg      = "Error when calling dimensions client"
-	instanceErrMsg          = "Error when calling the import API to retrieve instance data"
-	updateNodeIDErr         = "Unexpected error while calling ImportAPI.SetDimensionNodeID"
-	createInstanceErr       = "Unexpected error while attempting to create instance"
-	importAPINilErr         = "DimensionsExtractedEventHandler.ImportAPI expected but was nil"
-	createDimRepoNilErr     = "DimensionsExtractedEventHandler.NewDimensionInserter expected but was nil"
-	instanceRepoNilErr      = "DimensionsExtractedEventHandler.InstanceRepository expected but was nil"
-	instanceIDNilErr        = "DimensionsExtractedEvent.InstanceID is required but was nil"
-	insertDimErr            = "Error while attempting to insert dimension"
-	addInsanceDimsErr       = "InstanceRepository.AddDimensions returned an error"
-	eventProcessingComplete = "Event processing complete"
+	logEventRecieved        = "handling dimensions extracted event"
+	dimensionCliErrMsg      = "error when calling dimensions client"
+	instanceErrMsg          = "error when calling the import api to retrieve instance data"
+	updateNodeIDErr         = "unexpected error while calling import api set dimension node id endpoint"
+	createInstanceErr       = "unexpected error while attempting to create instance"
+	importAPINilErr         = "dimensions extracted event handler: import api expected but was nil"
+	createDimRepoNilErr     = "dimensions extracted event handler: new dimension inserter expected but was nil"
+	instanceRepoNilErr      = "dimensions extracted event handler: instance repository expected but was nil"
+	instanceIDNilErr        = "dimensions extracted event: instance id is required but was nil"
+	insertDimErr            = "error while attempting to insert dimension"
+	addInsanceDimsErr       = "instance repository: add dimensions returned an error"
+	eventProcessingComplete = "event processing complete"
 )
 
 // ImportAPIClient defines interface of an Import API client,

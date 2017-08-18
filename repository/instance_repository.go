@@ -18,12 +18,12 @@ const (
 	// Update the Instance node with the list of dimension types it contains.
 	addInstanceDimensionsStmt = "MATCH (i:`%s`) SET i.dimensions = {dimensions_list}"
 
-	instanceNilErr               = "Instance is require but was nil"
-	instanceIDReqErr             = "Instance.InstanceID is required but was empty"
-	createInstanceExecErr        = "Error while executing to create Instance statement."
-	createInstanceSuccess        = "Successfully created Instance node."
-	addInstanceDimensionsExecErr = "Error while executing add instance dimensions statement"
-	addInstanceDimensionsSuccess = "Successfully added dimensions to Instance node"
+	instanceNilErr               = "instance is required but was nil"
+	instanceIDReqErr             = "instance id is required but was empty"
+	createInstanceExecErr        = "error while executing to create Instance statement."
+	createInstanceSuccess        = "successfully created instance node."
+	addInstanceDimensionsExecErr = "error while executing add instance dimensions statement"
+	addInstanceDimensionsSuccess = "successfully added dimensions to instance node"
 )
 
 // InstanceRepository provides functionality for insterting & updating Instances into a Neo4j graph database
