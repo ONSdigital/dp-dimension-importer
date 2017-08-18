@@ -4,32 +4,43 @@ import (
 	"errors"
 	"github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/mocks"
-	"github.com/ONSdigital/dp-dimension-importer/model"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
 
-var (
-	dim = &model.Dimension{
-		DimensionID: "_123456789_Geography",
-		Value:       "UK",
-		NodeID:      "1",
-	}
-)
+var rowsData [][]interface{} = [][]interface{}{{1}}
 
 func TestNeo4j_Query(t *testing.T) {
 	Convey("Given the driver pool has been correctly configured ", t, func() {
+
 		query := "Valar morghulis"
 		expectedErr := errors.New("I am expected")
 		params := map[string]interface{}{"param1": "Valar dohaeris"}
 
-		// mocks
-		mockConn := &mocks.NeoConnMock{}
-		mockDriverPool := &mocks.NeoDriverPoolMock{}
-		mockStmt := &mocks.NeoStmtMock{}
-		mockRows := &mocks.NeoQueryRowsMock{}
-
+		mockRows := &mocks.NeoQueryRowsMock{
+			AllFunc: func() ([][]interface{}, map[string]interface{}, error) {
+				return rowsData, nil, nil
+			},
+			CloseFunc: closeNoErr,
+		}
+		mockStmt := &mocks.NeoStmtMock{
+			QueryNeoFunc: func(params map[string]interface{}) (bolt.Rows, error) {
+				return mockRows, nil
+			},
+			CloseFunc: closeNoErr,
+		}
+		mockConn := &mocks.NeoConnMock{
+			PrepareNeoFunc: func(query string) (bolt.Stmt, error) {
+				return mockStmt, nil
+			},
+			CloseFunc: closeNoErr,
+		}
+		mockDriverPool := &mocks.NeoDriverPoolMock{
+			OpenPoolFunc: func() (bolt.Conn, error) {
+				return mockConn, nil
+			},
+		}
 		neo := Neo4j{
 			driverPool: mockDriverPool,
 		}
@@ -52,25 +63,8 @@ func TestNeo4j_Query(t *testing.T) {
 		})
 
 		Convey("When Query is called with valid parameters", func() {
-			rowsData := [][]interface{}{[]interface{}{1}}
 
-			mockDriverPool.OpenPoolFunc = func() (bolt.Conn, error) {
-				return mockConn, nil
-			}
-			mockConn.PrepareNeoFunc = func(query string) (bolt.Stmt, error) {
-				return mockStmt, nil
-			}
-			mockConn.CloseFunc = closeNoErr
-			mockStmt.QueryNeoFunc = func(params map[string]interface{}) (bolt.Rows, error) {
-				return mockRows, nil
-			}
-			mockStmt.CloseFunc = closeNoErr
-			mockRows.AllFunc = func() ([][]interface{}, map[string]interface{}, error) {
-				return rowsData, nil, nil
-			}
-			mockRows.CloseFunc = closeNoErr
-
-			expectedRows := &common.NeoRows{Data: [][]interface{}{[]interface{}{1}}}
+			expectedRows := &common.NeoRows{Data: [][]interface{}{{1}}}
 			neoRows, err := neo.Query(query, params)
 
 			Convey("Then the expected result should be returned and no errors", func() {
@@ -104,25 +98,11 @@ func TestNeo4j_Query(t *testing.T) {
 		})
 
 		Convey("When retrieving the all rows returns an error", func() {
-			rowsData := [][]interface{}{[]interface{}{1}}
 
-			mockDriverPool.OpenPoolFunc = func() (bolt.Conn, error) {
-				return mockConn, nil
-			}
-			mockConn.PrepareNeoFunc = func(query string) (bolt.Stmt, error) {
-				return mockStmt, nil
-			}
-			mockConn.CloseFunc = closeNoErr
-			mockStmt.QueryNeoFunc = func(params map[string]interface{}) (bolt.Rows, error) {
-				return mockRows, nil
-			}
-			mockStmt.CloseFunc = closeNoErr
 			mockRows.AllFunc = func() ([][]interface{}, map[string]interface{}, error) {
 				return rowsData, nil, expectedErr
 			}
-			mockRows.CloseFunc = closeNoErr
 
-			// run test
 			neoRows, err := neo.Query(query, params)
 
 			Convey("Then the expected result should be returned and no errors", func() {
@@ -167,14 +147,10 @@ func TestNeo4j_Query(t *testing.T) {
 		})
 
 		Convey("When neoStmt.PrepareNeo returns an error", func() {
-			// Set up mocks.
-			mockDriverPool.OpenPoolFunc = func() (bolt.Conn, error) {
-				return mockConn, nil
-			}
+
 			mockConn.PrepareNeoFunc = func(query string) (bolt.Stmt, error) {
 				return nil, expectedErr
 			}
-			mockConn.CloseFunc = closeNoErr
 
 			// run test
 			rows, err := neo.Query(query, params)
@@ -200,18 +176,10 @@ func TestNeo4j_Query(t *testing.T) {
 		})
 
 		Convey("When neoStmt.QueryNeo returns an error", func() {
-			// Set up mocks.
-			mockDriverPool.OpenPoolFunc = func() (bolt.Conn, error) {
-				return mockConn, nil
-			}
-			mockConn.PrepareNeoFunc = func(query string) (bolt.Stmt, error) {
-				return mockStmt, nil
-			}
+
 			mockStmt.QueryNeoFunc = func(params map[string]interface{}) (bolt.Rows, error) {
 				return nil, expectedErr
 			}
-			mockConn.CloseFunc = closeNoErr
-			mockStmt.CloseFunc = closeNoErr
 
 			// Run test
 			rows, err := neo.Query(query, params)
@@ -252,31 +220,31 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 		expectedErr := errors.New("I am expected")
 		params := map[string]interface{}{"param1": "Valar dohaeris"}
 
-		// mocks
-		mockConn := &mocks.NeoConnMock{}
-		mockDriverPool := &mocks.NeoDriverPoolMock{}
-		mockStmt := &mocks.NeoStmtMock{}
 		mockResult := &mocks.NeoResultMock{}
+		mockStmt := &mocks.NeoStmtMock{
+			ExecNeoFunc: func(params map[string]interface{}) (bolt.Result, error) {
+				return mockResult, nil
+			},
+			CloseFunc: closeNoErr,
+		}
+		mockConn := &mocks.NeoConnMock{
+			PrepareNeoFunc: func(query string) (bolt.Stmt, error) {
+				return mockStmt, nil
+			},
+			CloseFunc: closeNoErr,
+		}
+		mockDriverPool := &mocks.NeoDriverPoolMock{
+			OpenPoolFunc: func() (bolt.Conn, error) {
+				return mockConn, nil
+			},
+		}
 
 		neo := Neo4j{
 			driverPool: mockDriverPool,
 		}
 
 		Convey("When ExecStmt is called with valid parameters", func() {
-			// set up mocks.
-			mockDriverPool.OpenPoolFunc = func() (bolt.Conn, error) {
-				return mockConn, nil
-			}
-			mockConn.PrepareNeoFunc = func(query string) (bolt.Stmt, error) {
-				return mockStmt, nil
-			}
-			mockConn.CloseFunc = closeNoErr
-			mockStmt.ExecNeoFunc = func(params map[string]interface{}) (bolt.Result, error) {
-				return mockResult, nil
-			}
-			mockStmt.CloseFunc = closeNoErr
 
-			// Run the test
 			results, err := neo.ExecStmt(stmt, params)
 
 			Convey("Then the expected result should be returned and no errors", func() {
@@ -335,14 +303,10 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 		})
 
 		Convey("When neoStmt.PrepareNeo returns an error", func() {
-			// Set up mocks.
-			mockDriverPool.OpenPoolFunc = func() (bolt.Conn, error) {
-				return mockConn, nil
-			}
+
 			mockConn.PrepareNeoFunc = func(query string) (bolt.Stmt, error) {
 				return nil, expectedErr
 			}
-			mockConn.CloseFunc = closeNoErr
 
 			results, err := neo.ExecStmt(stmt, params)
 
@@ -367,18 +331,10 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 		})
 
 		Convey("When neoStmt.ExecNeo returns an error", func() {
-			// set up mocks.
-			mockDriverPool.OpenPoolFunc = func() (bolt.Conn, error) {
-				return mockConn, nil
-			}
-			mockConn.PrepareNeoFunc = func(query string) (bolt.Stmt, error) {
-				return mockStmt, nil
-			}
-			mockConn.CloseFunc = closeNoErr
+
 			mockStmt.ExecNeoFunc = func(params map[string]interface{}) (bolt.Result, error) {
 				return nil, expectedErr
 			}
-			mockStmt.CloseFunc = closeNoErr
 
 			results, err := neo.ExecStmt(stmt, params)
 
