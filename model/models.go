@@ -26,11 +26,6 @@ type DimensionsInsertedEvent struct {
 	InstanceID string `avro:"instance_id"`
 }
 
-// GetLabel returns the a formatted label for the dimensions in the format '_$DIMENSION_ID'
-func (d *Dimension) GetLabel() string {
-	return "_" + d.DimensionID
-}
-
 // GetName return the name or type of Dimension e.g. sex, geography time etc.
 func (d *Dimension) GetName(instanceID string) string {
 	instID := fmt.Sprintf("_%s_", instanceID)
@@ -59,9 +54,4 @@ func (i *Instance) AddDimension(d *Dimension) {
 // GetDimensions returns a slice of distinct dimensions name/types for this instance.
 func (i *Instance) GetDimensions() []interface{} {
 	return i.Dimensions
-}
-
-// GetHeader returns the value of each cell in the CSV header.
-func (i *Instance) GetHeader() []string {
-	return i.CSVHeader
 }
