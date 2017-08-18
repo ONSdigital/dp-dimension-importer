@@ -7,23 +7,11 @@ import (
 
 const instanceLabelFmt = "_%s_Instance"
 
-// DimensionsExtractedEvent represents a 'Dimensions Extracted' kafka messagae.
-type DimensionsExtractedEvent struct {
-	FileURL    string `avro:"file_url"`
-	InstanceID string `avro:"instance_id"`
-}
-
 // Dimension struct encapsulating Dimension details.
 type Dimension struct {
 	DimensionID string `json:"dimension_id"`
 	Value       string `json:"value"`
 	NodeID      string `json:"node_id,omitempty"`
-}
-
-// DimensionsInsertedEvent represents a 'Dimensions Inserted' kafka message
-type DimensionsInsertedEvent struct {
-	FileURL    string `avro:"file_url"`
-	InstanceID string `avro:"instance_id"`
 }
 
 // GetName return the name or type of Dimension e.g. sex, geography time etc.

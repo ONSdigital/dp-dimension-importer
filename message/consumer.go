@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
-	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
@@ -12,7 +11,7 @@ import (
 
 // EventHandler defines an EventHandler.
 type EventHandler interface {
-	HandleEvent(event model.DimensionsExtractedEvent) error
+	HandleEvent(event DimensionsExtractedEvent) error
 }
 
 // Consume consume incoming kafka messages delegating to the appropriate EventHandler or handling errors.
@@ -23,7 +22,7 @@ func Consume(consumer kafka.MessageConsumer, producer kafka.MessageProducer, eve
 			select {
 			case consumedMessage := <-consumer.Incoming():
 				consumedData := consumedMessage.GetData()
-				var event model.DimensionsExtractedEvent
+				var event DimensionsExtractedEvent
 				if err := schema.DimensionsExtractedSchema.Unmarshal(consumedData, &event); err != nil {
 					exitChannel <- err
 					return
