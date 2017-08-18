@@ -38,6 +38,7 @@ func Load() (*Config, error) {
 	cfg := Config{
 		BindAddr:                 ":21000",
 		ImportAddr:               "http://localhost:21800",
+		ImportAuthToken:          "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		DatabaseURL:              "bolt://localhost:7687",
 		PoolSize:                 20,
 		KafkaAddr:                []string{"localhost:9092"},
