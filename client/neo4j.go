@@ -14,7 +14,7 @@ type Neo4j struct {
 }
 
 const (
-	stmtKey              = "statment"
+	stmtKey              = "statement"
 	stmtParamsKey        = "params"
 	openConnErr          = "Error while attempting to open connection"
 	errExecutingStatment = "Error while attempting to execute statement"
