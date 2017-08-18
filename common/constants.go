@@ -2,7 +2,7 @@ package common
 
 const (
 	// InstanceID instance ID key for logging details
-	InstanceID = "instanceID"
+	InstanceID = "instance_id"
 	// DimensionsKey dimensions key for logging details
 	DimensionsKey = "dimensions"
 	// DimensionID dimension ID key for logging details
@@ -12,13 +12,13 @@ const (
 	// NodeID node ID key for logging details
 	NodeID = "node_id"
 	// RespStatusCode HTTP Response Status key for logging details
-	RespStatusCode = "statusCode"
+	RespStatusCode = "status_code"
 	// ErrorDetails error details key for logging details.
-	ErrorDetails = "errorDetails"
+	ErrorDetails = "error_details"
 	// DimensionsCount number of dimensions key for logging details
-	DimensionsCount = "dimensionsCount"
+	DimensionsCount = "dimensions_count"
 	// PoolSize database connection pool size key for logging details
-	PoolSize = "poolSize"
+	PoolSize = "pool_size"
 	// ProcessingTime logging details key for time taken to processing instance.
-	ProcessingTime = "proccessingTime"
+	ProcessingTime = "proccessing_time"
 )
