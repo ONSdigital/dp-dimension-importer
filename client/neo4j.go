@@ -14,15 +14,15 @@ type Neo4j struct {
 }
 
 const (
-	stmtKey              = "statement"
-	stmtParamsKey        = "params"
-	openConnErr          = "Error while attempting to open connection"
-	errExecutingStatment = "Error while attempting to execute statement"
-	errDrivePoolInit     = "Error while attempting to initialize neo4j driver pool"
-	errCreatingStatment  = "Error while attempting to create neo4j statement"
-	errQueryWasEmpty     = "Query is required but was nil or empty"
-	errStmtWasEmpty      = "Statement is required but was nil or empty"
-	errRetrievingRows    = "Error while attempting to retrieve row data"
+	stmtKey               = "statement"
+	stmtParamsKey         = "params"
+	openConnErr           = "error while attempting to open connection"
+	errExecutingStatement = "error while attempting to execute statement"
+	errDrivePoolInit      = "error while attempting to initialize neo4j driver pool"
+	errCreatingStatement  = "error while attempting to create neo4j statement"
+	errQueryWasEmpty      = "query is required but was nil or empty"
+	errStmtWasEmpty       = "statement is required but was nil or empty"
+	errRetrievingRows     = "error while attempting to retrieve row data"
 )
 
 var once sync.Once
@@ -79,7 +79,7 @@ func (neo Neo4j) Query(query string, params map[string]interface{}) (*common.Neo
 
 	var rows bolt.Rows
 	if rows, err = neoStmt.QueryNeo(params); err != nil {
-		log.ErrorC(errExecutingStatment, err, logData)
+		log.ErrorC(errExecutingStatement, err, logData)
 		return nil, err
 	}
 	defer rows.Close()
@@ -119,7 +119,7 @@ func (neo Neo4j) ExecStmt(stmt string, params map[string]interface{}) (bolt.Resu
 
 	var results bolt.Result
 	if results, err = neoStmt.ExecNeo(params); err != nil {
-		log.ErrorC(errExecutingStatment, err, logData)
+		log.ErrorC(errExecutingStatement, err, logData)
 		return nil, err
 	}
 	return results, nil
@@ -128,7 +128,7 @@ func (neo Neo4j) ExecStmt(stmt string, params map[string]interface{}) (bolt.Resu
 func createStmt(conn bolt.Conn, stmt string) (bolt.Stmt, error) {
 	neoStmt, err := conn.PrepareNeo(stmt)
 	if err != nil {
-		log.ErrorC(errCreatingStatment, err, nil)
+		log.ErrorC(errCreatingStatement, err, nil)
 		return nil, err
 	}
 	return neoStmt, nil
