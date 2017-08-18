@@ -19,7 +19,6 @@ const (
 	unmarshallingErr      = "Unexpected error while unmarshalling response"
 	unexpectedAPIErr      = "Unexpected error returned when calling Import API"
 	hostConfigMissingErr  = "DimensionsClient requires an API host to be configured"
-	marshalDimensionErr   = "Unexpected error while marshalling dimenison"
 	instanceIDRequiredErr = "instanceID is required but is empty"
 
 	getInstanceURIFMT  = "%s/instances/%s"
@@ -32,7 +31,6 @@ const (
 
 	createPutNodeIDReqErr  = "Unexpecter error creating request struct"
 	putDimensionNodeIDURI  = "%s/instances/%s/dimensions/%s/options/%s/node_id/%s"
-	putDimNodeIDSuccessLog = "Import-API PUT dimension node_id success"
 	putDimNodeIDReqErr     = "Error sending set Dimension node_id request"
 	putDimNodeIDErr        = "Set Dimension node_id returned error status"
 	dimensionNilErr        = "Dimension is required but was nil"
@@ -114,6 +112,8 @@ func (api ImportAPI) GetInstance(instanceID string) (*model.Instance, error) {
 	if JSONErr != nil {
 		return nil, JSONErr
 	}
+
+	log.Debug(getInstanceSuccess, data)
 	return instance, nil
 }
 
