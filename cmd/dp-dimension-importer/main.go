@@ -53,10 +53,7 @@ func main() {
 	}
 
 	newDimensionInserterFunc := func() handler.DimensionRepository {
-		return repository.DimensionRepository{
-			Neo4jCli:         *neo4jClient,
-			ConstraintsCache: map[string]string{},
-		}
+		return repository.NewDimensionRepository(neo4jClient, map[string]string{})
 	}
 
 	importAPI := client.ImportAPI{

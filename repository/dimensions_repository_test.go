@@ -131,8 +131,8 @@ func TestDimensionRepository_Insert(t *testing.T) {
 		}
 
 		repo := DimensionRepository{
-			Neo4jCli:         neo4jMock,
-			ConstraintsCache: map[string]string{dimension.DimensionID: ""},
+			neo4jCli:         neo4jMock,
+			constraintsCache: map[string]string{dimension.DimensionID: ""},
 		}
 
 		Convey("When Insert is invoked", func() {
@@ -175,8 +175,8 @@ func TestDimensionRepository_Insert(t *testing.T) {
 		}
 
 		repo := DimensionRepository{
-			Neo4jCli:         neo4jMock,
-			ConstraintsCache: map[string]string{dimension.DimensionID: ""},
+			neo4jCli:         neo4jMock,
+			constraintsCache: map[string]string{dimension.DimensionID: ""},
 		}
 
 		Convey("When Insert is invoked", func() {
@@ -223,8 +223,8 @@ func TestDimensionRepository_Insert(t *testing.T) {
 		}
 
 		repo := DimensionRepository{
-			Neo4jCli:         neo4jMock,
-			ConstraintsCache: map[string]string{},
+			neo4jCli:         neo4jMock,
+			constraintsCache: map[string]string{},
 		}
 
 		Convey("When Insert is invoked", func() {
@@ -276,8 +276,8 @@ func TestDimensionRepository_Insert(t *testing.T) {
 		}
 
 		repo := DimensionRepository{
-			Neo4jCli:         neo4jMock,
-			ConstraintsCache: map[string]string{},
+			neo4jCli:         neo4jMock,
+			constraintsCache: map[string]string{},
 		}
 
 		Convey("When Insert is invoked", func() {
@@ -316,8 +316,8 @@ func TestDimensionRepository_Insert(t *testing.T) {
 		}
 
 		repo := DimensionRepository{
-			Neo4jCli:         neo4jMock,
-			ConstraintsCache: map[string]string{dimension.DimensionID: dimension.DimensionID},
+			neo4jCli:         neo4jMock,
+			constraintsCache: map[string]string{dimension.DimensionID: dimension.DimensionID},
 		}
 
 		Convey("When Insert is invoked", func() {
