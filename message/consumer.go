@@ -31,9 +31,6 @@ func Consume(consumer kafka.MessageConsumer, producer kafka.MessageProducer, eve
 
 				log.Debug("Recieved DimensionsExtractedEvent", log.Data{
 					"Event": event,
-					// "messageString": string(consumedData),
-					// "messageRaw":    consumedData,
-					// "messageLen":    len(consumedData),
 				})
 
 				eventHandler.HandleEvent(event)
