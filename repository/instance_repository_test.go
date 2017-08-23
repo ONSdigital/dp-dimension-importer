@@ -7,6 +7,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	. "github.com/smartystreets/goconvey/convey"
+	"strings"
 	"testing"
 )
 
@@ -180,7 +181,10 @@ func TestInstanceRepository_Create(t *testing.T) {
 	})
 
 	Convey("Given a Neo4j.ExecStmt returns an error", t, func() {
-		instance := &model.Instance{InstanceID: instanceID}
+		instance := &model.Instance{
+			InstanceID: instanceID,
+			CSVHeader:  []string{"the", "csv", "header"},
+		}
 
 		neo4jMock := &mocks.Neo4jClientMock{
 			ExecStmtFunc: func(query string, params map[string]interface{}) (bolt.Result, error) {
@@ -203,7 +207,7 @@ func TestInstanceRepository_Create(t *testing.T) {
 				calls := neo4jMock.ExecStmtCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				expectedQuery := fmt.Sprintf(createInstanceStmt, "_"+instanceID+"_Instance")
+				expectedQuery := fmt.Sprintf(createInstanceStmt, "_"+instanceID+"_Instance", strings.Join(instance.CSVHeader, ","))
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 				So(calls[0].Params, ShouldEqual, nil)
 			})
@@ -211,7 +215,10 @@ func TestInstanceRepository_Create(t *testing.T) {
 	})
 
 	Convey("Given a Neo4j.ExecStmt returns no error", t, func() {
-		instance := &model.Instance{InstanceID: instanceID}
+		instance := &model.Instance{
+			InstanceID: instanceID,
+			CSVHeader:  []string{"the", "csv", "header"},
+		}
 
 		neo4jMock := &mocks.Neo4jClientMock{
 			ExecStmtFunc: func(query string, params map[string]interface{}) (bolt.Result, error) {
@@ -234,7 +241,7 @@ func TestInstanceRepository_Create(t *testing.T) {
 				calls := neo4jMock.ExecStmtCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				expectedQuery := fmt.Sprintf(createInstanceStmt, "_"+instanceID+"_Instance")
+				expectedQuery := fmt.Sprintf(createInstanceStmt, "_"+instanceID+"_Instance", strings.Join(instance.CSVHeader, ","))
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 				So(calls[0].Params, ShouldEqual, nil)
 			})
