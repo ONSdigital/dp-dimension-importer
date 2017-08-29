@@ -3,7 +3,7 @@ package handler
 import (
 	"errors"
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
-	"github.com/ONSdigital/dp-dimension-importer/message"
+	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
 	"time"
@@ -54,7 +54,7 @@ type DimensionsExtractedEventHandler struct {
 // HandleEvent retrieves the dimensions for specified instanceID from the Import API, creates an MyInstance entity for
 // provided instanceID, creates a Dimension entity for each dimension and a relationship to the MyInstance it belongs to
 // and makes a PUT request to the Import API with the database ID of each Dimension entity.
-func (hdlr *DimensionsExtractedEventHandler) HandleEvent(event message.DimensionsExtractedEvent) error {
+func (hdlr *DimensionsExtractedEventHandler) HandleEvent(event event.DimensionsExtractedEvent) error {
 	if hdlr.ImportAPI == nil {
 		return errors.New(importAPINilErr)
 	}

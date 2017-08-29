@@ -9,6 +9,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/handler"
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	"github.com/ONSdigital/dp-dimension-importer/repository"
+	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"io"
@@ -31,7 +32,7 @@ func main() {
 
 	log.Debug("application configuration", log.Data{"config": cfg})
 
-	consumer, err := kafka.NewConsumerGroup(cfg.KafkaAddr, cfg.DimensionsExtractedTopic, log.Namespace, kafka.OffsetNewest)
+	extractedEventConsumer, err := kafka.NewConsumerGroup(cfg.KafkaAddr, cfg.DimensionsExtractedTopic, log.Namespace, kafka.OffsetNewest)
 	if err != nil {
 		log.ErrorC("could not create consumer", err, nil)
 		os.Exit(1)
@@ -69,7 +70,13 @@ func main() {
 		ImportAPI:            importAPI,
 	}
 
-	err = message.Consume(consumer, insertedEventProducer, eventHandler)
+	dimensionInsertedProducer := message.DimensionInsertedProducer{
+		Producer:   insertedEventProducer,
+		Marshaller: schema.DimensionsInsertedSchema,
+	}
+
+	exitChannel := make(chan error)
+	err = message.Consume(extractedEventConsumer, dimensionInsertedProducer, eventHandler, exitChannel)
 	if err != nil {
 		log.ErrorC("consumer", err, nil)
 		os.Exit(1)

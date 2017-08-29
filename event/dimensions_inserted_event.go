@@ -1,4 +1,4 @@
-package message
+package event
 
 // DimensionsInsertedEvent represents a 'Dimensions Inserted' kafka message
 type DimensionsInsertedEvent struct {

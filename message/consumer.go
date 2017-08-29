@@ -4,58 +4,87 @@ import (
 	"fmt"
 
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
+	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 )
 
+//go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessageConsumer KafkaMessage KafkaMessageProducer
+
+const (
+	eventRecieved       = "Recieved DimensionsExtractedEvent"
+	eventKey            = "event"
+	eventHandlerErr     = "Unexpected error encountered while handling DimensionsExtractedEvent"
+	eventHandlerSuccess = "Instance has been successfully imported"
+	errorRecieved       = "Consumer exit channel recieved error. Exiting dimensionExtractedConsumer"
+)
+
+// KafkaMessageConsumer type for consuming kafka messages.
+type KafkaMessageConsumer kafka.MessageConsumer
+
+// KafkaMessageProducer type for producing kafka messages.
+type KafkaMessageProducer kafka.MessageProducer
+
+// KafkaMessage type representing a kafka message.
+type KafkaMessage kafka.Message
+
 // EventHandler defines an EventHandler.
 type EventHandler interface {
-	HandleEvent(event DimensionsExtractedEvent) error
+	HandleEvent(event event.DimensionsExtractedEvent) error
 }
 
 // Consume consume incoming kafka messages delegating to the appropriate EventHandler or handling errors.
-func Consume(consumer kafka.MessageConsumer, producer kafka.MessageProducer, eventHandler EventHandler) error {
-	exitChannel := make(chan error)
+func Consume(dimensionExtractedConsumer KafkaMessageConsumer, producer DimensionInsertedProducer, eventHandler EventHandler, exitChannel chan error) error {
 	go func() {
 		for {
 			select {
-			case consumedMessage := <-consumer.Incoming():
+			case consumedMessage := <-dimensionExtractedConsumer.Incoming():
 				consumedData := consumedMessage.GetData()
-				var event DimensionsExtractedEvent
-				if err := schema.DimensionsExtractedSchema.Unmarshal(consumedData, &event); err != nil {
+				var dimensionsExtractedEvent event.DimensionsExtractedEvent
+				if err := schema.DimensionsExtractedSchema.Unmarshal(consumedData, &dimensionsExtractedEvent); err != nil {
+					exitChannel <- err
+					return
+				}
+				logData := map[string]interface{}{eventKey: dimensionsExtractedEvent}
+				log.Debug(eventRecieved, logData)
+
+				if err := eventHandler.HandleEvent(dimensionsExtractedEvent); err != nil {
+					log.ErrorC(eventHandlerErr, err, logData)
 					exitChannel <- err
 					return
 				}
 
-				log.Debug("received dimensions extracted event", log.Data{
-					"event": event,
-				})
+				logData[logKeys.InstanceID] = dimensionsExtractedEvent.InstanceID
+				log.Debug(eventHandlerSuccess, logData)
 
-				eventHandler.HandleEvent(event)
-				log.Debug("instance has been imported", log.Data{
-					logKeys.InstanceID: event.InstanceID,
-				})
-				if err := Produce(producer, event.InstanceID, event.FileURL); err != nil {
+				insertedEvent := event.DimensionsInsertedEvent{
+					FileURL:    dimensionsExtractedEvent.FileURL,
+					InstanceID: dimensionsExtractedEvent.InstanceID,
+				}
+
+				if err := producer.DimensionInserted(insertedEvent); err != nil {
 					exitChannel <- err
 					return
 				}
 				consumedMessage.Commit()
 
-			case consumerError := <-consumer.Errors():
+			case consumerError := <-dimensionExtractedConsumer.Errors():
 				log.Error(fmt.Errorf("aborting"), log.Data{"message_received": consumerError})
-				consumer.Closer() <- true
-				producer.Closer() <- true
+				dimensionExtractedConsumer.Closer() <- true
+				producer.Producer.Closer() <- true
 				exitChannel <- consumerError
 				return
-			case producerError := <-producer.Errors():
+			case producerError := <-producer.Producer.Errors():
 				log.Error(fmt.Errorf("aborting"), log.Data{"message_received": producerError})
-				consumer.Closer() <- true
-				producer.Closer() <- true
+				dimensionExtractedConsumer.Closer() <- true
+				producer.Producer.Closer() <- true
 				exitChannel <- producerError
 				return
 			}
 		}
 	}()
-	return <-exitChannel
+	err := <-exitChannel
+	log.ErrorC(errorRecieved, err, nil)
+	return err
 }

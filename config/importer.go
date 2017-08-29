@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ian-kent/gofigure"
@@ -16,6 +17,19 @@ type Config struct {
 	ImportAuthToken          string   `env:"IMPORT_AUTH_TOKEN" flag:"import-auth-token" flagDesc:"Authentication token required to make PUT requests to import api."`
 	DatabaseURL              string   `env:"DB_URL" flag:"db-url" flagDesc:"The URL of the dimensions database."`
 	PoolSize                 int      `env:"DB_POOL_SIZE" flag:"db-pool-size" flagDesc:"The database connection pool size."`
+}
+
+func (c *Config) String() string {
+	authTokenFound := "NOT FOUND"
+	if len(c.ImportAuthToken) > 0 {
+		authTokenFound = "FOUND"
+	}
+
+	masked := Config(*c)
+	masked.ImportAuthToken = authTokenFound
+
+	b, _ := json.Marshal(masked)
+	return string(b)
 }
 
 // Load load the configuration & apply defaults where necessary
@@ -34,7 +48,7 @@ func Load() (*Config, error) {
 	err := gofigure.Gofigure(&cfg)
 
 	if len(cfg.ImportAuthToken) == 0 {
-		err := errors.New("error while attempting to load config. import api auth token is required but has not been configured.")
+		err := errors.New("error while attempting to load config. import api auth token is required but has not been configured")
 		log.Error(err, nil)
 		return nil, err
 	}

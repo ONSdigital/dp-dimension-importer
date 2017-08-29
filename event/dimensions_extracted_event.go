@@ -1,4 +1,4 @@
-package message
+package event
 
 // DimensionsExtractedEvent represents a 'Dimensions Extracted' kafka messagae.
 type DimensionsExtractedEvent struct {
