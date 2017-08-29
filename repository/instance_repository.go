@@ -7,13 +7,14 @@ import (
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
+	"strings"
 )
 
 //go:generate moq -out ../mocks/repository_generated_mocks.go -pkg mocks . Neo4jClient
 
 const (
 	// Create an Insatnce node.
-	createInstanceStmt = "CREATE (i:`%s`) RETURN i"
+	createInstanceStmt = "CREATE (i:`%s` { header:'%s'}) RETURN i"
 
 	// Update the Instance node with the list of dimension types it contains.
 	addInstanceDimensionsStmt = "MATCH (i:`%s`) SET i.dimensions = {dimensions_list}"
@@ -45,7 +46,7 @@ func (repo *InstanceRepository) Create(i *model.Instance) error {
 	}
 
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
-	stmt := fmt.Sprintf(createInstanceStmt, instanceLabel)
+	stmt := fmt.Sprintf(createInstanceStmt, instanceLabel, strings.Join(i.CSVHeader, ","))
 
 	logDebug := map[string]interface{}{
 		logKeys.InstanceID: i.InstanceID,
