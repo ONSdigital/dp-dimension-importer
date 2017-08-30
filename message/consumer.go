@@ -1,8 +1,6 @@
 package message
 
 import (
-	"fmt"
-
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
@@ -10,7 +8,7 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 )
 
-//go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessageConsumer KafkaMessage KafkaMessageProducer
+//go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessageConsumer KafkaMessage KafkaMessageProducer InsertedProducer
 
 const (
 	eventRecieved       = "Recieved DimensionsExtractedEvent"
@@ -18,6 +16,8 @@ const (
 	eventHandlerErr     = "Unexpected error encountered while handling DimensionsExtractedEvent"
 	eventHandlerSuccess = "Instance has been successfully imported"
 	errorRecieved       = "Consumer exit channel recieved error. Exiting dimensionExtractedConsumer"
+	conumserErrMsg      = "Kafka Consumer Error recieved"
+	producerErrMsg      = "InsertedProducer Error recieved"
 )
 
 // KafkaMessageConsumer type for consuming kafka messages.
@@ -26,16 +26,23 @@ type KafkaMessageConsumer kafka.MessageConsumer
 // KafkaMessageProducer type for producing kafka messages.
 type KafkaMessageProducer kafka.MessageProducer
 
-// KafkaMessage type representing a kafka message.
+// kafkaMessage type representing a kafka message.
 type KafkaMessage kafka.Message
 
-// EventHandler defines an EventHandler.
+// eventHandler defines an eventHandler.
 type EventHandler interface {
 	HandleEvent(event event.DimensionsExtractedEvent) error
 }
 
-// Consume consume incoming kafka messages delegating to the appropriate EventHandler or handling errors.
-func Consume(dimensionExtractedConsumer KafkaMessageConsumer, producer DimensionInsertedProducer, eventHandler EventHandler, exitChannel chan error) error {
+// InsertedProducer defines an Producer for dimensions inserted events
+type InsertedProducer interface {
+	DimensionInserted(e event.DimensionsInsertedEvent) error
+	Closer() chan bool
+	Errors() chan error
+}
+
+// Consume consume incoming kafka messages delegating to the appropriate eventHandler or handling errors.
+func Consume(dimensionExtractedConsumer KafkaMessageConsumer, insertedProducer InsertedProducer, eventHandler EventHandler, exitChannel chan error) error {
 	go func() {
 		for {
 			select {
@@ -63,22 +70,22 @@ func Consume(dimensionExtractedConsumer KafkaMessageConsumer, producer Dimension
 					InstanceID: dimensionsExtractedEvent.InstanceID,
 				}
 
-				if err := producer.DimensionInserted(insertedEvent); err != nil {
+				if err := insertedProducer.DimensionInserted(insertedEvent); err != nil {
 					exitChannel <- err
 					return
 				}
 				consumedMessage.Commit()
 
 			case consumerError := <-dimensionExtractedConsumer.Errors():
-				log.Error(fmt.Errorf("aborting"), log.Data{"message_received": consumerError})
+				log.ErrorC(conumserErrMsg, consumerError, log.Data{logKeys.ErrorDetails: consumerError})
 				dimensionExtractedConsumer.Closer() <- true
-				producer.Producer.Closer() <- true
+				insertedProducer.Closer() <- true
 				exitChannel <- consumerError
 				return
-			case producerError := <-producer.Producer.Errors():
-				log.Error(fmt.Errorf("aborting"), log.Data{"message_received": producerError})
+			case producerError := <-insertedProducer.Errors():
+				log.ErrorC(producerErrMsg, producerError, nil)
 				dimensionExtractedConsumer.Closer() <- true
-				producer.Producer.Closer() <- true
+				insertedProducer.Closer() <- true
 				exitChannel <- producerError
 				return
 			}

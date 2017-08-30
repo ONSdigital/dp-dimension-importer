@@ -10,190 +10,343 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+	"github.com/ONSdigital/go-ns/log"
 )
 
-var errExpected = errors.New("LEEEEROY JENKINS!")
+var (
+	errExpected = errors.New("LEEEEROY JENKINS!")
+	exitTest    = errors.New("Force test exit")
+)
 
 const (
-	fileURL    = "test-url"
-	instanceID = "1234567890"
-	timeout    = 5
+	fileURL           = "test-url"
+	instanceID        = "1234567890"
+	timeout           = 5
+	timeoutFailureMsg = "Concurrent Test did not complete within the configured timeout window. Failing test."
+	consumerExitedMsg = "Consumer exited"
+	consumerCloserMsg = "consumer closer called"
+	producerCloserMsg = "producer closer called"
 )
 
 type testCommon struct {
-	incomingChan        chan kafka.Message
-	errorsChan          chan error
-	closerChan          chan bool
-	producerChan        chan []byte
-	exitChan            chan error
-	extractedEvent      event.DimensionsExtractedEvent
-	extractedEventBytes []byte
-	eventHandler        *message_test.EventHandlerMock
+	testComplete         bool
+	testCompleteChan     chan error
+	incomingChan         chan kafka.Message
+	messageCommitInvoked chan int
+	consumerErrorsChan   chan error
+	producerErrorsChan   chan error
+	consumerCloserChan   chan bool
+	producerCloserChan   chan bool
+	killConsumer         chan error
+	extractedEvent       event.DimensionsExtractedEvent
+	extractedEventBytes  []byte
+	eventHandlerErr      error
 }
 
 func TestConsume(t *testing.T) {
 
-	Convey("Given an a valid kafkaMessage", t, func() {
+	Convey("Given an a valid kafkaMessageMock", t, func() {
 		tc := newTestCommon()
-		kafkaMessage := newMockKafkaMessage(tc)
-		consumerMock := newKafkaMessageConsumerMock(tc)
-		producerMock := newKafkaMessageProducerMock(tc)
-		marshallerMock := newMarshallerMock(tc)
-		dimensionInsertedProducer := newDimensionInsertedProducer(marshallerMock, producerMock)
 
-		done := false
-		var producedBytes [][]byte
+		kafkaMessage := tc.kafkaMessageMock()
+		eventHandler := tc.eventHandler()
+		consumerMock := tc.kafkaMessageConsumerMock()
+		insertedProducer := tc.InsertedProducerMock()
 
-		Convey("When the consumer recieves the kafkaMessage", func() {
-			go Consume(consumerMock, dimensionInsertedProducer, tc.eventHandler, tc.exitChan)
+		Convey("When the consumer recieves the kafkaMessageMock", func() {
+			// run the consumer.
+			go runConsumer(tc, consumerMock, insertedProducer, eventHandler)
 
-			tc.incomingChan <- kafkaMessage
-
-			// Without blocking here the test finishes before the consumer can do anything with the input which fails
-			// the test assertions. So block until the the Producer outputs some bytes or timeout after the configured
-			// time frame.
-			for !done {
+			// select on the chan's the consumer sends to.
+			go func() {
 				select {
 				case <-time.After(time.Second * timeout):
-					fmt.Println("Test failed: chan 'producerChan' did not return anything within the timeout windown. Failing test")
-					tc.exitChan <- errors.New("ForcedExit")
+					fmt.Println(timeoutFailureMsg)
+					tc.killConsumer <- exitTest
 					t.FailNow()
-				case out := <-tc.producerChan:
-					fmt.Println("Producer has output bytes.")
-					producedBytes = append(producedBytes, out)
-					done = true
+				case <-tc.messageCommitInvoked:
+					fmt.Println("Kafka message committed.")
+					tc.killConsumer <- exitTest
 				}
-			}
-
-			Convey("Then eventHandler is called 1 time with the expected parameters", func() {
-				calls := tc.eventHandler.Param
-				So(len(calls), ShouldEqual, 1)
-
-				So(calls[0], ShouldResemble, tc.extractedEvent)
-
-				Convey("And the Producer is called 1 time and produces the expected output", func() {
-					So(len(marshallerMock.MarshalCalls()), ShouldEqual, 1)
-					So(len(producedBytes), ShouldEqual, 1)
-
-					insteredEvent := event.DimensionsInsertedEvent{fileURL, instanceID}
-					expected, _ := schema.DimensionsInsertedSchema.Marshal(insteredEvent)
-					So(producedBytes[0], ShouldResemble, expected)
-
-					Convey("And consumedMessage.Commit is called 1 time.", func() {
-						So(len(kafkaMessage.CommitCalls()), ShouldEqual, 1)
-					})
-				})
-			})
-
-			// Use the exit channel to end the go rout
-			tc.exitChan <- errors.New("Test completed.")
-		})
-	})
-}
-
-func TestConsume_EventHandlerError(t *testing.T) {
-	Convey("Given the consumer has been configured correctly", t, func() {
-		tc := newTestCommon()
-		kafkaMessage := newMockKafkaMessage(tc)
-		consumerMock := newKafkaMessageConsumerMock(tc)
-		producerMock := newKafkaMessageProducerMock(tc)
-		consumerReturn := make(chan error)
-		var err error
-		producerOutput := make([][]byte, 0)
-		marshallerMock := newMarshallerMock(tc)
-		dimensionInsertedProducer := newDimensionInsertedProducer(marshallerMock, producerMock)
-
-		tc.eventHandler.HandleEventFunc = func(e event.DimensionsExtractedEvent) error {
-			return errExpected
-		}
-
-		Convey("When eventHandler.DimensionInserted returns an error", func() {
-			go func() {
-				consumerReturn <- Consume(consumerMock, dimensionInsertedProducer, tc.eventHandler, tc.exitChan)
 			}()
 
+			// send a kafka message to in the inbound chan/
 			tc.incomingChan <- kafkaMessage
-			select {
-			case <-time.After(time.Second * timeout):
-				fmt.Println("Test failed: chan 'consumerReturn' failed to return an error within the timeout window. Forcing test to fail.")
-				tc.exitChan <- errors.New("ForcedExit")
-				t.FailNow()
-			case err = <-consumerReturn:
-				fmt.Println("Consumer has exited as expected.")
-			case out := <-tc.producerChan:
-				producerOutput = append(producerOutput, out)
-			}
 
-			Convey("Then the expected error is sent to the exit channel", func() {
-				So(err, ShouldResemble, errExpected)
+			// block until the test completes.
+			<-tc.testCompleteChan
 
+			Convey("Then eventHandler is called 1 time with the expected parameters", func() {
+				calls := eventHandler.Param
+				So(len(calls), ShouldEqual, 1)
+				So(calls[0], ShouldResemble, tc.extractedEvent)
 			})
 
-			Convey("And eventHandler.DimensionInserted is only invoked 1 time", func() {
-				So(len(tc.eventHandler.Param), ShouldEqual, 1)
+			Convey("And insertedProducer.DimensionInserted is called 1 time", func() {
+				So(len(insertedProducer.DimensionInsertedCalls()), ShouldEqual, 1)
+
+				actual := event.DimensionsInsertedEvent{fileURL, instanceID}
+				So(insertedProducer.DimensionInsertedCalls()[0].E, ShouldResemble, actual)
 			})
 
-			Convey("And Producer is never invoked.", func() {
-				So(len(producerOutput), ShouldEqual, 0)
-				So(len(marshallerMock.MarshalCalls()), ShouldEqual, 0)
+			Convey("And consumedMessage.Commit is called 1 time", func() {
+				So(len(kafkaMessage.CommitCalls()), ShouldEqual, 1)
 			})
 		})
 	})
 }
 
 func TestConsume_InvalidKafkaMessage(t *testing.T) {
-
-	Convey("Given an a invalid kafkaMessage", t, func() {
-		// Set up mocks.
-		invalidBytes := []byte("This is not a valid message")
-		producerOutput := make([][]byte, 0)
-
+	Convey("Given the consumer is configured correctly", t, func() {
 		tc := newTestCommon()
-		consumerMock := newKafkaMessageConsumerMock(tc)
-		producerMock := newKafkaMessageProducerMock(tc)
-		marshallerMock := newMarshallerMock(tc)
-		dimensionInsertedProducer := newDimensionInsertedProducer(marshallerMock, producerMock)
+		tc.extractedEventBytes = []byte("This is not a valid message")
 
-		invalidKafkaMsg := newMockKafkaMessage(tc)
-		invalidKafkaMsg.GetDataFunc = func() []byte {
-			return invalidBytes
-		}
+		invalidKafkaMsg := tc.kafkaMessageMock()
+		eventHandler := tc.eventHandler()
+		consumerMock := tc.kafkaMessageConsumerMock()
+		insertedProducer := tc.InsertedProducerMock()
 
-		// Run test.
-		Convey("When the message is passed to the Consumer", func() {
-			consumerReturn := make(chan error)
+		// run the consumer.
+		go runConsumer(tc, consumerMock, insertedProducer, eventHandler)
+
+		Convey("When an invalid message is recieved", func() {
+
+			consumerMock.Incoming() <- invalidKafkaMsg
 			var err error
-			go func() {
-				consumerReturn <- Consume(consumerMock, dimensionInsertedProducer, tc.eventHandler, tc.exitChan)
-			}()
 
-			tc.incomingChan <- invalidKafkaMsg
-
+			// block until either the test times out or the consumer exits
 			select {
+			case err = <-tc.testCompleteChan:
+				fmt.Println(consumerExitedMsg)
 			case <-time.After(time.Second * timeout):
-				fmt.Println("Test failed: chan 'consumerReturn' failed to return an error within the timeout window. Forcing test to fail.")
-				tc.exitChan <- errors.New("ForcedExit")
+				fmt.Println(timeoutFailureMsg)
 				t.FailNow()
-			case err = <-consumerReturn:
-				fmt.Println("Consumer has exited as expected.")
-			case out := <-tc.producerChan:
-				producerOutput = append(producerOutput, out)
 			}
 
-			Convey("Then an error is sent to the exit channel", func() {
+			Convey("Then the Consumer returns an error", func() {
 				So(err, ShouldNotBeNil)
+			})
 
-				Convey("And eventHandler.DimensionInserted is never invoked", func() {
-					So(len(tc.eventHandler.Param), ShouldEqual, 0)
-				})
+			Convey("And eventHandler.HandleEvent is never called", func() {
+				So(len(eventHandler.Param), ShouldEqual, 0)
+			})
 
-				Convey("And the Producer is never invoked", func() {
-					So(len(producerOutput), ShouldEqual, 0)
-					So(len(marshallerMock.MarshalCalls()), ShouldEqual, 0)
-				})
+			Convey("And insertedProducer.DimensionInserted is never called", func() {
+				So(len(insertedProducer.DimensionInsertedCalls()), ShouldEqual, 0)
+			})
+
+			Convey("And consumedMessage.Commit is never called", func() {
+				So(len(invalidKafkaMsg.CommitCalls()), ShouldEqual, 0)
 			})
 		})
 	})
+}
+
+func TestConsume_EventHandlerError(t *testing.T) {
+
+	Convey("Given the consumer has been configured correctly", t, func() {
+		tc := newTestCommon()
+		kafkaMessage := tc.kafkaMessageMock()
+		consumerMock := tc.kafkaMessageConsumerMock()
+		insertedProducer := tc.InsertedProducerMock()
+
+		var err error
+
+		Convey("When eventHandler.DimensionInserted returns an error", func() {
+			tc.eventHandlerErr = errExpected
+			eventHandler := tc.eventHandler()
+
+			go runConsumer(tc, consumerMock, insertedProducer, eventHandler)
+
+			tc.incomingChan <- kafkaMessage
+
+			select {
+			case err = <-tc.testCompleteChan:
+				fmt.Println(consumerExitedMsg)
+			case <-time.After(time.Second * timeout):
+				fmt.Println(timeoutFailureMsg)
+				t.FailNow()
+			}
+
+			Convey("Then the Consumer returns an error", func() {
+				So(err, ShouldNotBeNil)
+			})
+
+			Convey("And eventHandler.HandleEvent is called 1 time", func() {
+				So(len(eventHandler.Param), ShouldEqual, 1)
+			})
+
+			Convey("And insertedProducer.DimensionInserted is never called", func() {
+				So(len(insertedProducer.DimensionInsertedCalls()), ShouldEqual, 0)
+			})
+
+			Convey("And consumedMessage.Commit is never called", func() {
+				So(len(kafkaMessage.CommitCalls()), ShouldEqual, 0)
+			})
+		})
+	})
+}
+
+func TestConsume_DimensionInsertedError(t *testing.T) {
+
+	Convey("Given the consumer has been configured correctly", t, func() {
+		tc := newTestCommon()
+		kafkaMessage := tc.kafkaMessageMock()
+		consumerMock := tc.kafkaMessageConsumerMock()
+		insertedProducer := tc.InsertedProducerMock()
+		tc.eventHandlerErr = nil
+		eventHandler := tc.eventHandler()
+
+		var err error
+
+		Convey("When insertedProducer.DimensionInserted returns an error", func() {
+			insertedProducer.DimensionInsertedFunc = func(e event.DimensionsInsertedEvent) error {
+				return errExpected
+			}
+
+			go runConsumer(tc, consumerMock, insertedProducer, eventHandler)
+
+			tc.incomingChan <- kafkaMessage
+
+			select {
+			case err = <-tc.testCompleteChan:
+				fmt.Println(consumerExitedMsg)
+			case <-time.After(time.Second * timeout):
+				fmt.Println(timeoutFailureMsg)
+				t.FailNow()
+			}
+
+			Convey("Then the Consumer returns an error", func() {
+				So(err, ShouldNotBeNil)
+			})
+
+			Convey("And eventHandler.HandleEvent is called 1 time", func() {
+				So(len(eventHandler.Param), ShouldEqual, 1)
+			})
+
+			Convey("And insertedProducer.DimensionInserted is called 1 time", func() {
+				So(len(insertedProducer.DimensionInsertedCalls()), ShouldEqual, 1)
+			})
+
+			Convey("And consumedMessage.Commit is never called", func() {
+				So(len(kafkaMessage.CommitCalls()), ShouldEqual, 0)
+			})
+		})
+	})
+}
+
+func TestConsume_dimensionExtractedConsunerError(t *testing.T) {
+	Convey("Given the consumer has been configured correctly", t, func() {
+		tc := newTestCommon()
+		consumerMock := tc.kafkaMessageConsumerMock()
+		insertedProducer := tc.InsertedProducerMock()
+		tc.eventHandlerErr = nil
+		eventHandler := tc.eventHandler()
+		var err error
+
+		consumerClosesParams := make([]bool, 0)
+		producerClosesParams := make([]bool, 0)
+
+		go runConsumer(tc, consumerMock, insertedProducer, eventHandler)
+
+		tc.consumerErrorsChan <- errExpected
+
+		done := false
+		for !done {
+			select {
+			case c := <-tc.consumerCloserChan:
+				consumerClosesParams = append(consumerClosesParams, c)
+				fmt.Println(consumerCloserMsg)
+			case p := <-tc.producerCloserChan:
+				producerClosesParams = append(producerClosesParams, p)
+				fmt.Println(producerCloserMsg)
+			case err = <-tc.testCompleteChan:
+				fmt.Println(consumerExitedMsg)
+				done = true
+			case <-time.After(time.Second * timeout):
+				fmt.Println(timeoutFailureMsg)
+				t.FailNow()
+			}
+		}
+
+		Convey("Then the Consumer returns an error", func() {
+			So(err, ShouldNotBeNil)
+		})
+
+		Convey("And dimensionExtractedConsumer.Closer() is called 1 time with the expected parameters", func() {
+			calls := consumerMock.CloserCalls()
+			So(len(calls), ShouldEqual, 1)
+			So(len(consumerClosesParams), ShouldEqual, 1)
+			So(consumerClosesParams[0], ShouldEqual, true)
+		})
+
+		Convey("And insertedProducer.Closer() is called 1 time with the expected parameters", func() {
+			calls := insertedProducer.CloserCalls()
+			So(len(calls), ShouldEqual, 1)
+			So(len(producerClosesParams), ShouldEqual, 1)
+			So(producerClosesParams[0], ShouldEqual, true)
+		})
+	})
+}
+
+func TestConsume_insertedProducerError(t *testing.T) {
+	Convey("Given the consumer has been configured correctly", t, func() {
+		tc := newTestCommon()
+		consumerMock := tc.kafkaMessageConsumerMock()
+		insertedProducer := tc.InsertedProducerMock()
+		tc.eventHandlerErr = nil
+		eventHandler := tc.eventHandler()
+		var err error
+
+		consumerClosesParams := make([]bool, 0)
+		producerClosesParams := make([]bool, 0)
+
+		go runConsumer(tc, consumerMock, insertedProducer, eventHandler)
+
+		tc.producerErrorsChan <- errExpected
+
+		done := false
+		for !done {
+			select {
+			case c := <-tc.consumerCloserChan:
+				consumerClosesParams = append(consumerClosesParams, c)
+				fmt.Println(consumerCloserMsg)
+			case p := <-tc.producerCloserChan:
+				producerClosesParams = append(producerClosesParams, p)
+				fmt.Println(producerCloserMsg)
+			case err = <-tc.testCompleteChan:
+				fmt.Println(consumerExitedMsg)
+				done = true
+			case <-time.After(time.Second * timeout):
+				fmt.Println(timeoutFailureMsg)
+				t.FailNow()
+			}
+		}
+
+		Convey("Then the Consumer returns an error", func() {
+			So(err, ShouldNotBeNil)
+		})
+
+		Convey("And dimensionExtractedConsumer.Closer() is called 1 time with the expected parameters", func() {
+			calls := consumerMock.CloserCalls()
+			So(len(calls), ShouldEqual, 1)
+			So(len(consumerClosesParams), ShouldEqual, 1)
+			So(consumerClosesParams[0], ShouldEqual, true)
+		})
+
+		Convey("And insertedProducer.Closer() is called 1 time with the expected parameters", func() {
+			calls := insertedProducer.CloserCalls()
+			So(len(calls), ShouldEqual, 1)
+			So(len(producerClosesParams), ShouldEqual, 1)
+			So(producerClosesParams[0], ShouldEqual, true)
+		})
+	})
+}
+
+func runConsumer(tc *testCommon, consumerMock *message_test.KafkaMessageConsumerMock, insertedProducer InsertedProducer, handler EventHandler) {
+	// Block until the Consumer returns an error (its exited) and send that error to the test complete chan.
+	tc.testCompleteChan <- Consume(consumerMock, insertedProducer, handler, tc.killConsumer)
+	log.Debug(consumerExitedMsg, nil)
 }
 
 func newTestCommon() *testCommon {
@@ -205,70 +358,65 @@ func newTestCommon() *testCommon {
 	bytes, _ := schema.DimensionsExtractedSchema.Marshal(dimensionsExtractedEvent)
 
 	return &testCommon{
-		incomingChan:        make(chan kafka.Message, 0),
-		errorsChan:          make(chan error, 0),
-		closerChan:          make(chan bool, 0),
-		producerChan:        make(chan []byte),
-		exitChan:            make(chan error),
-		extractedEvent:      dimensionsExtractedEvent,
-		extractedEventBytes: bytes,
-		eventHandler: &message_test.EventHandlerMock{
-			Param: []event.DimensionsExtractedEvent{},
-			HandleEventFunc: func(e event.DimensionsExtractedEvent) error {
-				return nil
-			},
+		testCompleteChan:     make(chan error),
+		incomingChan:         make(chan kafka.Message),
+		messageCommitInvoked: make(chan int),
+		consumerErrorsChan:   make(chan error),
+		consumerCloserChan:   make(chan bool),
+		producerCloserChan:   make(chan bool),
+		producerErrorsChan:   make(chan error),
+		killConsumer:         make(chan error),
+		extractedEvent:       dimensionsExtractedEvent,
+		extractedEventBytes:  bytes,
+		eventHandlerErr:      nil,
+	}
+}
+
+func (tc *testCommon) eventHandler() *message_test.EventHandlerMock {
+	return &message_test.EventHandlerMock{
+		Param: []event.DimensionsExtractedEvent{},
+		HandleEventFunc: func(e event.DimensionsExtractedEvent) error {
+			return tc.eventHandlerErr
 		},
 	}
 }
 
-func newMockKafkaMessage(tc *testCommon) *message_test.KafkaMessageMock {
+func (tc *testCommon) kafkaMessageMock() *message_test.KafkaMessageMock {
 	return &message_test.KafkaMessageMock{
 		GetDataFunc: func() []byte {
 			return tc.extractedEventBytes
 		},
 		CommitFunc: func() {
+			// capture commit invoked.
+			tc.messageCommitInvoked <- 1
 		},
 	}
 }
 
-func newKafkaMessageConsumerMock(tc *testCommon) *message_test.KafkaMessageConsumerMock {
+func (tc *testCommon) kafkaMessageConsumerMock() *message_test.KafkaMessageConsumerMock {
 	return &message_test.KafkaMessageConsumerMock{
 		IncomingFunc: func() chan kafka.Message {
 			return tc.incomingChan
 		},
 		CloserFunc: func() chan bool {
-			return tc.closerChan
+			return tc.consumerCloserChan
 		},
 		ErrorsFunc: func() chan error {
-			return tc.errorsChan
+			return tc.consumerErrorsChan
 		},
 	}
 }
-func newKafkaMessageProducerMock(tc *testCommon) *message_test.KafkaMessageProducerMock {
-	return &message_test.KafkaMessageProducerMock{
+
+func (tc *testCommon) InsertedProducerMock() *message_test.InsertedProducerMock {
+	return &message_test.InsertedProducerMock{
+		DimensionInsertedFunc: func(e event.DimensionsInsertedEvent) error {
+			return nil
+		},
 		ErrorsFunc: func() chan error {
-			return tc.errorsChan
+			return tc.producerErrorsChan
 		},
 		CloserFunc: func() chan bool {
-			return tc.closerChan
+			return tc.producerCloserChan
 		},
-		OutputFunc: func() chan []byte {
-			return tc.producerChan
-		},
-	}
-}
-
-func newMarshallerMock(tc *testCommon) *message_test.MarshallerMock {
-	return &message_test.MarshallerMock{
-		MarshalFunc: func(s interface{}) ([]byte, error) {
-			return tc.extractedEventBytes, nil
-		},
-	}
-}
-
-func newDimensionInsertedProducer(m *message_test.MarshallerMock, p *message_test.KafkaMessageProducerMock) DimensionInsertedProducer {
-	return DimensionInsertedProducer{
-		Marshaller: m,
-		Producer:   p,
 	}
 }

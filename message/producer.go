@@ -33,3 +33,11 @@ func (p DimensionInsertedProducer) DimensionInserted(e event.DimensionsInsertedE
 	p.Producer.Output() <- bytes
 	return nil
 }
+
+func (p DimensionInsertedProducer) Closer() chan bool {
+	return p.Producer.Closer()
+}
+
+func (p DimensionInsertedProducer) Errors() chan error {
+	return p.Producer.Errors()
+}
