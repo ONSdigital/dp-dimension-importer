@@ -70,24 +70,6 @@
 			"revisionTime": "2017-02-15T23:32:05Z"
 		},
 		{
-			"checksumSHA1": "jOXIxsHHi2+Kq4evLnADdtynshs=",
-			"path": "github.com/ian-kent/envconf",
-			"revision": "c19809918c02ab33dc8635d68c77649313185275",
-			"revisionTime": "2014-10-26T12:11:21Z"
-		},
-		{
-			"checksumSHA1": "Ai1Jq30ypG7ElmWWLmnj39u2CSc=",
-			"path": "github.com/ian-kent/gofigure",
-			"revision": "c9dc3a1359affde410a8d90e28132a1126604270",
-			"revisionTime": "2017-05-02T19:22:41Z"
-		},
-		{
-			"checksumSHA1": "TTOVXrBTt7rBkKDInYkI4wHLxV8=",
-			"path": "github.com/ian-kent/gofigure/sources",
-			"revision": "c9dc3a1359affde410a8d90e28132a1126604270",
-			"revisionTime": "2017-05-02T19:22:41Z"
-		},
-		{
 			"checksumSHA1": "FRhS1BUn7QYJODTJaU1LF7uCka0=",
 			"path": "github.com/johnnadratowski/golang-neo4j-bolt-driver",
 			"revision": "2387cc1f01254d3a0055e034f5716278a1f420c7",
@@ -134,6 +116,12 @@
 			"path": "github.com/jtolds/gls",
 			"revision": "77f18212c9c7edc9bd6a33d383a7b545ce62f064",
 			"revisionTime": "2017-05-03T22:40:06Z"
+		},
+		{
+			"checksumSHA1": "gWlw0l2wMBLhmejJCTr/Zywqyk8=",
+			"path": "github.com/kelseyhightower/envconfig",
+			"revision": "70f0258d44cbaa3b6a2581d82f58da01a38e4de4",
+			"revisionTime": "2017-05-23T19:07:22Z"
 		},
 		{
 			"checksumSHA1": "hBgLmZ/4mCxmnH88mqFKBkpJFUY=",

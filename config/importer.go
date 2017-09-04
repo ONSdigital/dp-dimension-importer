@@ -4,19 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ONSdigital/go-ns/log"
-	"github.com/ian-kent/gofigure"
+	"github.com/kelseyhightower/envconfig"
 )
 
 // Config struct to hold application configuration.
 type Config struct {
-	BindAddr                 string   `env:"BIND_ADDR" flag:"bind-addr" flagDesc:"The port to bind to."`
-	KafkaAddr                []string `env:"KAFKA_ADDR" flag:"kafka-addr" flagDesc:"The address of Kafka topic for inbound messages."`
-	DimensionsExtractedTopic string   `env:"DIMENSIONS_EXTRACTED_TOPIC" flag:"dimensions-extracted-topic" flagDesc:"The Kafka topic supplying dimension messages"`
-	DimensionsInsertedTopic  string   `env:"DIMENSIONS_INSERTED_TOPIC" flag:"dimensions-inserted-topic" flagDesc:"The Kafka topic for imported dimension complete messages"`
-	ImportAddr               string   `env:"IMPORT_ADDR" flag:"import-addr" flagDesc:"The address of Kafka topic for inbound messages."`
-	ImportAuthToken          string   `env:"IMPORT_AUTH_TOKEN" flag:"import-auth-token" flagDesc:"Authentication token required to make PUT requests to import api."`
-	DatabaseURL              string   `env:"DB_URL" flag:"db-url" flagDesc:"The URL of the dimensions database."`
-	PoolSize                 int      `env:"DB_POOL_SIZE" flag:"db-pool-size" flagDesc:"The database connection pool size."`
+	BindAddr                 string   `envconfig:"BIND_ADDR"`
+	KafkaAddr                []string `envconfig:"KAFKA_ADDR"`
+	DimensionsExtractedTopic string   `envconfig:"DIMENSIONS_EXTRACTED_TOPIC"`
+	DimensionsInsertedTopic  string   `envconfig:"DIMENSIONS_INSERTED_TOPIC"`
+	ImportAddr               string   `envconfig:"IMPORT_ADDR"`
+	ImportAuthToken          string   `envconfig:"IMPORT_AUTH_TOKEN"`
+	DatabaseURL              string   `envconfig:"DB_URL"`
+	PoolSize                 int      `envconfig:"DB_POOL_SIZE"`
 }
 
 func (c *Config) String() string {
@@ -45,7 +45,7 @@ func Load() (*Config, error) {
 		DimensionsInsertedTopic:  "dimensions-inserted",
 	}
 
-	err := gofigure.Gofigure(&cfg)
+	err := envconfig.Process("", cfg)
 
 	if len(cfg.ImportAuthToken) == 0 {
 		err := errors.New("error while attempting to load config. import api auth token is required but has not been configured")
