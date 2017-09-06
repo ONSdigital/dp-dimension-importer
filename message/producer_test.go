@@ -1,10 +1,10 @@
 package message
 
 import (
+	"errors"
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/message/message_test"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
-	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"

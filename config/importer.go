@@ -45,7 +45,7 @@ func Load() (*Config, error) {
 		DimensionsInsertedTopic:  "dimensions-inserted",
 	}
 
-	err := envconfig.Process("", cfg)
+	err := envconfig.Process("", &cfg)
 
 	if len(cfg.ImportAuthToken) == 0 {
 		err := errors.New("error while attempting to load config. import api auth token is required but has not been configured")

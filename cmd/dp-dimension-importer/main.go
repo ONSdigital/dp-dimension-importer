@@ -27,6 +27,7 @@ func main() {
 	log.Namespace = "dimension-importer"
 	cfg, err := config.Load()
 	if err != nil {
+		log.ErrorC("Error while attempting to load application config.", err, nil)
 		os.Exit(1)
 	}
 
