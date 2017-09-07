@@ -17,16 +17,16 @@ import (
 
 const (
 	unmarshallingErr      = "unexpected error while unmarshalling response"
-	unexpectedAPIErr      = "unexpected error returned when calling import api"
+	unexpectedAPIErr      = "unexpected error returned when calling dataset api"
 	hostConfigMissingErr  = "dimensions client requires an api host to be configured"
 	instanceIDRequiredErr = "instance id is required but is empty"
 
 	getInstanceURIFMT  = "%s/instances/%s"
-	getInstanceSuccess = "import api get instance success"
+	getInstanceSuccess = "dataset api get instance success"
 	getInstanceErr     = "get instance returned error status"
 
 	getDimensionsURIFMT  = "%s/instances/%s/dimensions"
-	getDimensionsSuccess = "import api get dimensions success"
+	getDimensionsSuccess = "dataset api get dimensions success"
 	getDimensionsErr     = "get dimensions returned error status"
 
 	createPutNodeIDReqErr = "unexpected error creating request struct"
@@ -35,8 +35,8 @@ const (
 	putDimNodeIDErr       = "set dimension node id returned error status"
 	dimensionNilErr       = "dimension is required but was nil"
 	dimensionIDReqErr     = "dimension id is required but was empty"
-	unauthorisedResponse  = "import api returned unauthorized response status"
-	forbiddenResponse     = "import api returned forbidden response status"
+	unauthorisedResponse  = "dataset api returned unauthorized response status"
+	forbiddenResponse     = "dataset api returned forbidden response status"
 	authTokenHeader       = "Internal-Token"
 	readRespBodyErr       = "unexpected error while attempting to read response body"
 	newReqErr             = "unexpected error while attempting to create new http request"
@@ -52,18 +52,18 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// ImportAPI provides methods for getting dimensions for a given instanceID and updating the node_id of a specific dimension.
-type ImportAPI struct {
-	ImportHost         string
-	AuthToken          string
-	ResponseBodyReader ResponseBodyReader
-	HTTPClient         HTTPClient
+// DatasetAPI provides methods for getting dimensions for a given instanceID and updating the node_id of a specific dimension.
+type DatasetAPI struct {
+	DatasetAPIHost      string
+	DatasetAPIAuthToken string
+	ResponseBodyReader  ResponseBodyReader
+	HTTPClient          HTTPClient
 }
 
 // GetInstance returns instance data from the import API.
-func (api ImportAPI) GetInstance(instanceID string) (*model.Instance, error) {
+func (api DatasetAPI) GetInstance(instanceID string) (*model.Instance, error) {
 
-	if len(api.ImportHost) == 0 {
+	if len(api.DatasetAPIHost) == 0 {
 		err := errors.New(hostConfigMissingErr)
 		log.ErrorC(hostConfigMissingErr, err, nil)
 		return nil, err
@@ -73,7 +73,7 @@ func (api ImportAPI) GetInstance(instanceID string) (*model.Instance, error) {
 		return nil, errors.New(instanceIDRequiredErr)
 	}
 
-	url := fmt.Sprintf(getInstanceURIFMT, api.ImportHost, instanceID)
+	url := fmt.Sprintf(getInstanceURIFMT, api.DatasetAPIHost, instanceID)
 	data := log.Data{
 		logKeys.InstanceID: instanceID,
 		logKeys.URL:        url,
@@ -118,8 +118,8 @@ func (api ImportAPI) GetInstance(instanceID string) (*model.Instance, error) {
 }
 
 // GetDimensions perform a HTTP GET request to the dp-import-api to retrieve the dataset dimenions for the specified instanceID
-func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error) {
-	if len(api.ImportHost) == 0 {
+func (api DatasetAPI) GetDimensions(instanceID string) ([]*model.Dimension, error) {
+	if len(api.DatasetAPIHost) == 0 {
 		err := errors.New(hostConfigMissingErr)
 		log.ErrorC(hostConfigMissingErr, err, nil)
 		return nil, err
@@ -128,7 +128,7 @@ func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error
 		return nil, errors.New(instanceIDRequiredErr)
 	}
 
-	url := fmt.Sprintf(getDimensionsURIFMT, api.ImportHost, instanceID)
+	url := fmt.Sprintf(getDimensionsURIFMT, api.DatasetAPIHost, instanceID)
 	data := log.Data{
 		logKeys.InstanceID: instanceID,
 		logKeys.URL:        url,
@@ -177,8 +177,8 @@ func (api ImportAPI) GetDimensions(instanceID string) ([]*model.Dimension, error
 }
 
 // PutDimensionNodeID make a HTTP put request to update the node_id of the specified dimension.
-func (api ImportAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) error {
-	if len(api.ImportHost) == 0 {
+func (api DatasetAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) error {
+	if len(api.DatasetAPIHost) == 0 {
 		err := errors.New(hostConfigMissingErr)
 		log.ErrorC(hostConfigMissingErr, err, nil)
 		return err
@@ -198,7 +198,7 @@ func (api ImportAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) e
 	logData[logKeys.DimensionsKey] = d.DimensionID
 	logData[logKeys.NodeID] = d.NodeID
 
-	url := fmt.Sprintf(putDimensionNodeIDURI, api.ImportHost, instanceID, d.DimensionID, url.PathEscape(d.Value), d.NodeID)
+	url := fmt.Sprintf(putDimensionNodeIDURI, api.DatasetAPIHost, instanceID, d.DimensionID, url.PathEscape(d.Value), d.NodeID)
 	logData[logKeys.URL] = url
 
 	req, err := http.NewRequest(http.MethodPut, url, nil)
@@ -207,7 +207,7 @@ func (api ImportAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) e
 		log.ErrorC(createPutNodeIDReqErr, err, logData)
 		return err
 	}
-	req.Header.Set(authTokenHeader, api.AuthToken)
+	req.Header.Set(authTokenHeader, api.DatasetAPIAuthToken)
 	resp, err := api.HTTPClient.Do(req)
 	if err != nil {
 		logData[logKeys.ErrorDetails] = err.Error()

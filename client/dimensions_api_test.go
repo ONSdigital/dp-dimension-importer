@@ -29,21 +29,21 @@ var expectedInstance = &model.Instance{InstanceID: instanceID, CSVHeader: []stri
 
 var body []byte
 
-func TestImportAPI_GetInstance_NotConfigured(t *testing.T) {
+func TestDatasetAPI_GetInstance_NotConfigured(t *testing.T) {
 
 	Convey("Given the client has not been configured", t, func() {
 		httpClientMock := &mocks.HTTPClientMock{}
 		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
 
 		// Set the host to an empty for this test case.
-		importAPI := ImportAPI{
-			ImportHost:         "",
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost:     "",
 			HTTPClient:         httpClientMock,
 			ResponseBodyReader: respBodyReaderMock,
 		}
 
 		Convey("When the GetInstance is called", func() {
-			instance, err := importAPI.GetInstance(instanceID)
+			instance, err := datasetAPI.GetInstance(instanceID)
 
 			Convey("Then a nil instance and the appropriate error is returned.", func() {
 				So(instance, ShouldEqual, nil)
@@ -58,7 +58,7 @@ func TestImportAPI_GetInstance_NotConfigured(t *testing.T) {
 	})
 }
 
-func TestImportAPI_GetInstance(t *testing.T) {
+func TestDatasetAPI_GetInstance(t *testing.T) {
 
 	Convey("Given valid client configuration", t, func() {
 		httpClientMock := &mocks.HTTPClientMock{}
@@ -77,15 +77,15 @@ func TestImportAPI_GetInstance(t *testing.T) {
 			return body, nil
 		}
 
-		importAPI := ImportAPI{
-			ImportHost:         "http://localhost:8080",
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost:     "http://localhost:8080",
 			HTTPClient:         httpClientMock,
 			ResponseBodyReader: respBodyReaderMock,
 		}
 
 		Convey("When the GetInstance method is called", func() {
 
-			instance, err := importAPI.GetInstance(instanceID)
+			instance, err := datasetAPI.GetInstance(instanceID)
 
 			Convey("Then the expected response is returned with no error", func() {
 				So(instance, ShouldResemble, expectedInstance)
@@ -105,7 +105,7 @@ func TestImportAPI_GetInstance(t *testing.T) {
 	})
 }
 
-func TestImportAPI_GetInstance_EmptyInstanceID(t *testing.T) {
+func TestDatasetAPI_GetInstance_EmptyInstanceID(t *testing.T) {
 
 	Convey("Given an empty instanceID", t, func() {
 
@@ -114,15 +114,15 @@ func TestImportAPI_GetInstance_EmptyInstanceID(t *testing.T) {
 		httpClientMock := &mocks.HTTPClientMock{}
 		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
 
-		importAPI := ImportAPI{
-			ImportHost:         "http://localhost:8080",
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost:     "http://localhost:8080",
 			HTTPClient:         httpClientMock,
 			ResponseBodyReader: respBodyReaderMock,
 		}
 
 		Convey("When GetInstance is invoked", func() {
 
-			instance, err := importAPI.GetInstance(instanceID)
+			instance, err := datasetAPI.GetInstance(instanceID)
 
 			Convey("Then the expected error is returned", func() {
 				So(instance, ShouldEqual, nil)
@@ -132,7 +132,7 @@ func TestImportAPI_GetInstance_EmptyInstanceID(t *testing.T) {
 	})
 }
 
-func TestImportAPI_GetInstance_HTTPClientErr(t *testing.T) {
+func TestDatasetAPI_GetInstance_HTTPClientErr(t *testing.T) {
 
 	Convey("Given HTTPClient.Do will return an error", t, func() {
 
@@ -144,13 +144,13 @@ func TestImportAPI_GetInstance_HTTPClientErr(t *testing.T) {
 		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
 
 		Convey("When GetInstance is invoked", func() {
-			importAPI := ImportAPI{
-				ImportHost:         "http://localhost:8080",
+			datasetAPI := DatasetAPI{
+				DatasetAPIHost:     "http://localhost:8080",
 				HTTPClient:         httpClientMock,
 				ResponseBodyReader: respBodyReaderMock,
 			}
 
-			instance, err := importAPI.GetInstance(instanceID)
+			instance, err := datasetAPI.GetInstance(instanceID)
 
 			Convey("Then the expected error response is returned", func() {
 				So(instance, ShouldEqual, nil)
@@ -168,7 +168,7 @@ func TestImportAPI_GetInstance_HTTPClientErr(t *testing.T) {
 	})
 }
 
-func TestImportAPI_GetInstance_HTTPErrResponse(t *testing.T) {
+func TestDatasetAPI_GetInstance_HTTPErrResponse(t *testing.T) {
 	Convey("Given HTTPClient.Do returns a non 200 response status", t, func() {
 		httpClientMock := &mocks.HTTPClientMock{
 			DoFunc: func(req *http.Request) (*http.Response, error) {
@@ -178,13 +178,13 @@ func TestImportAPI_GetInstance_HTTPErrResponse(t *testing.T) {
 		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
 
 		Convey("When GetInstance is invoked", func() {
-			importAPI := ImportAPI{
-				ImportHost:         "http://localhost:8080",
+			datasetAPI := DatasetAPI{
+				DatasetAPIHost:     "http://localhost:8080",
 				HTTPClient:         httpClientMock,
 				ResponseBodyReader: respBodyReaderMock,
 			}
 
-			instance, err := importAPI.GetInstance(instanceID)
+			instance, err := datasetAPI.GetInstance(instanceID)
 
 			Convey("Then the expected error response is returned", func() {
 				So(instance, ShouldEqual, nil)
@@ -202,7 +202,7 @@ func TestImportAPI_GetInstance_HTTPErrResponse(t *testing.T) {
 	})
 }
 
-func TestImportAPI_GetInstance_ResponseBodyErr(t *testing.T) {
+func TestDatasetAPI_GetInstance_ResponseBodyErr(t *testing.T) {
 
 	Convey("Given ResponseBodyReader.ReadAll returns an error", t, func() {
 		body, _ = json.Marshal(expectedDimensions)
@@ -221,13 +221,13 @@ func TestImportAPI_GetInstance_ResponseBodyErr(t *testing.T) {
 		}
 
 		Convey("When GetInstance is invoked", func() {
-			importAPI := ImportAPI{
-				ImportHost:         "http://localhost:8080",
+			datasetAPI := DatasetAPI{
+				DatasetAPIHost:     "http://localhost:8080",
 				HTTPClient:         httpClientMock,
 				ResponseBodyReader: respBodyReaderMock,
 			}
 
-			instance, err := importAPI.GetInstance(instanceID)
+			instance, err := datasetAPI.GetInstance(instanceID)
 
 			Convey("Then the expected error response is returned", func() {
 				So(instance, ShouldEqual, nil)
@@ -247,7 +247,7 @@ func TestImportAPI_GetInstance_ResponseBodyErr(t *testing.T) {
 	})
 }
 
-func TestImportAPI_GetInstance_UnmarshalErr(t *testing.T) {
+func TestDatasetAPI_GetInstance_UnmarshalErr(t *testing.T) {
 
 	Convey("Given unmarshalling the response body returns an error", t, func() {
 
@@ -267,13 +267,13 @@ func TestImportAPI_GetInstance_UnmarshalErr(t *testing.T) {
 		}
 
 		Convey("When GetInstance is invoked", func() {
-			importAPI := ImportAPI{
-				ImportHost:         "http://localhost:8080",
+			datasetAPI := DatasetAPI{
+				DatasetAPIHost:     "http://localhost:8080",
 				HTTPClient:         httpClientMock,
 				ResponseBodyReader: respBodyReaderMock,
 			}
 
-			instance, err := importAPI.GetInstance(instanceID)
+			instance, err := datasetAPI.GetInstance(instanceID)
 
 			Convey("Then the expected error response is returned", func() {
 				expectedType := reflect.TypeOf((*json.SyntaxError)(nil))
@@ -303,14 +303,14 @@ func TestGetDimensions(t *testing.T) {
 		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
 
 		// Set the host to an empty for this test case.
-		importAPI := ImportAPI{
-			ImportHost:         "",
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost:     "",
 			HTTPClient:         httpClientMock,
 			ResponseBodyReader: respBodyReaderMock,
 		}
 
 		Convey("When the Get is invoked", func() {
-			dims, err := importAPI.GetDimensions(instanceID)
+			dims, err := datasetAPI.GetDimensions(instanceID)
 
 			Convey("Then no dimenions and the appropriate error are returned.", func() {
 				So(err, ShouldResemble, errors.New(hostConfigMissingErr))
@@ -342,13 +342,13 @@ func TestGetDimensions(t *testing.T) {
 				return body, nil
 			}
 
-			importAPI := ImportAPI{
-				ImportHost:         "http://localhost:8080",
+			datasetAPI := DatasetAPI{
+				DatasetAPIHost:     "http://localhost:8080",
 				HTTPClient:         httpClientMock,
 				ResponseBodyReader: respBodyReaderMock,
 			}
 
-			dims, err := importAPI.GetDimensions(instanceID)
+			dims, err := datasetAPI.GetDimensions(instanceID)
 
 			Convey("Then the expected response is returned with no error", func() {
 				So(dims, ShouldResemble, expectedDimensions)
@@ -372,13 +372,13 @@ func TestGetDimensions(t *testing.T) {
 		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
 
 		Convey("When GetDimensions is invoked", func() {
-			importAPI := ImportAPI{
-				ImportHost:         "http://localhost:8080",
+			datasetAPI := DatasetAPI{
+				DatasetAPIHost:     "http://localhost:8080",
 				HTTPClient:         httpClientMock,
 				ResponseBodyReader: respBodyReaderMock,
 			}
 
-			dims, err := importAPI.GetDimensions("")
+			dims, err := datasetAPI.GetDimensions("")
 
 			Convey("Then the expected error is returned", func() {
 				So(dims, ShouldEqual, nil)
@@ -396,13 +396,13 @@ func TestGetDimensions(t *testing.T) {
 		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
 
 		Convey("When GetDimensions is invoked", func() {
-			importAPI := ImportAPI{
-				ImportHost:         "http://localhost:8080",
+			datasetAPI := DatasetAPI{
+				DatasetAPIHost:     "http://localhost:8080",
 				HTTPClient:         httpClientMock,
 				ResponseBodyReader: respBodyReaderMock,
 			}
 
-			dims, err := importAPI.GetDimensions(instanceID)
+			dims, err := datasetAPI.GetDimensions(instanceID)
 
 			Convey("Then the expected error response is returned", func() {
 				So(dims, ShouldEqual, nil)
@@ -428,13 +428,13 @@ func TestGetDimensions(t *testing.T) {
 		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
 
 		Convey("When GetDimensions is invoked", func() {
-			importAPI := ImportAPI{
-				ImportHost:         "http://localhost:8080",
+			datasetAPI := DatasetAPI{
+				DatasetAPIHost:     "http://localhost:8080",
 				HTTPClient:         httpClientMock,
 				ResponseBodyReader: respBodyReaderMock,
 			}
 
-			dims, err := importAPI.GetDimensions(instanceID)
+			dims, err := datasetAPI.GetDimensions(instanceID)
 
 			Convey("Then the expected error response is returned", func() {
 				So(dims, ShouldEqual, nil)
@@ -468,13 +468,13 @@ func TestGetDimensions(t *testing.T) {
 		}
 
 		Convey("When GetDimensions is invoked", func() {
-			importAPI := ImportAPI{
-				ImportHost:         "http://localhost:8080",
+			datasetAPI := DatasetAPI{
+				DatasetAPIHost:     "http://localhost:8080",
 				HTTPClient:         httpClientMock,
 				ResponseBodyReader: respBodyReaderMock,
 			}
 
-			dims, err := importAPI.GetDimensions(instanceID)
+			dims, err := datasetAPI.GetDimensions(instanceID)
 
 			Convey("Then the expected error response is returned", func() {
 				So(dims, ShouldEqual, nil)
@@ -510,13 +510,13 @@ func TestGetDimensions(t *testing.T) {
 		}
 
 		Convey("When GetDimensions is invoked", func() {
-			importAPI := ImportAPI{
-				ImportHost:         "http://localhost:8080",
+			datasetAPI := DatasetAPI{
+				DatasetAPIHost:     "http://localhost:8080",
 				HTTPClient:         httpClientMock,
 				ResponseBodyReader: respBodyReaderMock,
 			}
 
-			dims, err := importAPI.GetDimensions(instanceID)
+			dims, err := datasetAPI.GetDimensions(instanceID)
 
 			Convey("Then the expected error response is returned", func() {
 				expectedType := reflect.TypeOf((*json.SyntaxError)(nil))
@@ -539,19 +539,19 @@ func TestGetDimensions(t *testing.T) {
 	})
 }
 
-func TestImportAPI_PutDimensionNodeID(t *testing.T) {
+func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 	// mocks
 
-	Convey("Given importAPI.Host has not been set", t, func() {
+	Convey("Given datasetAPI.Host has not been set", t, func() {
 		httpCliMock := &mocks.HTTPClientMock{}
 
-		importAPI := ImportAPI{
-			ImportHost: "",
-			HTTPClient: httpCliMock,
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost: "",
+			HTTPClient:     httpCliMock,
 		}
 
 		Convey("When PutDimensionNodeID is called", func() {
-			err := importAPI.PutDimensionNodeID(instanceID, dimensionOne)
+			err := datasetAPI.PutDimensionNodeID(instanceID, dimensionOne)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(hostConfigMissingErr))
@@ -567,13 +567,13 @@ func TestImportAPI_PutDimensionNodeID(t *testing.T) {
 	Convey("Given no instanceID is provided", t, func() {
 		httpCliMock := &mocks.HTTPClientMock{}
 
-		importAPI := ImportAPI{
-			ImportHost: host,
-			HTTPClient: httpCliMock,
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost: host,
+			HTTPClient:     httpCliMock,
 		}
 
 		Convey("When PutDimensionNodeID is called", func() {
-			err := importAPI.PutDimensionNodeID("", dimensionOne)
+			err := datasetAPI.PutDimensionNodeID("", dimensionOne)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(instanceIDRequiredErr))
@@ -589,13 +589,13 @@ func TestImportAPI_PutDimensionNodeID(t *testing.T) {
 	Convey("Given no dimension is provided", t, func() {
 		httpCliMock := &mocks.HTTPClientMock{}
 
-		importAPI := ImportAPI{
-			ImportHost: host,
-			HTTPClient: httpCliMock,
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost: host,
+			HTTPClient:     httpCliMock,
 		}
 
 		Convey("When PutDimensionNodeID is called", func() {
-			err := importAPI.PutDimensionNodeID(instanceID, nil)
+			err := datasetAPI.PutDimensionNodeID(instanceID, nil)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(dimensionNilErr))
@@ -611,13 +611,13 @@ func TestImportAPI_PutDimensionNodeID(t *testing.T) {
 	Convey("Given a dimension with an empty dimensionID", t, func() {
 		httpCliMock := &mocks.HTTPClientMock{}
 
-		importAPI := ImportAPI{
-			ImportHost: host,
-			HTTPClient: httpCliMock,
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost: host,
+			HTTPClient:     httpCliMock,
 		}
 
 		Convey("When PutDimensionNodeID is called", func() {
-			err := importAPI.PutDimensionNodeID(instanceID, &model.Dimension{})
+			err := datasetAPI.PutDimensionNodeID(instanceID, &model.Dimension{})
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(dimensionIDReqErr))
@@ -633,17 +633,17 @@ func TestImportAPI_PutDimensionNodeID(t *testing.T) {
 	Convey("Given HTTPClient.Do returns an error", t, func() {
 		httpCliMock := &mocks.HTTPClientMock{}
 
-		importAPI := ImportAPI{
-			ImportHost: host,
-			HTTPClient: httpCliMock,
-			AuthToken:  authToken,
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost:      host,
+			HTTPClient:          httpCliMock,
+			DatasetAPIAuthToken: authToken,
 		}
 		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
 			return nil, expectedErr
 		}
 
 		Convey("When PutDimensionNodeID is called", func() {
-			err := importAPI.PutDimensionNodeID(instanceID, dimensionOne)
+			err := datasetAPI.PutDimensionNodeID(instanceID, dimensionOne)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, expectedErr)
@@ -665,17 +665,17 @@ func TestImportAPI_PutDimensionNodeID(t *testing.T) {
 	Convey("Given HTTPClient.Do returns an 401 status", t, func() {
 		httpCliMock := &mocks.HTTPClientMock{}
 
-		importAPI := ImportAPI{
-			ImportHost: host,
-			HTTPClient: httpCliMock,
-			AuthToken:  authToken,
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost:      host,
+			HTTPClient:          httpCliMock,
+			DatasetAPIAuthToken: authToken,
 		}
 		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
 			return Response([]byte{}, 401, nil)
 		}
 
 		Convey("When PutDimensionNodeID is called", func() {
-			err := importAPI.PutDimensionNodeID(instanceID, dimensionOne)
+			err := datasetAPI.PutDimensionNodeID(instanceID, dimensionOne)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(unauthorisedResponse))
@@ -691,17 +691,17 @@ func TestImportAPI_PutDimensionNodeID(t *testing.T) {
 	Convey("Given HTTPClient.Do returns an 403 status", t, func() {
 		httpCliMock := &mocks.HTTPClientMock{}
 
-		importAPI := ImportAPI{
-			ImportHost: host,
-			HTTPClient: httpCliMock,
-			AuthToken:  authToken,
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost:      host,
+			HTTPClient:          httpCliMock,
+			DatasetAPIAuthToken: authToken,
 		}
 		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
 			return Response([]byte{}, 403, nil)
 		}
 
 		Convey("When PutDimensionNodeID is called", func() {
-			err := importAPI.PutDimensionNodeID(instanceID, dimensionOne)
+			err := datasetAPI.PutDimensionNodeID(instanceID, dimensionOne)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(forbiddenResponse))
@@ -717,17 +717,17 @@ func TestImportAPI_PutDimensionNodeID(t *testing.T) {
 	Convey("Given HTTPClient.Do returns an unexpected status", t, func() {
 		httpCliMock := &mocks.HTTPClientMock{}
 
-		importAPI := ImportAPI{
-			ImportHost: host,
-			HTTPClient: httpCliMock,
-			AuthToken:  authToken,
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost:      host,
+			HTTPClient:          httpCliMock,
+			DatasetAPIAuthToken: authToken,
 		}
 		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
 			return Response([]byte{}, 500, nil)
 		}
 
 		Convey("When PutDimensionNodeID is called", func() {
-			err := importAPI.PutDimensionNodeID(instanceID, dimensionOne)
+			err := datasetAPI.PutDimensionNodeID(instanceID, dimensionOne)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(putDimNodeIDErr))
@@ -743,17 +743,17 @@ func TestImportAPI_PutDimensionNodeID(t *testing.T) {
 	Convey("Given HTTPClient.Do returns a 200 status", t, func() {
 		httpCliMock := &mocks.HTTPClientMock{}
 
-		importAPI := ImportAPI{
-			ImportHost: host,
-			HTTPClient: httpCliMock,
-			AuthToken:  authToken,
+		datasetAPI := DatasetAPI{
+			DatasetAPIHost:      host,
+			HTTPClient:          httpCliMock,
+			DatasetAPIAuthToken: authToken,
 		}
 		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
 			return Response([]byte{}, 200, nil)
 		}
 
 		Convey("When PutDimensionNodeID is called", func() {
-			err := importAPI.PutDimensionNodeID(instanceID, dimensionOne)
+			err := datasetAPI.PutDimensionNodeID(instanceID, dimensionOne)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldEqual, nil)

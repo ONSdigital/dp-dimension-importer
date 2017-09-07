@@ -58,17 +58,17 @@ func main() {
 		return repository.NewDimensionRepository(neo4jClient, map[string]string{})
 	}
 
-	importAPI := client.ImportAPI{
-		ResponseBodyReader: responseBodyReader{},
-		HTTPClient:         &http.Client{},
-		AuthToken:          cfg.ImportAuthToken,
-		ImportHost:         cfg.ImportAddr,
+	datasetAPI := client.DatasetAPI{
+		ResponseBodyReader:  responseBodyReader{},
+		HTTPClient:          &http.Client{},
+		DatasetAPIHost:      cfg.DatasetAPIAddr,
+		DatasetAPIAuthToken: cfg.DatasetAPIAuthToken,
 	}
 
 	eventHandler := &handler.DimensionsExtractedEventHandler{
 		NewDimensionInserter: newDimensionInserterFunc,
 		InstanceRepository:   &repository.InstanceRepository{Neo4j: neo4jClient},
-		ImportAPI:            importAPI,
+		DatasetAPI:           datasetAPI,
 	}
 
 	dimensionInsertedProducer := message.DimensionInsertedProducer{

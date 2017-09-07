@@ -7,10 +7,10 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/message/message_test"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/go-ns/kafka"
+	"github.com/ONSdigital/go-ns/log"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
-	"github.com/ONSdigital/go-ns/log"
 )
 
 var (
