@@ -60,6 +60,15 @@ type ImportAPI struct {
 	HTTPClient         HTTPClient
 }
 
+func NewImportAPI(host string, authToken string, responseBodyReader ResponseBodyReader, httpClient HTTPClient) ImportAPI {
+	return ImportAPI{
+		ImportHost:         host,
+		AuthToken:          authToken,
+		ResponseBodyReader: responseBodyReader,
+		HTTPClient:         httpClient,
+	}
+}
+
 // GetInstance returns instance data from the import API.
 func (api ImportAPI) GetInstance(instanceID string) (*model.Instance, error) {
 

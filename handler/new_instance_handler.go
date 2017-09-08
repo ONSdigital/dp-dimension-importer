@@ -44,17 +44,25 @@ type DimensionRepository interface {
 	Insert(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error)
 }
 
-// DimensionsExtractedEventHandler provides functions for handling DimensionsExtractedEvents.
-type DimensionsExtractedEventHandler struct {
+// InstanceEventHandler provides functions for handling DimensionsExtractedEvents.
+type InstanceEventHandler struct {
 	NewDimensionInserter func() DimensionRepository
 	InstanceRepository   InstanceRepository
 	ImportAPI            ImportAPIClient
 }
 
+func NewDimensionExtractedEventHandler(newDimeInserter func() DimensionRepository, instanceRepo InstanceRepository, importAPI ImportAPIClient) *InstanceEventHandler {
+	return &InstanceEventHandler{
+		NewDimensionInserter: newDimeInserter,
+		InstanceRepository:   instanceRepo,
+		ImportAPI:            importAPI,
+	}
+}
+
 // HandleEvent retrieves the dimensions for specified instanceID from the Import API, creates an MyInstance entity for
 // provided instanceID, creates a Dimension entity for each dimension and a relationship to the MyInstance it belongs to
 // and makes a PUT request to the Import API with the database ID of each Dimension entity.
-func (hdlr *DimensionsExtractedEventHandler) HandleEvent(event event.DimensionsExtractedEvent) error {
+func (hdlr *InstanceEventHandler) HandleEvent(event event.NewInstanceEvent) error {
 	if hdlr.ImportAPI == nil {
 		return errors.New(importAPINilErr)
 	}

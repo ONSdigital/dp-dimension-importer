@@ -9,16 +9,34 @@
 			"revisionTime": "2017-07-28T08:24:17Z"
 		},
 		{
-			"checksumSHA1": "dF3c6fF99+C/Y09aqUqJ9ouiHPE=",
+			"checksumSHA1": "J9OiPnhPHFPhQ+R+dq6LFj+dTxE=",
+			"path": "github.com/ONSdigital/go-ns/handlers/requestID",
+			"revision": "4c72344f6078c7ac8106b9b81de148f8f77dc0f7",
+			"revisionTime": "2017-09-06T07:42:54Z"
+		},
+		{
+			"checksumSHA1": "HgL/HLG5D1WNPb1lrb/hpywtm9o=",
+			"path": "github.com/ONSdigital/go-ns/handlers/timeout",
+			"revision": "4c72344f6078c7ac8106b9b81de148f8f77dc0f7",
+			"revisionTime": "2017-09-06T07:42:54Z"
+		},
+		{
+			"checksumSHA1": "Mk5V45ODgFoUimZ5XCUK6xE1TFc=",
 			"path": "github.com/ONSdigital/go-ns/kafka",
-			"revision": "c493b1568574c9720d7805f23ce6271ac445dc57",
-			"revisionTime": "2017-07-28T08:24:17Z"
+			"revision": "04c004b270af9ac693a4e87197b93614a2a1157a",
+			"revisionTime": "2017-09-06T08:52:19Z"
 		},
 		{
 			"checksumSHA1": "AjbjbhFVAOP/1NU5HL+uy+X/yJo=",
 			"path": "github.com/ONSdigital/go-ns/log",
 			"revision": "c493b1568574c9720d7805f23ce6271ac445dc57",
 			"revisionTime": "2017-07-28T08:24:17Z"
+		},
+		{
+			"checksumSHA1": "kfEPqmTD+a9Mo+pqCeiJb6OGrDE=",
+			"path": "github.com/ONSdigital/go-ns/server",
+			"revision": "4c72344f6078c7ac8106b9b81de148f8f77dc0f7",
+			"revisionTime": "2017-09-06T07:42:54Z"
 		},
 		{
 			"checksumSHA1": "+Jp0tVXfQ1TM8T+oun82oJtME5U=",
@@ -70,6 +88,18 @@
 			"revisionTime": "2017-02-15T23:32:05Z"
 		},
 		{
+			"checksumSHA1": "g/V4qrXjUGG9B+e3hB+4NAYJ5Gs=",
+			"path": "github.com/gorilla/context",
+			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
+			"revisionTime": "2016-08-17T18:46:32Z"
+		},
+		{
+			"checksumSHA1": "urMd7A9QPAJYY0GZJL9qBhlUmD8=",
+			"path": "github.com/gorilla/mux",
+			"revision": "757bef944d0f21880861c2dd9c871ca543023cba",
+			"revisionTime": "2016-09-20T23:08:13Z"
+		},
+		{
 			"checksumSHA1": "FRhS1BUn7QYJODTJaU1LF7uCka0=",
 			"path": "github.com/johnnadratowski/golang-neo4j-bolt-driver",
 			"revision": "2387cc1f01254d3a0055e034f5716278a1f420c7",
@@ -116,6 +146,13 @@
 			"path": "github.com/jtolds/gls",
 			"revision": "77f18212c9c7edc9bd6a33d383a7b545ce62f064",
 			"revisionTime": "2017-05-03T22:40:06Z"
+		},
+		{
+			"checksumSHA1": "OBvAHqWjdI4NQVAqTkcQAdTuCFY=",
+			"origin": "github.com/ONSdigital/go-ns/vendor/github.com/justinas/alice",
+			"path": "github.com/justinas/alice",
+			"revision": "4c72344f6078c7ac8106b9b81de148f8f77dc0f7",
+			"revisionTime": "2017-09-06T07:42:54Z"
 		},
 		{
 			"checksumSHA1": "gWlw0l2wMBLhmejJCTr/Zywqyk8=",

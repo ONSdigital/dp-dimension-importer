@@ -5,11 +5,24 @@ import (
 )
 
 type EventHandlerMock struct {
-	Param           []event.DimensionsExtractedEvent
-	HandleEventFunc func(event.DimensionsExtractedEvent) error
+	Param           []event.NewInstanceEvent
+	HandleEventFunc func(event.NewInstanceEvent) error
 }
 
-func (m *EventHandlerMock) HandleEvent(event event.DimensionsExtractedEvent) error {
+func (m *EventHandlerMock) HandleEvent(event event.NewInstanceEvent) error {
 	m.Param = append(m.Param, event)
 	return m.HandleEventFunc(event)
+}
+
+type MessageMock struct {
+	Committed chan bool
+	Data []byte
+}
+
+func (m *MessageMock) Commit() {
+	m.Committed <- true
+}
+
+func (m *MessageMock) GetData() []byte {
+	return m.Data
 }

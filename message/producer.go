@@ -4,10 +4,11 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
+	"context"
 )
 
 const (
-	marshalErr = "Unexpected error while attempting to avro marshall event.DimensionsInsertedEvent"
+	marshalErr = "Unexpected error while attempting to avro marshall event.InstanceCompletedEvent"
 )
 
 //go:generate moq -out ./message_test/producer_generated_mocks.go -pkg message_test . Marshaller
@@ -17,14 +18,21 @@ type Marshaller interface {
 	Marshal(s interface{}) ([]byte, error)
 }
 
-// DimensionInsertedProducer type for producing DimensionsInsertedEvents to a kafka topic.
-type DimensionInsertedProducer struct {
+// InstanceCompletedProducer type for producing DimensionsInsertedEvents to a kafka topic.
+type InstanceCompletedProducer struct {
 	Marshaller Marshaller
-	Producer   kafka.MessageProducer
+	Producer   kafka.Producer
 }
 
-// DimensionInserted kafka message to complete dimension inserted event
-func (p DimensionInsertedProducer) DimensionInserted(e event.DimensionsInsertedEvent) error {
+func NewInstanceCompletedProducer(producer kafka.Producer, marshaller Marshaller) InstanceCompletedProducer {
+	return InstanceCompletedProducer{
+		Producer:   producer,
+		Marshaller: marshaller,
+	}
+}
+
+// Completed kafka message to complete dimension inserted event
+func (p InstanceCompletedProducer) Completed(e event.InstanceCompletedEvent) error {
 	bytes, avroError := p.Marshaller.Marshal(e)
 	if avroError != nil {
 		log.ErrorC(marshalErr, avroError, log.Data{eventKey: e})
@@ -34,10 +42,6 @@ func (p DimensionInsertedProducer) DimensionInserted(e event.DimensionsInsertedE
 	return nil
 }
 
-func (p DimensionInsertedProducer) Closer() chan bool {
-	return p.Producer.Closer()
-}
-
-func (p DimensionInsertedProducer) Errors() chan error {
-	return p.Producer.Errors()
+func (p InstanceCompletedProducer) Close(ctx context.Context) {
+	// TODO
 }

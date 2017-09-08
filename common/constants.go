@@ -21,4 +21,6 @@ const (
 	PoolSize = "pool_size"
 	// ProcessingTime logging details key for time taken to processing instance.
 	ProcessingTime = "proccessing_time"
+	// KafkaTopic logging key for the name a the kafka topic
+	KafkaTopic = "topic"
 )

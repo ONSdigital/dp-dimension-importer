@@ -59,7 +59,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			},
 		}
 
-		handler := DimensionsExtractedEventHandler{
+		handler := InstanceEventHandler{
 			NewDimensionInserter: func() DimensionRepository {
 				return dimensionRepository
 			},
@@ -68,7 +68,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 		}
 
 		Convey("When given a valid event", func() {
-			event := event.DimensionsExtractedEvent{InstanceID: testInstanceID}
+			event := event.NewInstanceEvent{InstanceID: testInstanceID}
 			handler.HandleEvent(event)
 
 			Convey("Then ImportAPI.GetDimensions is called 1 time with the expected parameters", func() {
@@ -110,7 +110,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 		})
 
 		Convey("When given an invalid event", func() {
-			err := handler.HandleEvent(event.DimensionsExtractedEvent{})
+			err := handler.HandleEvent(event.NewInstanceEvent{})
 
 			Convey("Then the appropriate error is returned", func() {
 				So(err, ShouldResemble, errors.New(instanceIDNilErr))
@@ -127,7 +127,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 		Convey("When ImportAPI.GetDimensions returns an error", func() {
 			getDimensionsErr := errors.New("Get Dimensions error")
-			event := event.DimensionsExtractedEvent{InstanceID: testInstanceID}
+			event := event.NewInstanceEvent{InstanceID: testInstanceID}
 
 			importAPIMock.GetDimensionsFunc = func(instanceID string) ([]*model.Dimension, error) {
 				return nil, getDimensionsErr
@@ -157,7 +157,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 		Convey("When InstanceRepository.Create returns an error", func() {
 			expectedErr := errors.New("Create Error")
-			event := event.DimensionsExtractedEvent{InstanceID: testInstanceID}
+			event := event.NewInstanceEvent{InstanceID: testInstanceID}
 
 			instanceRepositoryMock.CreateFunc = func(instance *model.Instance) error {
 				return expectedErr
@@ -192,7 +192,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 		Convey("When DimensionRepository.Insert returns an error", func() {
 			expectedErr := errors.New("Insert Error")
-			event := event.DimensionsExtractedEvent{InstanceID: testInstanceID}
+			event := event.NewInstanceEvent{InstanceID: testInstanceID}
 
 			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, expectedErr
@@ -232,7 +232,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 		Convey("When ImportAPI.PutDimensionNodeID returns an error", func() {
 			expectedErr := errors.New("Put Node ID error")
-			event := event.DimensionsExtractedEvent{InstanceID: testInstanceID}
+			event := event.NewInstanceEvent{InstanceID: testInstanceID}
 
 			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, nil
@@ -283,7 +283,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 		Convey("When InstanceRepository.AddDimensions returns an error", func() {
 			expectedErr := errors.New("Add dimensions error")
-			event := event.DimensionsExtractedEvent{InstanceID: testInstanceID}
+			event := event.NewInstanceEvent{InstanceID: testInstanceID}
 
 			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, nil
@@ -342,7 +342,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 		instanceRepositoryMock := &mocks.InstanceRepositoryMock{}
 		dimensionRepository := &mocks.DimensionRepositoryMock{}
 
-		handler := DimensionsExtractedEventHandler{
+		handler := InstanceEventHandler{
 			ImportAPI:          nil,
 			InstanceRepository: instanceRepositoryMock,
 			NewDimensionInserter: func() DimensionRepository {
@@ -350,7 +350,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			},
 		}
 		Convey("When HandleEvent is called", func() {
-			event := event.DimensionsExtractedEvent{InstanceID: testInstanceID}
+			event := event.NewInstanceEvent{InstanceID: testInstanceID}
 			err := handler.HandleEvent(event)
 
 			Convey("Then the expected error is returned", func() {
@@ -369,7 +369,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 		dimensionRepository := &mocks.DimensionRepositoryMock{}
 		importAPIMock := &mocks.ImportAPIClientMock{}
 
-		handler := DimensionsExtractedEventHandler{
+		handler := InstanceEventHandler{
 			ImportAPI:          importAPIMock,
 			InstanceRepository: nil,
 			NewDimensionInserter: func() DimensionRepository {
@@ -377,7 +377,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			},
 		}
 		Convey("When HandleEvent is called", func() {
-			event := event.DimensionsExtractedEvent{InstanceID: testInstanceID}
+			event := event.NewInstanceEvent{InstanceID: testInstanceID}
 			err := handler.HandleEvent(event)
 
 			Convey("Then the expected error is returned", func() {
@@ -395,13 +395,13 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 		importAPIMock := &mocks.ImportAPIClientMock{}
 		instanceRepositoryMock := &mocks.InstanceRepositoryMock{}
 
-		handler := DimensionsExtractedEventHandler{
+		handler := InstanceEventHandler{
 			ImportAPI:            importAPIMock,
 			InstanceRepository:   instanceRepositoryMock,
 			NewDimensionInserter: nil,
 		}
 		Convey("When HandleEvent is called", func() {
-			event := event.DimensionsExtractedEvent{InstanceID: testInstanceID}
+			event := event.NewInstanceEvent{InstanceID: testInstanceID}
 			err := handler.HandleEvent(event)
 
 			Convey("Then the expected error is returned", func() {

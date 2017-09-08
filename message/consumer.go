@@ -6,92 +6,94 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
+	"context"
 )
 
-//go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessageConsumer KafkaMessage KafkaMessageProducer InsertedProducer
+//go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessage KafkaConsumer CompletedProducer ErrorEventHandler
 
 const (
-	eventRecieved       = "Recieved DimensionsExtractedEvent"
+	eventRecieved       = "Recieved NewInstanceEvent"
 	eventKey            = "event"
-	eventHandlerErr     = "Unexpected error encountered while handling DimensionsExtractedEvent"
+	eventHandlerErr     = "Unexpected error encountered while handling NewInstanceEvent"
 	eventHandlerSuccess = "Instance has been successfully imported"
 	errorRecieved       = "Consumer exit channel recieved error. Exiting dimensionExtractedConsumer"
 	conumserErrMsg      = "Kafka Consumer Error recieved"
-	producerErrMsg      = "InsertedProducer Error recieved"
+	producerErrMsg      = "Completed Error recieved"
+	consumerStoppedMsg  = "Exiting Consumer loop"
+	unmarshallErrMsg    = "Unexpected error when unmarshalling avro message to newInstanceEvent"
 )
 
-// KafkaMessageConsumer type for consuming kafka messages.
-type KafkaMessageConsumer kafka.MessageConsumer
+var closer chan bool = make(chan bool)
 
-// KafkaMessageProducer type for producing kafka messages.
-type KafkaMessageProducer kafka.MessageProducer
-
-// kafkaMessage type representing a kafka message.
+// KafkaMessage type representing a kafka message.
 type KafkaMessage kafka.Message
 
 // eventHandler defines an eventHandler.
 type EventHandler interface {
-	HandleEvent(event event.DimensionsExtractedEvent) error
+	HandleEvent(event event.NewInstanceEvent) error
 }
 
-// InsertedProducer defines an Producer for dimensions inserted events
-type InsertedProducer interface {
-	DimensionInserted(e event.DimensionsInsertedEvent) error
-	Closer() chan bool
-	Errors() chan error
+type KafkaConsumer interface {
+	Incoming() chan kafka.Message
 }
 
-// Consume consume incoming kafka messages delegating to the appropriate eventHandler or handling errors.
-func Consume(dimensionExtractedConsumer KafkaMessageConsumer, insertedProducer InsertedProducer, eventHandler EventHandler, exitChannel chan error) error {
+// Completed defines an Producer for dimensions inserted events
+type CompletedProducer interface {
+	Completed(e event.InstanceCompletedEvent) error
+	Close(ctx context.Context)
+}
+
+type ErrorEventHandler interface {
+	Handle(instanceID string, err error, data log.Data)
+}
+
+func CloseConsumer() {
+	closer <- true
+}
+
+func Consume(in KafkaConsumer, out CompletedProducer, eventHandler EventHandler, errorEventHandler ErrorEventHandler) {
 	go func() {
-		for {
+		consuming := true
+		for consuming {
 			select {
-			case consumedMessage := <-dimensionExtractedConsumer.Incoming():
+			case consumedMessage := <-in.Incoming():
 				consumedData := consumedMessage.GetData()
-				var dimensionsExtractedEvent event.DimensionsExtractedEvent
-				if err := schema.DimensionsExtractedSchema.Unmarshal(consumedData, &dimensionsExtractedEvent); err != nil {
-					exitChannel <- err
-					return
+				var newInstanceEvent event.NewInstanceEvent
+				if err := schema.NewInstanceSchema.Unmarshal(consumedData, &newInstanceEvent); err != nil {
+					log.ErrorC(unmarshallErrMsg, err, nil)
+					errorEventHandler.Handle("", err, nil)
+					consumedMessage.Commit()
+					continue
 				}
-				logData := map[string]interface{}{eventKey: dimensionsExtractedEvent}
+
+				logData := map[string]interface{}{eventKey: newInstanceEvent}
 				log.Debug(eventRecieved, logData)
 
-				if err := eventHandler.HandleEvent(dimensionsExtractedEvent); err != nil {
+				if err := eventHandler.HandleEvent(newInstanceEvent); err != nil {
 					log.ErrorC(eventHandlerErr, err, logData)
-					exitChannel <- err
-					return
+					errorEventHandler.Handle(newInstanceEvent.InstanceID, err, nil)
+					consumedMessage.Commit()
+					continue
 				}
 
-				logData[logKeys.InstanceID] = dimensionsExtractedEvent.InstanceID
+				logData[logKeys.InstanceID] = newInstanceEvent.InstanceID
 				log.Debug(eventHandlerSuccess, logData)
 
-				insertedEvent := event.DimensionsInsertedEvent{
-					FileURL:    dimensionsExtractedEvent.FileURL,
-					InstanceID: dimensionsExtractedEvent.InstanceID,
+				insertedEvent := event.InstanceCompletedEvent{
+					FileURL:    newInstanceEvent.FileURL,
+					InstanceID: newInstanceEvent.InstanceID,
 				}
 
-				if err := insertedProducer.DimensionInserted(insertedEvent); err != nil {
-					exitChannel <- err
-					return
+				if err := out.Completed(insertedEvent); err != nil {
+					errorEventHandler.Handle(newInstanceEvent.InstanceID, err, nil)
+					consumedMessage.Commit()
+					continue
 				}
 				consumedMessage.Commit()
-
-			case consumerError := <-dimensionExtractedConsumer.Errors():
-				log.ErrorC(conumserErrMsg, consumerError, log.Data{logKeys.ErrorDetails: consumerError})
-				dimensionExtractedConsumer.Closer() <- true
-				insertedProducer.Closer() <- true
-				exitChannel <- consumerError
-				return
-			case producerError := <-insertedProducer.Errors():
-				log.ErrorC(producerErrMsg, producerError, nil)
-				dimensionExtractedConsumer.Closer() <- true
-				insertedProducer.Closer() <- true
-				exitChannel <- producerError
-				return
+			case <-closer:
+				log.Info(consumerStoppedMsg, nil)
+				consuming = false
 			}
 		}
 	}()
-	err := <-exitChannel
-	log.ErrorC(errorRecieved, err, nil)
-	return err
 }

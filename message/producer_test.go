@@ -1,27 +1,18 @@
 package message
 
-import (
-	"errors"
-	"github.com/ONSdigital/dp-dimension-importer/event"
-	"github.com/ONSdigital/dp-dimension-importer/message/message_test"
-	"github.com/ONSdigital/dp-dimension-importer/schema"
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
-	"time"
-)
-
+/*
 func TestDimensionInsertedProducer_DimensionInserted(t *testing.T) {
 	Convey("Given a DimensionInsertProducer with valid configuration", t, func() {
 		outputChan := make(chan []byte)
 		closerChan := make(chan bool)
 		errorsChan := make(chan error)
 
-		insertedEvent := event.DimensionsInsertedEvent{
+		insertedEvent := extractedEvent.InstanceCompletedEvent{
 			FileURL:    fileURL,
 			InstanceID: instanceID,
 		}
 
-		eventBytes, _ := schema.DimensionsInsertedSchema.Marshal(insertedEvent)
+		eventBytes, _ := schema.InstanceCompletedSchema.Marshal(insertedEvent)
 
 		marshallerMock := &message_test.MarshallerMock{
 			MarshalFunc: func(s interface{}) ([]byte, error) {
@@ -41,7 +32,7 @@ func TestDimensionInsertedProducer_DimensionInserted(t *testing.T) {
 			},
 		}
 
-		target := &DimensionInsertedProducer{
+		target := &InstanceCompletedProducer{
 			Marshaller: marshallerMock,
 			Producer:   producerMock,
 		}
@@ -61,8 +52,8 @@ func TestDimensionInsertedProducer_DimensionInserted(t *testing.T) {
 			}
 		}()
 
-		Convey("When DimensionInserted is invoked with valid parameters", func() {
-			err := target.DimensionInserted(insertedEvent)
+		Convey("When Completed is invoked with valid parameters", func() {
+			err := target.Completed(insertedEvent)
 
 			Convey("Then, no error is returned", func() {
 				So(err, ShouldEqual, nil)
@@ -91,7 +82,7 @@ func TestDimensionInsertedProducer_DimensionInserted_MarshalErr(t *testing.T) {
 		closerChan := make(chan bool)
 		errorsChan := make(chan error)
 
-		insertedEvent := event.DimensionsInsertedEvent{
+		insertedEvent := extractedEvent.InstanceCompletedEvent{
 			FileURL:    fileURL,
 			InstanceID: instanceID,
 		}
@@ -110,7 +101,7 @@ func TestDimensionInsertedProducer_DimensionInserted_MarshalErr(t *testing.T) {
 			},
 		}
 
-		target := &DimensionInsertedProducer{
+		target := &InstanceCompletedProducer{
 			Marshaller: marshallerMock,
 			Producer:   producerMock,
 		}
@@ -122,7 +113,7 @@ func TestDimensionInsertedProducer_DimensionInserted_MarshalErr(t *testing.T) {
 				return nil, avroErr
 			}
 
-			err := target.DimensionInserted(insertedEvent)
+			err := target.Completed(insertedEvent)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, avroErr)
@@ -141,3 +132,4 @@ func TestDimensionInsertedProducer_DimensionInserted_MarshalErr(t *testing.T) {
 		})
 	})
 }
+*/
