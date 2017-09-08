@@ -91,17 +91,18 @@ func (repo DimensionRepository) Insert(i *model.Instance, d *model.Dimension) (*
 }
 
 func (repo DimensionRepository) createUniqueConstraint(d *model.Dimension) error {
-	logDebug := map[string]interface{}{}
+	logData := map[string]interface{}{}
 	dimensionLabel := "_" + d.DimensionID
 	stmt := fmt.Sprintf(uniqueDimConstStmt, dimensionLabel)
 
 	if _, err := repo.neo4jCli.ExecStmt(stmt, nil); err != nil {
-		logDebug[common.ErrorDetails] = err.Error()
-		log.ErrorC(uniqueConstErr, err, logDebug)
+		logData[common.ErrorDetails] = err.Error()
+		log.ErrorC(uniqueConstErr, err, logData)
 		return err
 	}
 
-	log.Debug(uniqueConstSuccess, logDebug)
+	logData["dimension"] = d.DimensionID
+	log.Debug(uniqueConstSuccess, logData)
 	return nil
 }
 

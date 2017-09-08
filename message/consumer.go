@@ -6,7 +6,6 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"context"
 )
 
 //go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessage KafkaConsumer CompletedProducer ErrorEventHandler
@@ -37,10 +36,9 @@ type KafkaConsumer interface {
 	Incoming() chan kafka.Message
 }
 
-// Completed defines an Producer for dimensions inserted events
+// Completed defines an KafkaProducer for dimensions inserted events
 type CompletedProducer interface {
 	Completed(e event.InstanceCompletedEvent) error
-	Close(ctx context.Context)
 }
 
 type ErrorEventHandler interface {
@@ -51,44 +49,13 @@ func CloseConsumer() {
 	closer <- true
 }
 
-func Consume(in KafkaConsumer, out CompletedProducer, eventHandler EventHandler, errorEventHandler ErrorEventHandler) {
+func Consume(consumer KafkaConsumer, producer CompletedProducer, eventHandler EventHandler, errorEventHandler ErrorEventHandler) {
 	go func() {
 		consuming := true
 		for consuming {
 			select {
-			case consumedMessage := <-in.Incoming():
-				consumedData := consumedMessage.GetData()
-				var newInstanceEvent event.NewInstanceEvent
-				if err := schema.NewInstanceSchema.Unmarshal(consumedData, &newInstanceEvent); err != nil {
-					log.ErrorC(unmarshallErrMsg, err, nil)
-					errorEventHandler.Handle("", err, nil)
-					consumedMessage.Commit()
-					continue
-				}
-
-				logData := map[string]interface{}{eventKey: newInstanceEvent}
-				log.Debug(eventRecieved, logData)
-
-				if err := eventHandler.HandleEvent(newInstanceEvent); err != nil {
-					log.ErrorC(eventHandlerErr, err, logData)
-					errorEventHandler.Handle(newInstanceEvent.InstanceID, err, nil)
-					consumedMessage.Commit()
-					continue
-				}
-
-				logData[logKeys.InstanceID] = newInstanceEvent.InstanceID
-				log.Debug(eventHandlerSuccess, logData)
-
-				insertedEvent := event.InstanceCompletedEvent{
-					FileURL:    newInstanceEvent.FileURL,
-					InstanceID: newInstanceEvent.InstanceID,
-				}
-
-				if err := out.Completed(insertedEvent); err != nil {
-					errorEventHandler.Handle(newInstanceEvent.InstanceID, err, nil)
-					consumedMessage.Commit()
-					continue
-				}
+			case consumedMessage := <-consumer.Incoming():
+				processMessage(consumedMessage.GetData(), producer, eventHandler, errorEventHandler)
 				consumedMessage.Commit()
 			case <-closer:
 				log.Info(consumerStoppedMsg, nil)
@@ -96,4 +63,34 @@ func Consume(in KafkaConsumer, out CompletedProducer, eventHandler EventHandler,
 			}
 		}
 	}()
+}
+
+func processMessage(consumedData []byte, producer CompletedProducer, eventHandler EventHandler, errorEventHandler ErrorEventHandler) {
+	var newInstanceEvent event.NewInstanceEvent
+	if err := schema.NewInstanceSchema.Unmarshal(consumedData, &newInstanceEvent); err != nil {
+		log.ErrorC(unmarshallErrMsg, err, nil)
+		errorEventHandler.Handle("", err, nil)
+		return
+	}
+
+	logData := map[string]interface{}{eventKey: newInstanceEvent}
+	log.Debug(eventRecieved, logData)
+
+	if err := eventHandler.HandleEvent(newInstanceEvent); err != nil {
+		log.ErrorC(eventHandlerErr, err, logData)
+		errorEventHandler.Handle(newInstanceEvent.InstanceID, err, nil)
+		return
+	}
+
+	logData[logKeys.InstanceID] = newInstanceEvent.InstanceID
+	log.Debug(eventHandlerSuccess, logData)
+
+	insertedEvent := event.InstanceCompletedEvent{
+		FileURL:    newInstanceEvent.FileURL,
+		InstanceID: newInstanceEvent.InstanceID,
+	}
+
+	if err := producer.Completed(insertedEvent); err != nil {
+		errorEventHandler.Handle(newInstanceEvent.InstanceID, err, nil)
+	}
 }

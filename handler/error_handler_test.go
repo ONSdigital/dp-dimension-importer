@@ -43,9 +43,9 @@ func TestErrorHandler_Handle(t *testing.T) {
 			},
 		}
 
-		handler := &ErrorHandler{producerMock, marshallerMock}
+		errorHandler := &ErrorHandler{producerMock, marshallerMock}
 
-		Convey("When the handler is given a valid parameters", func() {
+		Convey("When the errorHandler is given a valid parameters", func() {
 			var wg sync.WaitGroup
 			var avroBytes []byte
 
@@ -61,7 +61,7 @@ func TestErrorHandler_Handle(t *testing.T) {
 			}()
 
 			wg.Add(1)
-			handler.Handle(instance_id, expectedErr, nil)
+			errorHandler.Handle(instance_id, expectedErr, nil)
 			wg.Wait()
 
 			var actual event.ErrorEvent

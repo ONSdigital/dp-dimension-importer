@@ -70,3 +70,60 @@ func (mock *MarshallerMock) MarshalCalls() []struct {
 	lockMarshallerMockMarshal.RUnlock()
 	return calls
 }
+
+var (
+	lockKafkaProducerMockOutput sync.RWMutex
+)
+
+// KafkaProducerMock is a mock implementation of KafkaProducer.
+//
+//     func TestSomethingThatUsesKafkaProducer(t *testing.T) {
+//
+//         // make and configure a mocked KafkaProducer
+//         mockedKafkaProducer := &KafkaProducerMock{
+//             OutputFunc: func() chan []byte {
+// 	               panic("TODO: mock out the Output method")
+//             },
+//         }
+//
+//         // TODO: use mockedKafkaProducer in code that requires KafkaProducer
+//         //       and then make assertions.
+//
+//     }
+type KafkaProducerMock struct {
+	// OutputFunc mocks the Output method.
+	OutputFunc func() chan []byte
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// Output holds details about calls to the Output method.
+		Output []struct {
+		}
+	}
+}
+
+// Output calls OutputFunc.
+func (mock *KafkaProducerMock) Output() chan []byte {
+	if mock.OutputFunc == nil {
+		panic("moq: KafkaProducerMock.OutputFunc is nil but KafkaProducer.Output was just called")
+	}
+	callInfo := struct {
+	}{}
+	lockKafkaProducerMockOutput.Lock()
+	mock.calls.Output = append(mock.calls.Output, callInfo)
+	lockKafkaProducerMockOutput.Unlock()
+	return mock.OutputFunc()
+}
+
+// OutputCalls gets all the calls that were made to Output.
+// Check the length with:
+//     len(mockedKafkaProducer.OutputCalls())
+func (mock *KafkaProducerMock) OutputCalls() []struct {
+} {
+	var calls []struct {
+	}
+	lockKafkaProducerMockOutput.RLock()
+	calls = mock.calls.Output
+	lockKafkaProducerMockOutput.RUnlock()
+	return calls
+}

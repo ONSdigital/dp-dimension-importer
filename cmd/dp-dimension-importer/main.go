@@ -50,21 +50,21 @@ func main() {
 
 	log.Debug("application configuration", log.Data{"config": cfg})
 
-	incomingInstances, err := kafka.NewConsumerGroup(cfg.KafkaAddr, cfg.DimensionsExtractedTopic, log.Namespace, kafka.OffsetNewest)
+	incomingInstances, err := kafka.NewConsumerGroup(cfg.KafkaAddr, cfg.IncomingInstancesTopic, log.Namespace, kafka.OffsetNewest)
 	if err != nil {
 		log.ErrorC(createConsumerErr, err, nil)
 		os.Exit(1)
 	}
 
-	outgoingInstances, err := kafka.NewProducer(cfg.KafkaAddr, cfg.DimensionsInsertedTopic, 0)
+	outgoingInstances, err := kafka.NewProducer(cfg.KafkaAddr, cfg.OutgoingInstancesTopic, 0)
 	if err != nil {
-		log.ErrorC(createProducerErr, err, log.Data{logKeys.KafkaTopic: cfg.DimensionsInsertedTopic})
+		log.ErrorC(createProducerErr, err, log.Data{logKeys.KafkaTopic: cfg.OutgoingInstancesTopic})
 		os.Exit(1)
 	}
 
-	errorEventProducer, err := kafka.NewProducer(cfg.KafkaAddr, "event-reporter", 0)
+	errorEventProducer, err := kafka.NewProducer(cfg.KafkaAddr, cfg.EventReporterTopic, 0)
 	if err != nil {
-		log.ErrorC(errorEventsProducerErr, err, log.Data{logKeys.KafkaTopic: cfg.DimensionsInsertedTopic})
+		log.ErrorC(errorEventsProducerErr, err, log.Data{logKeys.KafkaTopic: cfg.OutgoingInstancesTopic})
 		os.Exit(1)
 	}
 
@@ -103,11 +103,11 @@ func main() {
 	}
 
 	// HTTP Health check endpoint.
-	healthcheck.NewHandler()
+	healthcheck.NewHandler(cfg.BindAddr)
 
 	gracefulShutdown := func() {
 		log.Info(gracefulShutdownMsg, nil)
-		ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, _ := context.WithTimeout(context.Background(), time.Second*cfg.ShutdownTimeout)
 
 		message.CloseConsumer()
 		incomingInstances.Close(ctx)
@@ -116,7 +116,7 @@ func main() {
 		healthcheck.Close(ctx)
 
 		log.Info(gracefulShutdownComplete, nil)
-		os.Exit(0)
+		os.Exit(1)
 	}
 
 	// run the consumer

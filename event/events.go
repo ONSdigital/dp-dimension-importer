@@ -12,6 +12,7 @@ type InstanceCompletedEvent struct {
 	InstanceID string `avro:"instance_id"`
 }
 
+// ErrorEvent type for any error that occurs while proccessing an instance.
 type ErrorEvent struct {
 	InstanceID string `avro:"instance_id"`
 	EventType  string `avro:"event_type"`

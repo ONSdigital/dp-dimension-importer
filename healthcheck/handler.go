@@ -17,18 +17,18 @@ const (
 var httpServer *server.Server
 var once sync.Once
 
-func NewHandler() {
+func NewHandler(bindAddr string) {
 	once.Do(func() {
 		router := mux.NewRouter()
 		router.Path("/healthcheck").HandlerFunc(handle)
 
-		httpServer = server.New(":22000", router)
+		httpServer = server.New(bindAddr, router)
 		httpServer.HandleOSSignals = false
 
 		go func() {
-			log.Debug("Starting http server...", nil)
+			log.Debug("Starting healthcheck endpoint...", nil)
 			if err := httpServer.ListenAndServe(); err != nil {
-				log.ErrorC("Sever returned error", err, nil)
+				log.ErrorC("healthcheck server returned error", err, nil)
 			}
 		}()
 	})

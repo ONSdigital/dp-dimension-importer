@@ -15,7 +15,6 @@ import (
 type testCommon struct {
 	incomingChan     chan kafka.Message
 	committedChan    chan bool
-	errorHandlerChan chan bool
 	extractedEvent   event.NewInstanceEvent
 	insertedEvent    event.InstanceCompletedEvent
 	message          *mock.MessageMock
@@ -35,26 +34,12 @@ func TestConsume(t *testing.T) {
 		Convey("When consumer receieves a valid incoming message", func() {
 
 			tc.consumerMock.Incoming() <- tc.message
-
-			// Block until one of the following happens...
-			select {
-			case <-tc.committedChan:
-				log.Debug("Message committed", nil)
-			case <-tc.errorHandlerChan:
-				log.Debug("Error handler called unexpectedly test failed", nil)
-				t.FailNow()
-			case <-time.After(time.Second * 3):
-				log.Debug("Test has timed out", nil)
-				t.FailNow()
-			}
-
-			CloseConsumer()
+			blockOnCommitOrTimeout(t, tc)
 
 			Convey("Then eventHanlder is called 1 time with the correct parameters", func() {
 				calls := tc.eventHandlerMock.Param
 				So(len(calls), ShouldEqual, 1)
 				So(calls[0], ShouldResemble, tc.extractedEvent)
-
 			})
 
 			Convey("And producer.Completed is called 1 time with the correct parameters", func() {
@@ -83,20 +68,7 @@ func TestConsume_invalidKafkaMessage(t *testing.T) {
 			}
 
 			tc.consumerMock.Incoming() <- tc.message
-
-			select {
-			case <-tc.committedChan:
-				log.Debug("Message committed unexpectedly test failed", nil)
-				t.FailNow()
-			case <-tc.errorHandlerChan:
-				log.Debug("Error handler called.", nil)
-			case <-time.After(time.Second * 3):
-				log.Debug("Test has timed out", nil)
-				t.FailNow()
-			}
-
-			// Stop the consumer
-			CloseConsumer()
+			blockOnCommitOrTimeout(t, tc)
 
 			Convey("Then errorHandler should be called 1 time with the expected parameters", func() {
 				calls := tc.errorHandlerMock.HandleCalls()
@@ -123,19 +95,7 @@ func TestConsume_eventHandlerError(t *testing.T) {
 
 		Convey("When eventHandler.HandleEvent returns an error", func() {
 			tc.consumerMock.Incoming() <- tc.message
-
-			select {
-			case <-tc.committedChan:
-				log.Debug("Message committed unexpectedly test failed", nil)
-				t.FailNow()
-			case <-tc.errorHandlerChan:
-				log.Debug("Error handler called.", nil)
-			case <-time.After(time.Second * 3):
-				log.Debug("Test has timed out", nil)
-				t.FailNow()
-			}
-
-			CloseConsumer()
+			blockOnCommitOrTimeout(t, tc)
 
 			Convey("Then errorHandler.Handle is called 1 time with the correct parameters", func() {
 				calls := tc.errorHandlerMock.HandleCalls()
@@ -166,19 +126,7 @@ func TestConsume_dimensionInsertedError(t *testing.T) {
 
 		Convey("When producer.Completed returns an error", func() {
 			tc.consumerMock.Incoming() <- tc.message
-
-			select {
-			case <-tc.committedChan:
-				log.Debug("Message committed unexpectedly test failed", nil)
-				t.FailNow()
-			case <-tc.errorHandlerChan:
-				log.Debug("Error handler called.", nil)
-			case <-time.After(time.Second * 3):
-				log.Debug("Test has timed out", nil)
-				t.FailNow()
-			}
-
-			CloseConsumer()
+			blockOnCommitOrTimeout(t, tc)
 
 			Convey("Then eventHandler.HandleEvent is called 1 time with the correct parameters", func() {
 				So(len(tc.eventHandlerMock.Param), ShouldEqual, 1)
@@ -202,10 +150,21 @@ func TestConsume_dimensionInsertedError(t *testing.T) {
 	})
 }
 
+func blockOnCommitOrTimeout(t *testing.T, tc *testCommon) {
+	select {
+	case <-tc.committedChan:
+		log.Debug("Message committed", nil)
+	case <-time.After(time.Second * 3):
+		log.Debug("Test has timed out", nil)
+		t.FailNow()
+	}
+
+	CloseConsumer()
+}
+
 func newtestCommon() *testCommon {
 	incomingChan := make(chan kafka.Message)
 	committedChan := make(chan bool)
-	errorHandlerChan := make(chan bool)
 
 	extractedEvent := event.NewInstanceEvent{
 		InstanceID: "1234567890",
@@ -244,14 +203,12 @@ func newtestCommon() *testCommon {
 
 	errorHandlerMock := &mock.ErrorEventHandlerMock{
 		HandleFunc: func(instanceID string, err error, data log.Data) {
-			errorHandlerChan <- true
 		},
 	}
 
 	return &testCommon{
 		incomingChan:     incomingChan,
 		committedChan:    committedChan,
-		errorHandlerChan: errorHandlerChan,
 		extractedEvent:   extractedEvent,
 		insertedEvent:    insertedEvent,
 		message:          message,
