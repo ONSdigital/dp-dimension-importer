@@ -163,8 +163,8 @@ func (api DatasetAPI) GetDimensions(instanceID string) ([]*model.Dimension, erro
 		return nil, err
 	}
 
-	var dims []*model.Dimension
-	err = json.Unmarshal(body, &dims)
+	var dimensionsResult model.DimensionNodeResults
+	err = json.Unmarshal(body, &dimensionsResult)
 
 	if err != nil {
 		data[logKeys.ErrorDetails] = err.Error()
@@ -173,7 +173,7 @@ func (api DatasetAPI) GetDimensions(instanceID string) ([]*model.Dimension, erro
 	}
 
 	log.Debug(getDimensionsSuccess, data)
-	return dims, nil
+	return dimensionsResult.Items, nil
 }
 
 // PutDimensionNodeID make a HTTP put request to update the node_id of the specified dimension.

@@ -5,7 +5,10 @@ import (
 	"strings"
 )
 
-const instanceLabelFmt = "_%s_Instance"
+// DimensionNodeResults wraps dimension node objects for pagination
+type DimensionNodeResults struct {
+	Items []*Dimension `json:"items"`
+}
 
 // Dimension struct encapsulating Dimension details.
 type Dimension struct {
@@ -24,7 +27,7 @@ func (d *Dimension) GetName(instanceID string) string {
 
 // Instance struct to hold instance information.
 type Instance struct {
-	InstanceID string   `json:"instance_id,omitempty"`
+	InstanceID string   `json:"id,omitempty"`
 	CSVHeader  []string `json:"headers"`
 	Dimensions []interface{}
 }

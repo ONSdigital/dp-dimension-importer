@@ -23,7 +23,10 @@ const (
 var expectedErr = errors.New("BOOM!")
 var dimensionOne = &model.Dimension{DimensionID: "666_SEX_MALE", NodeID: "1111", Value: "Male"}
 var dimensionTwo = &model.Dimension{DimensionID: "666_SEX_FEMALE", NodeID: "1112", Value: "Female"}
-var expectedDimensions = []*model.Dimension{dimensionOne, dimensionTwo}
+
+var expectedDimensions = model.DimensionNodeResults{
+	Items: []*model.Dimension{dimensionOne, dimensionTwo},
+}
 
 var expectedInstance = &model.Instance{InstanceID: instanceID, CSVHeader: []string{"the", "csv", "header"}}
 
@@ -351,7 +354,7 @@ func TestGetDimensions(t *testing.T) {
 			dims, err := datasetAPI.GetDimensions(instanceID)
 
 			Convey("Then the expected response is returned with no error", func() {
-				So(dims, ShouldResemble, expectedDimensions)
+				So(dims, ShouldResemble, expectedDimensions.Items)
 				So(err, ShouldEqual, nil)
 			})
 
