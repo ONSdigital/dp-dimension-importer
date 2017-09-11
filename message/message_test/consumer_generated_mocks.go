@@ -4,7 +4,6 @@
 package message_test
 
 import (
-	"context"
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
@@ -162,7 +161,6 @@ func (mock *KafkaConsumerMock) IncomingCalls() []struct {
 }
 
 var (
-	lockCompletedProducerMockClose     sync.RWMutex
 	lockCompletedProducerMockCompleted sync.RWMutex
 )
 
@@ -172,9 +170,6 @@ var (
 //
 //         // make and configure a mocked CompletedProducer
 //         mockedCompletedProducer := &CompletedProducerMock{
-//             CloseFunc: func(ctx context.Context)  {
-// 	               panic("TODO: mock out the Close method")
-//             },
 //             CompletedFunc: func(e event.InstanceCompletedEvent) error {
 // 	               panic("TODO: mock out the Completed method")
 //             },
@@ -185,56 +180,17 @@ var (
 //
 //     }
 type CompletedProducerMock struct {
-	// CloseFunc mocks the Close method.
-	CloseFunc func(ctx context.Context)
-
 	// CompletedFunc mocks the Completed method.
 	CompletedFunc func(e event.InstanceCompletedEvent) error
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// Close holds details about calls to the Close method.
-		Close []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-		}
 		// Completed holds details about calls to the Completed method.
 		Completed []struct {
 			// E is the e argument value.
 			E event.InstanceCompletedEvent
 		}
 	}
-}
-
-// Close calls CloseFunc.
-func (mock *CompletedProducerMock) Close(ctx context.Context) {
-	if mock.CloseFunc == nil {
-		panic("moq: CompletedProducerMock.CloseFunc is nil but CompletedProducer.Close was just called")
-	}
-	callInfo := struct {
-		Ctx context.Context
-	}{
-		Ctx: ctx,
-	}
-	lockCompletedProducerMockClose.Lock()
-	mock.calls.Close = append(mock.calls.Close, callInfo)
-	lockCompletedProducerMockClose.Unlock()
-	mock.CloseFunc(ctx)
-}
-
-// CloseCalls gets all the calls that were made to Close.
-// Check the length with:
-//     len(mockedCompletedProducer.CloseCalls())
-func (mock *CompletedProducerMock) CloseCalls() []struct {
-	Ctx context.Context
-} {
-	var calls []struct {
-		Ctx context.Context
-	}
-	lockCompletedProducerMockClose.RLock()
-	calls = mock.calls.Close
-	lockCompletedProducerMockClose.RUnlock()
-	return calls
 }
 
 // Completed calls CompletedFunc.

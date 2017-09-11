@@ -60,12 +60,12 @@ type DatasetAPI struct {
 	HTTPClient          HTTPClient
 }
 
-func NewImportAPI(host string, authToken string, responseBodyReader ResponseBodyReader, httpClient HTTPClient) ImportAPI {
-	return ImportAPI{
-		ImportHost:         host,
-		AuthToken:          authToken,
-		ResponseBodyReader: responseBodyReader,
-		HTTPClient:         httpClient,
+func NewDatasetAPI(host string, authToken string, responseBodyReader ResponseBodyReader, httpClient HTTPClient) DatasetAPI {
+	return DatasetAPI{
+		DatasetAPIHost:      host,
+		DatasetAPIAuthToken: authToken,
+		ResponseBodyReader:  responseBodyReader,
+		HTTPClient:          httpClient,
 	}
 }
 

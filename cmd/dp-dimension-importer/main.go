@@ -70,13 +70,13 @@ func main() {
 	}
 
 	// ImportAPI HTTP client.
-	importAPI := client.NewImportAPI(cfg.ImportAddr, cfg.ImportAuthToken, responseBodyReader{}, &http.Client{})
+	datasetAPICli := client.NewDatasetAPI(cfg.DatasetAPIAddr, cfg.DatasetAPIAuthToken, responseBodyReader{}, &http.Client{})
 
 	// Handler for dimensionsExtracted events.
 	eventHandler := handler.NewDimensionExtractedEventHandler(
 		newDimensionInserterFunc,
 		&repository.InstanceRepository{Neo4j: neo4jClient},
-		importAPI)
+		datasetAPICli)
 
 	// MessageProducer for dimensionsInsertedEvents
 	instanceCompletedProducer := message.NewInstanceCompletedProducer(

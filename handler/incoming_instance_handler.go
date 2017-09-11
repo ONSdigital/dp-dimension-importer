@@ -48,14 +48,14 @@ type DimensionRepository interface {
 type InstanceEventHandler struct {
 	NewDimensionInserter func() DimensionRepository
 	InstanceRepository   InstanceRepository
-	DatasetAPI           DatasetAPIClient
+	DatasetAPICli        DatasetAPIClient
 }
 
-func NewDimensionExtractedEventHandler(newDimeInserter func() DimensionRepository, instanceRepo InstanceRepository, importAPI ImportAPIClient) *InstanceEventHandler {
+func NewDimensionExtractedEventHandler(newDimeInserter func() DimensionRepository, instanceRepo InstanceRepository, datasetAPICli DatasetAPIClient) *InstanceEventHandler {
 	return &InstanceEventHandler{
 		NewDimensionInserter: newDimeInserter,
 		InstanceRepository:   instanceRepo,
-		ImportAPI:            importAPI,
+		DatasetAPICli:        datasetAPICli,
 	}
 }
 
@@ -63,8 +63,8 @@ func NewDimensionExtractedEventHandler(newDimeInserter func() DimensionRepositor
 // provided instanceID, creates a Dimension entity for each dimension and a relationship to the MyInstance it belongs to
 // and makes a PUT request to the Import API with the database ID of each Dimension entity.
 func (hdlr *InstanceEventHandler) HandleEvent(event event.NewInstanceEvent) error {
-	if hdlr.ImportAPI == nil {
-		return errors.New(importAPINilErr)
+	if hdlr.DatasetAPICli == nil {
+		return errors.New(datasetAPINilErr)
 	}
 	if hdlr.InstanceRepository == nil {
 		return errors.New(instanceRepoNilErr)
@@ -86,7 +86,7 @@ func (hdlr *InstanceEventHandler) HandleEvent(event event.NewInstanceEvent) erro
 	var dimensions []*model.Dimension
 	var err error
 
-	if dimensions, err = hdlr.DatasetAPI.GetDimensions(event.InstanceID); err != nil {
+	if dimensions, err = hdlr.DatasetAPICli.GetDimensions(event.InstanceID); err != nil {
 		log.ErrorC(dimensionCliErrMsg, err, logData)
 		return errors.New(dimensionCliErrMsg)
 	}
@@ -94,7 +94,7 @@ func (hdlr *InstanceEventHandler) HandleEvent(event event.NewInstanceEvent) erro
 	logData[logKeys.DimensionsCount] = len(dimensions)
 
 	// retrieve the CSV header from the dataset API and attach it to the instance node allowing it to be used after import.
-	instance, err := hdlr.DatasetAPI.GetInstance(event.InstanceID)
+	instance, err := hdlr.DatasetAPICli.GetInstance(event.InstanceID)
 	if err != nil {
 		log.ErrorC(instanceErrMsg, err, logData)
 		return errors.New(instanceErrMsg)
@@ -113,7 +113,7 @@ func (hdlr *InstanceEventHandler) HandleEvent(event event.NewInstanceEvent) erro
 			return err
 		}
 
-		if err = hdlr.DatasetAPI.PutDimensionNodeID(event.InstanceID, dimension); err != nil {
+		if err = hdlr.DatasetAPICli.PutDimensionNodeID(event.InstanceID, dimension); err != nil {
 			log.ErrorC(updateNodeIDErr, err, nil)
 			return errors.New(updateNodeIDErr)
 		}
