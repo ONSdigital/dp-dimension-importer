@@ -109,7 +109,6 @@ func (hdlr *InstanceEventHandler) HandleEvent(event event.NewInstanceEvent) erro
 
 	for _, dimension := range dimensions {
 		if dimension, err = dimensionInserter.Insert(instance, dimension); err != nil {
-			logData[logKeys.DimensionID] = dimension.DimensionID
 			log.ErrorC(insertDimErr, err, nil)
 			return err
 		}

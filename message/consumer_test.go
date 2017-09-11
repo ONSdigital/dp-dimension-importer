@@ -10,6 +10,7 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 	"time"
 	"errors"
+	"context"
 )
 
 type testCommon struct {
@@ -27,14 +28,15 @@ type testCommon struct {
 func TestConsume(t *testing.T) {
 	Convey("Given consumer has been correctly configiured", t, func() {
 		tc := newtestCommon()
+		ctx, cancel := context.WithCancel(context.Background())
 
 		// Run the Consumer
-		Consume(tc.consumerMock, tc.producerMock, tc.eventHandlerMock, tc.errorHandlerMock)
+		Consume(ctx, tc.consumerMock, tc.producerMock, tc.eventHandlerMock, tc.errorHandlerMock)
 
 		Convey("When consumer receieves a valid incoming message", func() {
 
 			tc.consumerMock.Incoming() <- tc.message
-			blockOnCommitOrTimeout(t, tc)
+			blockOnCommitOrTimeout(cancel, t, tc)
 
 			Convey("Then eventHanlder is called 1 time with the correct parameters", func() {
 				calls := tc.eventHandlerMock.Param
@@ -55,9 +57,10 @@ func TestConsume(t *testing.T) {
 func TestConsume_invalidKafkaMessage(t *testing.T) {
 	Convey("Given consumer has been correctly configiured", t, func() {
 		tc := newtestCommon()
+		ctx, cancel := context.WithCancel(context.Background())
 
 		// run the consumer.
-		Consume(tc.consumerMock, tc.producerMock, tc.eventHandlerMock, tc.errorHandlerMock)
+		Consume(ctx, tc.consumerMock, tc.producerMock, tc.eventHandlerMock, tc.errorHandlerMock)
 
 		Convey("When an invalid kafka message is receieved", func() {
 			invalidBytes := []byte("I am invalid")
@@ -68,7 +71,7 @@ func TestConsume_invalidKafkaMessage(t *testing.T) {
 			}
 
 			tc.consumerMock.Incoming() <- tc.message
-			blockOnCommitOrTimeout(t, tc)
+			blockOnCommitOrTimeout(cancel, t, tc)
 
 			Convey("Then errorHandler should be called 1 time with the expected parameters", func() {
 				calls := tc.errorHandlerMock.HandleCalls()
@@ -85,17 +88,18 @@ func TestConsume_invalidKafkaMessage(t *testing.T) {
 func TestConsume_eventHandlerError(t *testing.T) {
 	Convey("Given consumer has been correctly configiured", t, func() {
 		expectedErr := errors.New("Expected error")
+		ctx, cancel := context.WithCancel(context.Background())
 		tc := newtestCommon()
 		tc.eventHandlerMock.HandleEventFunc = func(event event.NewInstanceEvent) error {
 			return expectedErr
 		}
 
 		// run the consumer.
-		Consume(tc.consumerMock, tc.producerMock, tc.eventHandlerMock, tc.errorHandlerMock)
+		Consume(ctx, tc.consumerMock, tc.producerMock, tc.eventHandlerMock, tc.errorHandlerMock)
 
 		Convey("When eventHandler.HandleEvent returns an error", func() {
 			tc.consumerMock.Incoming() <- tc.message
-			blockOnCommitOrTimeout(t, tc)
+			blockOnCommitOrTimeout(cancel, t, tc)
 
 			Convey("Then errorHandler.Handle is called 1 time with the correct parameters", func() {
 				calls := tc.errorHandlerMock.HandleCalls()
@@ -116,17 +120,19 @@ func TestConsume_dimensionInsertedError(t *testing.T) {
 	Convey("Given consumer has been correctly configiured", t, func() {
 		expectedErr := errors.New("Expected error")
 
+		ctx, cancel := context.WithCancel(context.Background())
+
 		tc := newtestCommon()
 		tc.producerMock.CompletedFunc = func(e event.InstanceCompletedEvent) error {
 			return expectedErr
 		}
 
 		// run the consumer.
-		Consume(tc.consumerMock, tc.producerMock, tc.eventHandlerMock, tc.errorHandlerMock)
+		Consume(ctx, tc.consumerMock, tc.producerMock, tc.eventHandlerMock, tc.errorHandlerMock)
 
 		Convey("When producer.Completed returns an error", func() {
 			tc.consumerMock.Incoming() <- tc.message
-			blockOnCommitOrTimeout(t, tc)
+			blockOnCommitOrTimeout(cancel, t, tc)
 
 			Convey("Then eventHandler.HandleEvent is called 1 time with the correct parameters", func() {
 				So(len(tc.eventHandlerMock.Param), ShouldEqual, 1)
@@ -150,7 +156,7 @@ func TestConsume_dimensionInsertedError(t *testing.T) {
 	})
 }
 
-func blockOnCommitOrTimeout(t *testing.T, tc *testCommon) {
+func blockOnCommitOrTimeout(cancel context.CancelFunc, t *testing.T, tc *testCommon) {
 	select {
 	case <-tc.committedChan:
 		log.Debug("Message committed", nil)
@@ -158,8 +164,7 @@ func blockOnCommitOrTimeout(t *testing.T, tc *testCommon) {
 		log.Debug("Test has timed out", nil)
 		t.FailNow()
 	}
-
-	CloseConsumer()
+	cancel()
 }
 
 func newtestCommon() *testCommon {

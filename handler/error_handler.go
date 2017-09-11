@@ -8,8 +8,9 @@ import (
 //go:generate moq -out ../mocks/error_handler_generated_mocks.go -pkg mocks . MessageProducer Marshaller
 
 const (
-	errEventType = "Error"
-	avroErr      = "Unexpected error marshalling InstanceCompletedSchema to avro bytes. Error not sent to error reporter."
+	errEventType      = "Error"
+	avroErr           = "Unexpected error marshalling InstanceCompletedSchema to avro bytes. Error not sent to error reporter."
+	errEncounteredMsg = "[errorHandler] sending error event to import reporter"
 )
 
 type MessageProducer interface {
@@ -26,7 +27,7 @@ type ErrorHandler struct {
 }
 
 func (e *ErrorHandler) Handle(instanceID string, err error, data log.Data) {
-	log.Debug("Sending error to import reporter", nil)
+	log.ErrorC(errEncounteredMsg, err, nil)
 	errEvent := event.ErrorEvent{
 		InstanceID: instanceID,
 		EventType:  errEventType,

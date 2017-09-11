@@ -18,19 +18,20 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/healthcheck"
 	"os/signal"
 	"syscall"
-	"time"
 	"context"
 )
 
 const (
 	conumserErrMsg           = "Kafka Consumer Error recieved"
 	createConsumerErr        = "Error while attempting to create kafka consumer"
-	producerErrMsg           = "Completed Error recieved"
+	producerErrMsg           = "Completed instance producer error recieved"
+	eventReporterErrMsg      = "Event reporter producer error recieved"
 	createProducerErr        = "Error while attempting to create kafka producer"
 	createConnPoolErr        = "unexpected error while to create database connection pool"
 	errorEventsProducerErr   = "Error while attempting to create kafka producer"
 	gracefulShutdownMsg      = "Commencing graceful shutdown..."
 	gracefulShutdownComplete = "Graceful shutdown completed successfully, exiting application"
+	loadConfigErr            = "Error while loading application config."
 )
 
 type responseBodyReader struct{}
@@ -42,40 +43,27 @@ func (r responseBodyReader) Read(reader io.Reader) ([]byte, error) {
 func main() {
 	log.Namespace = "dimension-importer"
 
-	errorsChan := make(chan error)
 	signals := make(chan os.Signal)
 	signal.Notify(signals, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	cfg, err := config.Load()
+	if err != nil {
+		log.ErrorC(loadConfigErr, err, nil)
+		os.Exit(1)
+	}
 
 	log.Debug("application configuration", log.Data{"config": cfg})
 
-	incomingInstances, err := kafka.NewConsumerGroup(cfg.KafkaAddr, cfg.IncomingInstancesTopic, log.Namespace, kafka.OffsetNewest)
-	if err != nil {
-		log.ErrorC(createConsumerErr, err, nil)
-		os.Exit(1)
-	}
+	// Incoming kafka topic for instances to process
+	instanceConsumer := newConsumer(cfg.KafkaAddr, cfg.IncomingInstancesTopic, log.Namespace)
 
-	outgoingInstances, err := kafka.NewProducer(cfg.KafkaAddr, cfg.OutgoingInstancesTopic, 0)
-	if err != nil {
-		log.ErrorC(createProducerErr, err, log.Data{logKeys.KafkaTopic: cfg.OutgoingInstancesTopic})
-		os.Exit(1)
-	}
+	// Outgoing topic for instances that have completed processing
+	instanceCompleteProducer := newProducer(cfg.KafkaAddr, cfg.OutgoingInstancesTopic)
 
-	errorEventProducer, err := kafka.NewProducer(cfg.KafkaAddr, cfg.EventReporterTopic, 0)
-	if err != nil {
-		log.ErrorC(errorEventsProducerErr, err, log.Data{logKeys.KafkaTopic: cfg.OutgoingInstancesTopic})
-		os.Exit(1)
-	}
+	// Outgoing topic for any errors while processing an instance
+	errorEventProducer := newProducer(cfg.KafkaAddr, cfg.EventReporterTopic)
 
-	var neo4jClient *client.Neo4j
-	if neo4jClient, err = client.NewNeo4j(cfg.DatabaseURL, cfg.PoolSize); err != nil {
-		log.ErrorC(createConnPoolErr, err, log.Data{
-			logKeys.URL:      cfg.DatabaseURL,
-			logKeys.PoolSize: cfg.PoolSize,
-		})
-		os.Exit(1)
-	}
+	neo4jClient := createNeo4jClient(cfg)
 
 	newDimensionInserterFunc := func() handler.DimensionRepository {
 		return repository.NewDimensionRepository(neo4jClient, map[string]string{})
@@ -92,7 +80,7 @@ func main() {
 
 	// MessageProducer for dimensionsInsertedEvents
 	instanceCompletedProducer := message.NewInstanceCompletedProducer(
-		outgoingInstances,
+		instanceCompleteProducer,
 		schema.InstanceCompletedSchema,
 	)
 
@@ -103,39 +91,74 @@ func main() {
 	}
 
 	// HTTP Health check endpoint.
-	healthcheck.NewHandler(cfg.BindAddr)
+	healthcheck.NewHandler(cfg.BindAddr, cfg.ShutdownTimeout)
 
+	ctx, cancelConsumerLoop := context.WithCancel(context.Background())
+
+	// Gracefully shutdown the application closing any open resources.
 	gracefulShutdown := func() {
 		log.Info(gracefulShutdownMsg, nil)
-		ctx, _ := context.WithTimeout(context.Background(), time.Second*cfg.ShutdownTimeout)
+		shutdownCTX, _ := context.WithTimeout(ctx, cfg.ShutdownTimeout)
 
-		message.CloseConsumer()
-		incomingInstances.Close(ctx)
-		outgoingInstances.Close(ctx)
-		errorEventProducer.Close(ctx)
-		healthcheck.Close(ctx)
+		cancelConsumerLoop()
+		instanceConsumer.Close(shutdownCTX)
+		instanceCompleteProducer.Close(shutdownCTX)
+		errorEventProducer.Close(shutdownCTX)
+		healthcheck.Close(shutdownCTX)
 
 		log.Info(gracefulShutdownComplete, nil)
 		os.Exit(1)
 	}
 
 	// run the consumer
-	message.Consume(incomingInstances, instanceCompletedProducer, eventHandler, errorEventHandler)
+	message.Consume(ctx, instanceConsumer, instanceCompletedProducer, eventHandler, errorEventHandler)
 
 	for {
 		select {
-		case err := <-incomingInstances.Errors():
+		case err := <-instanceConsumer.Errors():
 			log.ErrorC(conumserErrMsg, err, log.Data{logKeys.ErrorDetails: err})
 			gracefulShutdown()
-		case err := <-outgoingInstances.Errors():
+		case err := <-instanceCompleteProducer.Errors():
 			log.ErrorC(producerErrMsg, err, nil)
 			gracefulShutdown()
-		case err := <-errorsChan:
-			log.ErrorC("errorChan receieved an error", err, nil)
+		case err := <-errorEventProducer.Errors():
+			log.ErrorC(eventReporterErrMsg, err, nil)
 			gracefulShutdown()
 		case <-signals:
 			log.Info("Signal intercepted", nil)
 			gracefulShutdown()
 		}
 	}
+}
+
+func newConsumer(kafkaAddr []string, topic string, namespace string) *kafka.ConsumerGroup {
+	consumer, err := kafka.NewConsumerGroup(kafkaAddr, topic, namespace, kafka.OffsetNewest)
+	if err != nil {
+		log.ErrorC(createConsumerErr, err, nil)
+		os.Exit(1)
+	}
+	return consumer
+}
+
+func newProducer(kafkaAddr []string, topic string) kafka.Producer {
+	producer, err := kafka.NewProducer(kafkaAddr, topic, 0)
+	if err != nil {
+		log.ErrorC(errorEventsProducerErr, err, log.Data{logKeys.KafkaTopic: topic})
+		os.Exit(1)
+	}
+	return producer
+}
+
+func createNeo4jClient(cfg *config.Config) *client.Neo4j {
+	var neo4jCli *client.Neo4j
+	var err error
+
+	if neo4jCli, err = client.NewNeo4j(cfg.DatabaseURL, cfg.PoolSize); err != nil {
+		log.ErrorC(createConnPoolErr, err, log.Data{
+			logKeys.URL:      cfg.DatabaseURL,
+			logKeys.PoolSize: cfg.PoolSize,
+		})
+		os.Exit(1)
+	}
+	return neo4jCli
 }

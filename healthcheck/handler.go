@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"sync"
 	"context"
+	"time"
 )
 
 
@@ -17,13 +18,16 @@ const (
 var httpServer *server.Server
 var once sync.Once
 
-func NewHandler(bindAddr string) {
+// NewHandler create and run the healthcheck API endpoint.
+func NewHandler(bindAddr string, shutdownTimeout time.Duration) {
 	once.Do(func() {
 		router := mux.NewRouter()
 		router.Path("/healthcheck").HandlerFunc(handle)
 
 		httpServer = server.New(bindAddr, router)
+		// Disable this here to allow main to manage graceful shutdown of the entire app.
 		httpServer.HandleOSSignals = false
+		httpServer.DefaultShutdownTimeout = shutdownTimeout
 
 		go func() {
 			log.Debug("Starting healthcheck endpoint...", nil)
