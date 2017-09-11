@@ -15,6 +15,8 @@ dp-dimension-importer
 | DB_POOL_SIZE               | 20                                   | The number of database connections to maintain in a pool
 | DIMENSIONS_EXTRACTED_TOPIC | dimensions-extracted                 | The topic to consume messages from to when dimensions are extracted
 | DIMENSIONS_INSERTED_TOPIC  | dimensions-inserted                  | The topic to write output messages when dimensions are inserted
+| EVENT_REPORTER_TOPIC       | event-reporter                       | The topic to write output messages when any errors occur during processing an instance
+| SHUTDOWN_TIMEOUT           | 5s                                   | The graceful shutdown timeout in seconds
 
 ### Contributing
 

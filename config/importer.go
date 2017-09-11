@@ -15,8 +15,8 @@ type Config struct {
 	IncomingInstancesTopic string   `envconfig:"DIMENSIONS_EXTRACTED_TOPIC"`
 	OutgoingInstancesTopic string   `envconfig:"DIMENSIONS_INSERTED_TOPIC"`
 	EventReporterTopic     string   `envconfig:"EVENT_REPORTER_TOPIC"`
-	DatasetAPIAddr         string   `envconfig:"IMPORT_ADDR"`
-	DatasetAPIAuthToken    string   `envconfig:"IMPORT_AUTH_TOKEN"`
+	DatasetAPIAddr         string   `envconfig:"DATASET_API_ADDR"`
+	DatasetAPIAuthToken    string   `envconfig:"DATASET_API_AUTH_TOKEN"`
 	DatabaseURL            string   `envconfig:"DB_URL"`
 	PoolSize               int      `envconfig:"DB_POOL_SIZE"`
 	ShutdownTimeout        time.Duration `envconfig:"SHUTDOWN_TIMEOUT"`
