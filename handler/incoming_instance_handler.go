@@ -9,15 +9,15 @@ import (
 	"time"
 )
 
-//go:generate moq -out ../mocks/dimensions_extracted_generated_mocks.go -pkg mocks . ImportAPIClient InstanceRepository DimensionRepository
+//go:generate moq -out ../mocks/dimensions_extracted_generated_mocks.go -pkg mocks . DatasetAPIClient InstanceRepository DimensionRepository
 
 const (
 	logEventRecieved        = "handling dimensions extracted event"
 	dimensionCliErrMsg      = "error when calling dimensions client"
-	instanceErrMsg          = "error when calling the import api to retrieve instance data"
-	updateNodeIDErr         = "unexpected error while calling import api set dimension node id endpoint"
+	instanceErrMsg          = "error when calling the dataset api to retrieve instance data"
+	updateNodeIDErr         = "unexpected error while calling dataset api set dimension node id endpoint"
 	createInstanceErr       = "unexpected error while attempting to create instance"
-	importAPINilErr         = "dimensions extracted event handler: import api expected but was nil"
+	datasetAPINilErr        = "dimensions extracted event handler: dataset api expected but was nil"
 	createDimRepoNilErr     = "dimensions extracted event handler: new dimension inserter expected but was nil"
 	instanceRepoNilErr      = "dimensions extracted event handler: instance repository expected but was nil"
 	instanceIDNilErr        = "dimensions extracted event: instance id is required but was nil"
@@ -26,8 +26,8 @@ const (
 	eventProcessingComplete = "event processing complete"
 )
 
-// ImportAPIClient defines interface of an Import API client,
-type ImportAPIClient interface {
+// DatasetAPIClient defines interface of an Dataset API client,
+type DatasetAPIClient interface {
 	GetDimensions(instanceID string) ([]*model.Dimension, error)
 	PutDimensionNodeID(instanceID string, dimension *model.Dimension) error
 	GetInstance(instanceID string) (*model.Instance, error)
@@ -48,7 +48,7 @@ type DimensionRepository interface {
 type InstanceEventHandler struct {
 	NewDimensionInserter func() DimensionRepository
 	InstanceRepository   InstanceRepository
-	ImportAPI            ImportAPIClient
+	DatasetAPI           DatasetAPIClient
 }
 
 func NewDimensionExtractedEventHandler(newDimeInserter func() DimensionRepository, instanceRepo InstanceRepository, importAPI ImportAPIClient) *InstanceEventHandler {
@@ -86,15 +86,15 @@ func (hdlr *InstanceEventHandler) HandleEvent(event event.NewInstanceEvent) erro
 	var dimensions []*model.Dimension
 	var err error
 
-	if dimensions, err = hdlr.ImportAPI.GetDimensions(event.InstanceID); err != nil {
+	if dimensions, err = hdlr.DatasetAPI.GetDimensions(event.InstanceID); err != nil {
 		log.ErrorC(dimensionCliErrMsg, err, logData)
 		return errors.New(dimensionCliErrMsg)
 	}
 
 	logData[logKeys.DimensionsCount] = len(dimensions)
 
-	// retrieve the CSV header from the import API and attach it to the instance node allowing it to be used after import.
-	instance, err := hdlr.ImportAPI.GetInstance(event.InstanceID)
+	// retrieve the CSV header from the dataset API and attach it to the instance node allowing it to be used after import.
+	instance, err := hdlr.DatasetAPI.GetInstance(event.InstanceID)
 	if err != nil {
 		log.ErrorC(instanceErrMsg, err, logData)
 		return errors.New(instanceErrMsg)
@@ -113,7 +113,7 @@ func (hdlr *InstanceEventHandler) HandleEvent(event event.NewInstanceEvent) erro
 			return err
 		}
 
-		if err = hdlr.ImportAPI.PutDimensionNodeID(event.InstanceID, dimension); err != nil {
+		if err = hdlr.DatasetAPI.PutDimensionNodeID(event.InstanceID, dimension); err != nil {
 			log.ErrorC(updateNodeIDErr, err, nil)
 			return errors.New(updateNodeIDErr)
 		}

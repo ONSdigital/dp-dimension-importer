@@ -2,9 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
-	"github.com/ONSdigital/go-ns/log"
-	"github.com/kelseyhightower/envconfig"
 	"time"
 )
 
@@ -24,12 +21,12 @@ type Config struct {
 
 func (c *Config) String() string {
 	authTokenFound := "NOT FOUND"
-	if len(c.ImportAuthToken) > 0 {
+	if len(c.DatasetAPIAuthToken) > 0 {
 		authTokenFound = "FOUND"
 	}
 
 	masked := Config(*c)
-	masked.ImportAuthToken = authTokenFound
+	masked.DatasetAPIAuthToken = authTokenFound
 
 	b, _ := json.Marshal(masked)
 	return string(b)
@@ -39,7 +36,7 @@ func (c *Config) String() string {
 func Load() (*Config, error) {
 	cfg := Config{
 		BindAddr:               ":21000",
-		ImportAddr:             "http://localhost:21800",
+		ImportAddr:             "http://localhost:22000",
 		ImportAuthToken:        "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		DatabaseURL:            "bolt://localhost:7687",
 		PoolSize:               20,
@@ -52,8 +49,8 @@ func Load() (*Config, error) {
 
 	err := envconfig.Process("", &cfg)
 
-	if len(cfg.ImportAuthToken) == 0 {
-		err := errors.New("error while attempting to load config. import api auth token is required but has not been configured")
+	if len(cfg.DatasetAPIAuthToken) == 0 {
+		err := errors.New("error while attempting to load config. dataset api auth token is required but has not been configured")
 		log.Error(err, nil)
 		return nil, err
 	}

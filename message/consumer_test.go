@@ -13,6 +13,21 @@ import (
 	"context"
 )
 
+var (
+	errExpected = errors.New("LEEEEROY JENKINS!")
+	exitTest    = errors.New("Force test exit")
+)
+
+const (
+	fileURL           = "test-url"
+	instanceID        = "1234567890"
+	timeout           = 5
+	timeoutFailureMsg = "Concurrent Test did not complete within the configured timeout window. Failing test."
+	consumerExitedMsg = "Consumer exited"
+	consumerCloserMsg = "consumer closer called"
+	producerCloserMsg = "producer closer called"
+)
+
 type testCommon struct {
 	incomingChan     chan kafka.Message
 	committedChan    chan bool

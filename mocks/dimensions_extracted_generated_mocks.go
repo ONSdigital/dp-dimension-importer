@@ -9,17 +9,17 @@ import (
 )
 
 var (
-	lockImportAPIClientMockGetDimensions      sync.RWMutex
-	lockImportAPIClientMockGetInstance        sync.RWMutex
-	lockImportAPIClientMockPutDimensionNodeID sync.RWMutex
+	lockDatasetAPIClientMockGetDimensions      sync.RWMutex
+	lockDatasetAPIClientMockGetInstance        sync.RWMutex
+	lockDatasetAPIClientMockPutDimensionNodeID sync.RWMutex
 )
 
-// ImportAPIClientMock is a mock implementation of ImportAPIClient.
+// DatasetAPIClientMock is a mock implementation of DatasetAPIClient.
 //
-//     func TestSomethingThatUsesImportAPIClient(t *testing.T) {
+//     func TestSomethingThatUsesDatasetAPIClient(t *testing.T) {
 //
-//         // make and configure a mocked ImportAPIClient
-//         mockedImportAPIClient := &ImportAPIClientMock{
+//         // make and configure a mocked DatasetAPIClient
+//         mockedDatasetAPIClient := &DatasetAPIClientMock{
 //             GetDimensionsFunc: func(instanceID string) ([]*model.Dimension, error) {
 // 	               panic("TODO: mock out the GetDimensions method")
 //             },
@@ -31,11 +31,11 @@ var (
 //             },
 //         }
 //
-//         // TODO: use mockedImportAPIClient in code that requires ImportAPIClient
+//         // TODO: use mockedDatasetAPIClient in code that requires DatasetAPIClient
 //         //       and then make assertions.
 //
 //     }
-type ImportAPIClientMock struct {
+type DatasetAPIClientMock struct {
 	// GetDimensionsFunc mocks the GetDimensions method.
 	GetDimensionsFunc func(instanceID string) ([]*model.Dimension, error)
 
@@ -68,71 +68,71 @@ type ImportAPIClientMock struct {
 }
 
 // GetDimensions calls GetDimensionsFunc.
-func (mock *ImportAPIClientMock) GetDimensions(instanceID string) ([]*model.Dimension, error) {
+func (mock *DatasetAPIClientMock) GetDimensions(instanceID string) ([]*model.Dimension, error) {
 	if mock.GetDimensionsFunc == nil {
-		panic("moq: ImportAPIClientMock.GetDimensionsFunc is nil but ImportAPIClient.GetDimensions was just called")
+		panic("moq: DatasetAPIClientMock.GetDimensionsFunc is nil but DatasetAPIClient.GetDimensions was just called")
 	}
 	callInfo := struct {
 		InstanceID string
 	}{
 		InstanceID: instanceID,
 	}
-	lockImportAPIClientMockGetDimensions.Lock()
+	lockDatasetAPIClientMockGetDimensions.Lock()
 	mock.calls.GetDimensions = append(mock.calls.GetDimensions, callInfo)
-	lockImportAPIClientMockGetDimensions.Unlock()
+	lockDatasetAPIClientMockGetDimensions.Unlock()
 	return mock.GetDimensionsFunc(instanceID)
 }
 
 // GetDimensionsCalls gets all the calls that were made to GetDimensions.
 // Check the length with:
-//     len(mockedImportAPIClient.GetDimensionsCalls())
-func (mock *ImportAPIClientMock) GetDimensionsCalls() []struct {
+//     len(mockedDatasetAPIClient.GetDimensionsCalls())
+func (mock *DatasetAPIClientMock) GetDimensionsCalls() []struct {
 	InstanceID string
 } {
 	var calls []struct {
 		InstanceID string
 	}
-	lockImportAPIClientMockGetDimensions.RLock()
+	lockDatasetAPIClientMockGetDimensions.RLock()
 	calls = mock.calls.GetDimensions
-	lockImportAPIClientMockGetDimensions.RUnlock()
+	lockDatasetAPIClientMockGetDimensions.RUnlock()
 	return calls
 }
 
 // GetInstance calls GetInstanceFunc.
-func (mock *ImportAPIClientMock) GetInstance(instanceID string) (*model.Instance, error) {
+func (mock *DatasetAPIClientMock) GetInstance(instanceID string) (*model.Instance, error) {
 	if mock.GetInstanceFunc == nil {
-		panic("moq: ImportAPIClientMock.GetInstanceFunc is nil but ImportAPIClient.GetInstance was just called")
+		panic("moq: DatasetAPIClientMock.GetInstanceFunc is nil but DatasetAPIClient.GetInstance was just called")
 	}
 	callInfo := struct {
 		InstanceID string
 	}{
 		InstanceID: instanceID,
 	}
-	lockImportAPIClientMockGetInstance.Lock()
+	lockDatasetAPIClientMockGetInstance.Lock()
 	mock.calls.GetInstance = append(mock.calls.GetInstance, callInfo)
-	lockImportAPIClientMockGetInstance.Unlock()
+	lockDatasetAPIClientMockGetInstance.Unlock()
 	return mock.GetInstanceFunc(instanceID)
 }
 
 // GetInstanceCalls gets all the calls that were made to GetInstance.
 // Check the length with:
-//     len(mockedImportAPIClient.GetInstanceCalls())
-func (mock *ImportAPIClientMock) GetInstanceCalls() []struct {
+//     len(mockedDatasetAPIClient.GetInstanceCalls())
+func (mock *DatasetAPIClientMock) GetInstanceCalls() []struct {
 	InstanceID string
 } {
 	var calls []struct {
 		InstanceID string
 	}
-	lockImportAPIClientMockGetInstance.RLock()
+	lockDatasetAPIClientMockGetInstance.RLock()
 	calls = mock.calls.GetInstance
-	lockImportAPIClientMockGetInstance.RUnlock()
+	lockDatasetAPIClientMockGetInstance.RUnlock()
 	return calls
 }
 
 // PutDimensionNodeID calls PutDimensionNodeIDFunc.
-func (mock *ImportAPIClientMock) PutDimensionNodeID(instanceID string, dimension *model.Dimension) error {
+func (mock *DatasetAPIClientMock) PutDimensionNodeID(instanceID string, dimension *model.Dimension) error {
 	if mock.PutDimensionNodeIDFunc == nil {
-		panic("moq: ImportAPIClientMock.PutDimensionNodeIDFunc is nil but ImportAPIClient.PutDimensionNodeID was just called")
+		panic("moq: DatasetAPIClientMock.PutDimensionNodeIDFunc is nil but DatasetAPIClient.PutDimensionNodeID was just called")
 	}
 	callInfo := struct {
 		InstanceID string
@@ -141,16 +141,16 @@ func (mock *ImportAPIClientMock) PutDimensionNodeID(instanceID string, dimension
 		InstanceID: instanceID,
 		Dimension:  dimension,
 	}
-	lockImportAPIClientMockPutDimensionNodeID.Lock()
+	lockDatasetAPIClientMockPutDimensionNodeID.Lock()
 	mock.calls.PutDimensionNodeID = append(mock.calls.PutDimensionNodeID, callInfo)
-	lockImportAPIClientMockPutDimensionNodeID.Unlock()
+	lockDatasetAPIClientMockPutDimensionNodeID.Unlock()
 	return mock.PutDimensionNodeIDFunc(instanceID, dimension)
 }
 
 // PutDimensionNodeIDCalls gets all the calls that were made to PutDimensionNodeID.
 // Check the length with:
-//     len(mockedImportAPIClient.PutDimensionNodeIDCalls())
-func (mock *ImportAPIClientMock) PutDimensionNodeIDCalls() []struct {
+//     len(mockedDatasetAPIClient.PutDimensionNodeIDCalls())
+func (mock *DatasetAPIClientMock) PutDimensionNodeIDCalls() []struct {
 	InstanceID string
 	Dimension  *model.Dimension
 } {
@@ -158,9 +158,9 @@ func (mock *ImportAPIClientMock) PutDimensionNodeIDCalls() []struct {
 		InstanceID string
 		Dimension  *model.Dimension
 	}
-	lockImportAPIClientMockPutDimensionNodeID.RLock()
+	lockDatasetAPIClientMockPutDimensionNodeID.RLock()
 	calls = mock.calls.PutDimensionNodeID
-	lockImportAPIClientMockPutDimensionNodeID.RUnlock()
+	lockDatasetAPIClientMockPutDimensionNodeID.RUnlock()
 	return calls
 }
 

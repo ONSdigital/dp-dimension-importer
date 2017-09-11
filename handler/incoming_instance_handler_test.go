@@ -47,7 +47,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			},
 		}
 
-		importAPIMock := &mocks.ImportAPIClientMock{
+		datasetAPIMock := &mocks.DatasetAPIClientMock{
 			GetDimensionsFunc: func(instanceID string) ([]*model.Dimension, error) {
 				return []*model.Dimension{d1, d2}, nil
 			},
@@ -64,20 +64,20 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 				return dimensionRepository
 			},
 			InstanceRepository: instanceRepositoryMock,
-			ImportAPI:          importAPIMock,
+			DatasetAPI:         datasetAPIMock,
 		}
 
 		Convey("When given a valid event", func() {
 			event := event.NewInstanceEvent{InstanceID: testInstanceID}
 			handler.HandleEvent(event)
 
-			Convey("Then ImportAPI.GetDimensions is called 1 time with the expected parameters", func() {
-				So(len(importAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
-				So(importAPIMock.GetDimensionsCalls()[0].InstanceID, ShouldEqual, testInstanceID)
+			Convey("Then DatasetAPI.GetDimensions is called 1 time with the expected parameters", func() {
+				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+				So(datasetAPIMock.GetDimensionsCalls()[0].InstanceID, ShouldEqual, testInstanceID)
 			})
 
-			Convey("Then ImportAPI.GetInstance is called 1 time", func() {
-				So(len(importAPIMock.GetInstanceCalls()), ShouldEqual, 1)
+			Convey("Then DatasetAPI.GetInstance is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 			})
 
 			Convey("And DimensionRepository.Insert is called 2 times with the expected parameters", func() {
@@ -91,8 +91,8 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 				So(calls[1].Dimension, ShouldResemble, d2)
 			})
 
-			Convey("And ImportAPI.PutDimensionNodeID is called 2 times with the expected parameters", func() {
-				calls := importAPIMock.PutDimensionNodeIDCalls()
+			Convey("And DatasetAPI.PutDimensionNodeID is called 2 times with the expected parameters", func() {
+				calls := datasetAPIMock.PutDimensionNodeIDCalls()
 				So(len(calls), ShouldEqual, 2)
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
@@ -118,29 +118,29 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 			Convey("And no further processing of the event takes place.", func() {
 				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
-				So(len(importAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
-				So(len(importAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
 				So(len(instanceRepositoryMock.CreateCalls()), ShouldEqual, 0)
 				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 		})
 
-		Convey("When ImportAPI.GetDimensions returns an error", func() {
+		Convey("When DatasetAPI.GetDimensions returns an error", func() {
 			getDimensionsErr := errors.New("Get Dimensions error")
 			event := event.NewInstanceEvent{InstanceID: testInstanceID}
 
-			importAPIMock.GetDimensionsFunc = func(instanceID string) ([]*model.Dimension, error) {
+			datasetAPIMock.GetDimensionsFunc = func(instanceID string) ([]*model.Dimension, error) {
 				return nil, getDimensionsErr
 			}
 
 			err := handler.HandleEvent(event)
 
-			Convey("Then the ImportAPI.GetDimensions is called 1 time", func() {
-				So(len(importAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+			Convey("Then the DatasetAPI.GetDimensions is called 1 time", func() {
+				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
 			})
 
-			Convey("Then ImportAPI.GetInstance is called 1 time", func() {
-				So(len(importAPIMock.GetInstanceCalls()), ShouldEqual, 0)
+			Convey("Then DatasetAPI.GetInstance is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 0)
 			})
 
 			Convey("And the expected error is returned", func() {
@@ -149,7 +149,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 			Convey("And no further processing of the event takes place.", func() {
 				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
-				So(len(importAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
 				So(len(instanceRepositoryMock.CreateCalls()), ShouldEqual, 0)
 				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
@@ -165,12 +165,12 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 			err := handler.HandleEvent(event)
 
-			Convey("Then the ImportAPI.GetDimensions is called 1 time", func() {
-				So(len(importAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+			Convey("Then the DatasetAPI.GetDimensions is called 1 time", func() {
+				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
 			})
 
-			Convey("Then ImportAPI.GetInstance is called 1 time", func() {
-				So(len(importAPIMock.GetInstanceCalls()), ShouldEqual, 1)
+			Convey("Then DatasetAPI.GetInstance is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 			})
 
 			Convey("And InstanceRepository.Create is called 1 time with the expected parameters", func() {
@@ -181,7 +181,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 			Convey("And no further processing of the event takes place.", func() {
 				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
-				So(len(importAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
 				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 
@@ -199,12 +199,12 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			}
 			err := handler.HandleEvent(event)
 
-			Convey("Then the ImportAPI.GetDimensions is called 1 time", func() {
-				So(len(importAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+			Convey("Then the DatasetAPI.GetDimensions is called 1 time", func() {
+				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
 			})
 
-			Convey("Then ImportAPI.GetInstance is called 1 time", func() {
-				So(len(importAPIMock.GetInstanceCalls()), ShouldEqual, 1)
+			Convey("Then DatasetAPI.GetInstance is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 			})
 
 			Convey("And InstanceRepository.Create is called 1 time with the expected parameters", func() {
@@ -225,30 +225,30 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
-				So(len(importAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
 				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 		})
 
-		Convey("When ImportAPI.PutDimensionNodeID returns an error", func() {
+		Convey("When DatasetAPI.PutDimensionNodeID returns an error", func() {
 			expectedErr := errors.New("Put Node ID error")
 			event := event.NewInstanceEvent{InstanceID: testInstanceID}
 
 			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, nil
 			}
-			importAPIMock.PutDimensionNodeIDFunc = func(instanceID string, dimension *model.Dimension) error {
+			datasetAPIMock.PutDimensionNodeIDFunc = func(instanceID string, dimension *model.Dimension) error {
 				return expectedErr
 			}
 
 			err := handler.HandleEvent(event)
 
-			Convey("Then the ImportAPI.GetDimensions is called 1 time", func() {
-				So(len(importAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+			Convey("Then the DatasetAPI.GetDimensions is called 1 time", func() {
+				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
 			})
 
-			Convey("Then ImportAPI.GetInstance is called 1 time", func() {
-				So(len(importAPIMock.GetInstanceCalls()), ShouldEqual, 1)
+			Convey("Then DatasetAPI.GetInstance is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 			})
 
 			Convey("And InstanceRepository.Create is called 1 time with the expected parameters", func() {
@@ -264,8 +264,8 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 				So(calls[0].Dimension, ShouldResemble, d1)
 			})
 
-			Convey("And ImportAPI.PutDimensionNodeID is called 1 time with the expected parameters", func() {
-				calls := importAPIMock.PutDimensionNodeIDCalls()
+			Convey("And DatasetAPI.PutDimensionNodeID is called 1 time with the expected parameters", func() {
+				calls := datasetAPIMock.PutDimensionNodeIDCalls()
 				So(len(calls), ShouldEqual, 1)
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
@@ -288,7 +288,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, nil
 			}
-			importAPIMock.PutDimensionNodeIDFunc = func(instanceID string, dimension *model.Dimension) error {
+			datasetAPIMock.PutDimensionNodeIDFunc = func(instanceID string, dimension *model.Dimension) error {
 				return nil
 			}
 			instanceRepositoryMock.AddDimensionsFunc = func(instance *model.Instance) error {
@@ -297,12 +297,12 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 			err := handler.HandleEvent(event)
 
-			Convey("Then the ImportAPI.GetDimensions is called 1 time", func() {
-				So(len(importAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+			Convey("Then the DatasetAPI.GetDimensions is called 1 time", func() {
+				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
 			})
 
-			Convey("Then ImportAPI.GetInstance is called 1 time", func() {
-				So(len(importAPIMock.GetInstanceCalls()), ShouldEqual, 1)
+			Convey("Then DatasetAPI.GetInstance is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 			})
 
 			Convey("And InstanceRepository.Create is called 1 time with the expected parameters", func() {
@@ -321,8 +321,8 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 				So(calls[1].Dimension, ShouldResemble, d2)
 			})
 
-			Convey("And ImportAPI.PutDimensionNodeID is called 1 time with the expected parameters", func() {
-				calls := importAPIMock.PutDimensionNodeIDCalls()
+			Convey("And DatasetAPI.PutDimensionNodeID is called 1 time with the expected parameters", func() {
+				calls := datasetAPIMock.PutDimensionNodeIDCalls()
 				So(len(calls), ShouldEqual, 2)
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
@@ -338,12 +338,13 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 		})
 	})
 
-	Convey("Given handler.ImportAPI has not been configured", t, func() {
+	Convey("Given handler.DatasetAPI has not been configured", t, func() {
 		instanceRepositoryMock := &mocks.InstanceRepositoryMock{}
 		dimensionRepository := &mocks.DimensionRepositoryMock{}
 
 		handler := InstanceEventHandler{
 			ImportAPI:          nil,
+			DatasetAPI:         nil,
 			InstanceRepository: instanceRepositoryMock,
 			NewDimensionInserter: func() DimensionRepository {
 				return dimensionRepository
@@ -354,7 +355,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			err := handler.HandleEvent(event)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(importAPINilErr))
+				So(err, ShouldResemble, errors.New(datasetAPINilErr))
 			})
 
 			Convey("And the event is not handled", func() {
@@ -367,10 +368,10 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 	Convey("Given handler.InstanceRepository has not been configured", t, func() {
 		dimensionRepository := &mocks.DimensionRepositoryMock{}
-		importAPIMock := &mocks.ImportAPIClientMock{}
+		datasetAPIMock := &mocks.DatasetAPIClientMock{}
 
 		handler := InstanceEventHandler{
-			ImportAPI:          importAPIMock,
+			DatasetAPI:         datasetAPIMock,
 			InstanceRepository: nil,
 			NewDimensionInserter: func() DimensionRepository {
 				return dimensionRepository
@@ -385,18 +386,18 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			})
 			Convey("And the event is not handled", func() {
 				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
-				So(len(importAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
-				So(len(importAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
 			})
 		})
 	})
 
 	Convey("Given handler.InstanceRepository has not been configured", t, func() {
-		importAPIMock := &mocks.ImportAPIClientMock{}
+		datasetAPIMock := &mocks.DatasetAPIClientMock{}
 		instanceRepositoryMock := &mocks.InstanceRepositoryMock{}
 
 		handler := InstanceEventHandler{
-			ImportAPI:            importAPIMock,
+			DatasetAPI:           datasetAPIMock,
 			InstanceRepository:   instanceRepositoryMock,
 			NewDimensionInserter: nil,
 		}
@@ -408,8 +409,8 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 				So(err, ShouldResemble, errors.New(createDimRepoNilErr))
 			})
 			Convey("And the event is not handled", func() {
-				So(len(importAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
-				So(len(importAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
 				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
 				So(len(instanceRepositoryMock.CreateCalls()), ShouldEqual, 0)
 			})
