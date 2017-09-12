@@ -31,8 +31,8 @@ const (
 type testCommon struct {
 	incomingChan     chan kafka.Message
 	committedChan    chan bool
-	extractedEvent   event.NewInstanceEvent
-	insertedEvent    event.InstanceCompletedEvent
+	extractedEvent   event.NewInstance
+	insertedEvent    event.InstanceCompleted
 	message          *mock.MessageMock
 	consumerMock     *mock.KafkaConsumerMock
 	producerMock     *mock.CompletedProducerMock
@@ -53,7 +53,7 @@ func TestConsume(t *testing.T) {
 			tc.consumerMock.Incoming() <- tc.message
 			blockOnCommitOrTimeout(cancel, t, tc)
 
-			Convey("Then eventHanlder is called 1 time with the correct parameters", func() {
+			Convey("Then eventHandler is called 1 time with the correct parameters", func() {
 				calls := tc.eventHandlerMock.Param
 				So(len(calls), ShouldEqual, 1)
 				So(calls[0], ShouldResemble, tc.extractedEvent)
@@ -105,7 +105,7 @@ func TestConsume_eventHandlerError(t *testing.T) {
 		expectedErr := errors.New("Expected error")
 		ctx, cancel := context.WithCancel(context.Background())
 		tc := newtestCommon()
-		tc.eventHandlerMock.HandleEventFunc = func(event event.NewInstanceEvent) error {
+		tc.eventHandlerMock.HandleEventFunc = func(event event.NewInstance) error {
 			return expectedErr
 		}
 
@@ -138,7 +138,7 @@ func TestConsume_dimensionInsertedError(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		tc := newtestCommon()
-		tc.producerMock.CompletedFunc = func(e event.InstanceCompletedEvent) error {
+		tc.producerMock.CompletedFunc = func(e event.InstanceCompleted) error {
 			return expectedErr
 		}
 
@@ -186,14 +186,14 @@ func newtestCommon() *testCommon {
 	incomingChan := make(chan kafka.Message)
 	committedChan := make(chan bool)
 
-	extractedEvent := event.NewInstanceEvent{
+	extractedEvent := event.NewInstance{
 		InstanceID: "1234567890",
 		FileURL:    "/my.csv",
 	}
 
 	b, _ := schema.NewInstanceSchema.Marshal(extractedEvent)
 
-	insertedEvent := event.InstanceCompletedEvent{
+	insertedEvent := event.InstanceCompleted{
 		InstanceID: extractedEvent.InstanceID,
 		FileURL:    extractedEvent.FileURL,
 	}
@@ -210,13 +210,13 @@ func newtestCommon() *testCommon {
 	}
 
 	producerMock := &mock.CompletedProducerMock{
-		CompletedFunc: func(e event.InstanceCompletedEvent) error {
+		CompletedFunc: func(e event.InstanceCompleted) error {
 			return nil
 		},
 	}
 	eventHandlerMock := &mock.EventHandlerMock{
-		Param: make([] event.NewInstanceEvent, 0),
-		HandleEventFunc: func(event event.NewInstanceEvent) error {
+		Param: make([] event.NewInstance, 0),
+		HandleEventFunc: func(event event.NewInstance) error {
 			return nil
 		},
 	}

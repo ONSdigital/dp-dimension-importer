@@ -11,7 +11,7 @@ import (
 	"errors"
 )
 
-var completedEvent = event.InstanceCompletedEvent{
+var completedEvent = event.InstanceCompleted{
 	InstanceID: "1234567890",
 	FileURL:    "/cmd/my.csv",
 }
@@ -55,7 +55,7 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				Convey("And the exepcted bytes are sent to producer.output", func() {
-					var actual event.InstanceCompletedEvent
+					var actual event.InstanceCompleted
 					schema.InstanceCompletedSchema.Unmarshal(avroBytes, &actual)
 					So(completedEvent, ShouldResemble, actual)
 				})

@@ -181,25 +181,25 @@ var (
 //     }
 type CompletedProducerMock struct {
 	// CompletedFunc mocks the Completed method.
-	CompletedFunc func(e event.InstanceCompletedEvent) error
+	CompletedFunc func(e event.InstanceCompleted) error
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// Completed holds details about calls to the Completed method.
 		Completed []struct {
 			// E is the e argument value.
-			E event.InstanceCompletedEvent
+			E event.InstanceCompleted
 		}
 	}
 }
 
 // Completed calls CompletedFunc.
-func (mock *CompletedProducerMock) Completed(e event.InstanceCompletedEvent) error {
+func (mock *CompletedProducerMock) Completed(e event.InstanceCompleted) error {
 	if mock.CompletedFunc == nil {
 		panic("moq: CompletedProducerMock.CompletedFunc is nil but CompletedProducer.Completed was just called")
 	}
 	callInfo := struct {
-		E event.InstanceCompletedEvent
+		E event.InstanceCompleted
 	}{
 		E: e,
 	}
@@ -213,10 +213,10 @@ func (mock *CompletedProducerMock) Completed(e event.InstanceCompletedEvent) err
 // Check the length with:
 //     len(mockedCompletedProducer.CompletedCalls())
 func (mock *CompletedProducerMock) CompletedCalls() []struct {
-	E event.InstanceCompletedEvent
+	E event.InstanceCompleted
 } {
 	var calls []struct {
-		E event.InstanceCompletedEvent
+		E event.InstanceCompleted
 	}
 	lockCompletedProducerMockCompleted.RLock()
 	calls = mock.calls.Completed

@@ -5,11 +5,11 @@ import (
 )
 
 type EventHandlerMock struct {
-	Param           []event.NewInstanceEvent
-	HandleEventFunc func(event.NewInstanceEvent) error
+	Param           []event.NewInstance
+	HandleEventFunc func(event.NewInstance) error
 }
 
-func (m *EventHandlerMock) HandleEvent(event event.NewInstanceEvent) error {
+func (m *EventHandlerMock) HandleEvent(event event.NewInstance) error {
 	m.Param = append(m.Param, event)
 	return m.HandleEventFunc(event)
 }

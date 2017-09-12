@@ -12,9 +12,9 @@ import (
 //go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessage KafkaConsumer CompletedProducer ErrorEventHandler
 
 const (
-	eventRecieved        = "recieved NewInstanceEvent"
+	eventRecieved        = "recieved NewInstance"
 	eventKey             = "event"
-	eventHandlerErr      = "unexpected error encountered while handling NewInstanceEvent"
+	eventHandlerErr      = "unexpected error encountered while handling NewInstance"
 	eventHandlerSuccess  = "instance has been successfully imported"
 	errorRecieved        = "consumer exit channel recieved error. Exiting dimensionExtractedConsumer"
 	conumserErrMsg       = "kafka Consumer Error recieved"
@@ -30,16 +30,16 @@ type KafkaMessage kafka.Message
 
 // eventHandler defines an eventHandler.
 type EventHandler interface {
-	HandleEvent(event event.NewInstanceEvent) error
+	HandleEvent(event event.NewInstance) error
 }
 
 type KafkaConsumer interface {
 	Incoming() chan kafka.Message
 }
 
-// Completed defines an KafkaProducer for dimensions inserted events
+// CompletedProducer producer kafka messages for instances that have been successfully processed.
 type CompletedProducer interface {
-	Completed(e event.InstanceCompletedEvent) error
+	Completed(e event.InstanceCompleted) error
 }
 
 // ErrorEventHandler handler for dealing with any error while processing an inbound message.
@@ -64,7 +64,7 @@ func Consume(ctx context.Context, consumer KafkaConsumer, producer CompletedProd
 }
 
 func processMessage(consumedData []byte, producer CompletedProducer, eventHandler EventHandler, errorEventHandler ErrorEventHandler) {
-	var newInstanceEvent event.NewInstanceEvent
+	var newInstanceEvent event.NewInstance
 	if err := schema.NewInstanceSchema.Unmarshal(consumedData, &newInstanceEvent); err != nil {
 		log.ErrorC(unmarshallErrMsg, err, nil)
 		errorEventHandler.Handle("", err, nil)
@@ -85,7 +85,7 @@ func processMessage(consumedData []byte, producer CompletedProducer, eventHandle
 	logData[logKeys.InstanceID] = newInstanceEvent.InstanceID
 	log.Debug(eventHandlerSuccess, logData)
 
-	insertedEvent := event.InstanceCompletedEvent{
+	insertedEvent := event.InstanceCompleted{
 		FileURL:    newInstanceEvent.FileURL,
 		InstanceID: newInstanceEvent.InstanceID,
 	}

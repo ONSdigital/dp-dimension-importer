@@ -35,6 +35,7 @@ const (
 	errExecutingStatment      = "error executing statement"
 	uniqueConstraintErr       = "unexpected error while attempting to create unique dimension id constraint"
 	insertDimErr              = "unexpected error while attempting to create dimension"
+	dimensionkey              = "dimension"
 )
 
 // Neo4jClient defines a client for executing statements and queries against a Neo4j graph database.
@@ -101,7 +102,7 @@ func (repo DimensionRepository) createUniqueConstraint(d *model.Dimension) error
 		return err
 	}
 
-	logData["dimension"] = d.DimensionID
+	logData[dimensionkey] = d.DimensionID
 	log.Debug(uniqueConstSuccess, logData)
 	return nil
 }

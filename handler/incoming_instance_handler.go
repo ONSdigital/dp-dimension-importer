@@ -54,7 +54,7 @@ type InstanceEventHandler struct {
 // HandleEvent retrieves the dimensions for specified instanceID from the Import API, creates an MyInstance entity for
 // provided instanceID, creates a Dimension entity for each dimension and a relationship to the MyInstance it belongs to
 // and makes a PUT request to the Import API with the database ID of each Dimension entity.
-func (hdlr *InstanceEventHandler) HandleEvent(event event.NewInstanceEvent) error {
+func (hdlr *InstanceEventHandler) HandleEvent(event event.NewInstance) error {
 	if hdlr.DatasetAPICli == nil {
 		return errors.New(datasetAPINilErr)
 	}

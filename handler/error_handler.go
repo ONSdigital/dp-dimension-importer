@@ -28,7 +28,7 @@ type ErrorHandler struct {
 
 func (e *ErrorHandler) Handle(instanceID string, err error, data log.Data) {
 	log.ErrorC(errEncounteredMsg, err, nil)
-	errEvent := event.ErrorEvent{
+	errEvent := event.Error{
 		InstanceID: instanceID,
 		EventType:  errEventType,
 		EventMsg:   err.Error(),

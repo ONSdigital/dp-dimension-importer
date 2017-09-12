@@ -1,19 +1,19 @@
 package event
 
-// NewInstanceEvent represents a 'Dimensions Extracted' kafka messagae.
-type NewInstanceEvent struct {
+// NewInstance represents a 'Dimensions Extracted' kafka messagae.
+type NewInstance struct {
 	FileURL    string `avro:"file_url"`
 	InstanceID string `avro:"instance_id"`
 }
 
-// InstanceCompletedEvent represents a 'Dimensions Inserted' kafka message
-type InstanceCompletedEvent struct {
+// InstanceCompleted represents a 'Dimensions Inserted' kafka message
+type InstanceCompleted struct {
 	FileURL    string `avro:"file_url"`
 	InstanceID string `avro:"instance_id"`
 }
 
-// ErrorEvent type for any error that occurs while proccessing an instance.
-type ErrorEvent struct {
+// Error type for any error that occurs while proccessing an instance.
+type Error struct {
 	InstanceID string `avro:"instance_id"`
 	EventType  string `avro:"event_type"`
 	EventMsg   string `avro:"event_message"`

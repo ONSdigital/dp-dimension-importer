@@ -8,7 +8,6 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"time"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
-	"sync"
 	"github.com/ONSdigital/go-ns/log"
 )
 
@@ -18,7 +17,7 @@ const (
 )
 
 var (
-	errorEvent = event.ErrorEvent{
+	errorEvent = event.Error{
 		InstanceID: instance_id,
 		EventType:  errEventType,
 		EventMsg:   valor_morghullis,
@@ -30,7 +29,7 @@ var (
 func TestErrorHandler_Handle(t *testing.T) {
 	Convey("Given errorHandler has been configured correctly", t, func() {
 
-		output := make(chan []byte)
+		output := make(chan []byte, 1)
 		producerMock := &mocks.MessageProducerMock{
 			OutputFunc: func() chan []byte {
 				return output
@@ -46,25 +45,17 @@ func TestErrorHandler_Handle(t *testing.T) {
 		errorHandler := &ErrorHandler{producerMock, marshallerMock}
 
 		Convey("When the errorHandler is given a valid parameters", func() {
-			var wg sync.WaitGroup
 			var avroBytes []byte
-
-			go func() {
-				select {
-				case avroBytes = <-output:
-					log.Debug("Avro bytes receieved", nil)
-					wg.Done()
-				case <-time.After(time.Second * 5):
-					log.Debug("Test failed due to time out.", nil)
-					wg.Done()
-				}
-			}()
-
-			wg.Add(1)
 			errorHandler.Handle(instance_id, expectedErr, nil)
-			wg.Wait()
 
-			var actual event.ErrorEvent
+			select {
+			case avroBytes = <-output:
+				log.Debug("Avro bytes receieved", nil)
+			case <-time.After(time.Second * 5):
+				log.Debug("Test failed due to time out.", nil)
+			}
+
+			var actual event.Error
 			err := schema.ErrorEventSchema.Unmarshal(avroBytes, &actual)
 
 			Convey("Then the output is the expected error event", func() {

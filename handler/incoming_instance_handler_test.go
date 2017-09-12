@@ -68,7 +68,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 		}
 
 		Convey("When given a valid event", func() {
-			event := event.NewInstanceEvent{InstanceID: testInstanceID}
+			event := event.NewInstance{InstanceID: testInstanceID}
 			handler.HandleEvent(event)
 
 			Convey("Then DatasetAPICli.GetDimensions is called 1 time with the expected parameters", func() {
@@ -110,7 +110,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 		})
 
 		Convey("When given an invalid event", func() {
-			err := handler.HandleEvent(event.NewInstanceEvent{})
+			err := handler.HandleEvent(event.NewInstance{})
 
 			Convey("Then the appropriate error is returned", func() {
 				So(err, ShouldResemble, errors.New(instanceIDNilErr))
@@ -127,7 +127,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 		Convey("When DatasetAPICli.GetDimensions returns an error", func() {
 			getDimensionsErr := errors.New("Get Dimensions error")
-			event := event.NewInstanceEvent{InstanceID: testInstanceID}
+			event := event.NewInstance{InstanceID: testInstanceID}
 
 			datasetAPIMock.GetDimensionsFunc = func(instanceID string) ([]*model.Dimension, error) {
 				return nil, getDimensionsErr
@@ -157,7 +157,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 		Convey("When InstanceRepository.Create returns an error", func() {
 			expectedErr := errors.New("Create Error")
-			event := event.NewInstanceEvent{InstanceID: testInstanceID}
+			event := event.NewInstance{InstanceID: testInstanceID}
 
 			instanceRepositoryMock.CreateFunc = func(instance *model.Instance) error {
 				return expectedErr
@@ -192,7 +192,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 		Convey("When DimensionRepository.Insert returns an error", func() {
 			expectedErr := errors.New("Insert Error")
-			event := event.NewInstanceEvent{InstanceID: testInstanceID}
+			event := event.NewInstance{InstanceID: testInstanceID}
 
 			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, expectedErr
@@ -232,7 +232,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 		Convey("When DatasetAPICli.PutDimensionNodeID returns an error", func() {
 			expectedErr := errors.New("Put Node ID error")
-			event := event.NewInstanceEvent{InstanceID: testInstanceID}
+			event := event.NewInstance{InstanceID: testInstanceID}
 
 			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, nil
@@ -283,7 +283,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 		Convey("When InstanceRepository.AddDimensions returns an error", func() {
 			expectedErr := errors.New("Add dimensions error")
-			event := event.NewInstanceEvent{InstanceID: testInstanceID}
+			event := event.NewInstance{InstanceID: testInstanceID}
 
 			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, nil
@@ -350,7 +350,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			},
 		}
 		Convey("When HandleEvent is called", func() {
-			event := event.NewInstanceEvent{InstanceID: testInstanceID}
+			event := event.NewInstance{InstanceID: testInstanceID}
 			err := handler.HandleEvent(event)
 
 			Convey("Then the expected error is returned", func() {
@@ -377,7 +377,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			},
 		}
 		Convey("When HandleEvent is called", func() {
-			event := event.NewInstanceEvent{InstanceID: testInstanceID}
+			event := event.NewInstance{InstanceID: testInstanceID}
 			err := handler.HandleEvent(event)
 
 			Convey("Then the expected error is returned", func() {
@@ -401,7 +401,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			NewDimensionInserter: nil,
 		}
 		Convey("When HandleEvent is called", func() {
-			event := event.NewInstanceEvent{InstanceID: testInstanceID}
+			event := event.NewInstance{InstanceID: testInstanceID}
 			err := handler.HandleEvent(event)
 
 			Convey("Then the expected error is returned", func() {
