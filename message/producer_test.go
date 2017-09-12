@@ -18,7 +18,7 @@ var completedEvent = event.InstanceCompleted{
 
 func TestInstanceCompletedProducer_Completed(t *testing.T) {
 	Convey("Given InstanceCompletedProducer has been configured correctly", t, func() {
-		output := make(chan []byte)
+		output := make(chan []byte, 1)
 
 		kafkaProducerMock := &mock.KafkaProducerMock{
 			OutputFunc: func() chan []byte {
@@ -32,24 +32,22 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 		}
 
 		instanceCompletedProducer := InstanceCompletedProducer{
-			Producer: kafkaProducerMock,
+			Producer:   kafkaProducerMock,
 			Marshaller: marshallerMock,
 		}
 
 		Convey("When given a valid instanceCompletedEvent", func() {
 
-			var avroBytes []byte
-			go func() {
-				select {
-				case avroBytes = <-output:
-					log.Info("Avro byte sent to producer output", nil)
-				case <-time.After(time.Second * 5):
-					log.Info("Failing test due to timed out", nil)
-					t.FailNow()
-				}
-			}()
-
 			err := instanceCompletedProducer.Completed(completedEvent)
+
+			var avroBytes []byte
+			select {
+			case avroBytes = <-output:
+				log.Info("Avro byte sent to producer output", nil)
+			case <-time.After(time.Second * 5):
+				log.Info("Failing test due to timed out", nil)
+				t.FailNow()
+			}
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
@@ -81,7 +79,7 @@ func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 		}
 
 		instanceCompletedProducer := InstanceCompletedProducer{
-			Producer: kafkaProducerMock,
+			Producer:   kafkaProducerMock,
 			Marshaller: marshallerMock,
 		}
 
