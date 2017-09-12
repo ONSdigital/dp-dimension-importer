@@ -9,7 +9,7 @@ import (
 
 const (
 	errEventType      = "Error"
-	avroErr           = "Unexpected error marshalling InstanceCompletedSchema to avro bytes. Error not sent to error reporter."
+	avroErr           = "unexpected error marshalling InstanceCompletedSchema to avro bytes. Error not sent to error reporter."
 	errEncounteredMsg = "[errorHandler] sending error event to import reporter"
 )
 

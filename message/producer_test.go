@@ -31,7 +31,10 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 			},
 		}
 
-		instanceCompletedProducer := NewInstanceCompletedProducer(kafkaProducerMock, marshallerMock)
+		instanceCompletedProducer := InstanceCompletedProducer{
+			Producer: kafkaProducerMock,
+			Marshaller: marshallerMock,
+		}
 
 		Convey("When given a valid instanceCompletedEvent", func() {
 
@@ -77,7 +80,10 @@ func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 			},
 		}
 
-		instanceCompletedProducer := NewInstanceCompletedProducer(kafkaProducerMock, marshallerMock)
+		instanceCompletedProducer := InstanceCompletedProducer{
+			Producer: kafkaProducerMock,
+			Marshaller: marshallerMock,
+		}
 
 		Convey("When marshaller.Marshal returns an error", func() {
 			err := instanceCompletedProducer.Completed(completedEvent)

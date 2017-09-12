@@ -16,7 +16,7 @@ const (
 	dimensionCliErrMsg      = "error when calling dimensions client"
 	instanceErrMsg          = "error when calling the dataset api to retrieve instance data"
 	updateNodeIDErr         = "unexpected error while calling dataset api set dimension node id endpoint"
-	createInstanceErr       = "unexpected error while attempting to create instance"
+	createInstanceErr       = "unexpected error while attempting to call InstanceRepository.Create()"
 	datasetAPINilErr        = "dimensions extracted event handler: dataset api expected but was nil"
 	createDimRepoNilErr     = "dimensions extracted event handler: new dimension inserter expected but was nil"
 	instanceRepoNilErr      = "dimensions extracted event handler: instance repository expected but was nil"
@@ -49,14 +49,6 @@ type InstanceEventHandler struct {
 	NewDimensionInserter func() DimensionRepository
 	InstanceRepository   InstanceRepository
 	DatasetAPICli        DatasetAPIClient
-}
-
-func NewDimensionExtractedEventHandler(newDimeInserter func() DimensionRepository, instanceRepo InstanceRepository, datasetAPICli DatasetAPIClient) *InstanceEventHandler {
-	return &InstanceEventHandler{
-		NewDimensionInserter: newDimeInserter,
-		InstanceRepository:   instanceRepo,
-		DatasetAPICli:        datasetAPICli,
-	}
 }
 
 // HandleEvent retrieves the dimensions for specified instanceID from the Import API, creates an MyInstance entity for

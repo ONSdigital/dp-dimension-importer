@@ -34,7 +34,7 @@ const (
 	nodeIDCastErr             = "unexpected error while casting node id to int64"
 	errExecutingStatment      = "error executing statement"
 	uniqueConstraintErr       = "unexpected error while attempting to create unique dimension id constraint"
-	insertDimErr              = "Unexpected error while attempting to create dimension"
+	insertDimErr              = "unexpected error while attempting to create dimension"
 )
 
 // Neo4jClient defines a client for executing statements and queries against a Neo4j graph database.

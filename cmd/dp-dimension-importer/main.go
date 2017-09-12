@@ -22,16 +22,15 @@ import (
 )
 
 const (
-	conumserErrMsg           = "Kafka Consumer Error recieved"
-	createConsumerErr        = "Error while attempting to create kafka consumer"
-	producerErrMsg           = "Completed instance producer error recieved"
-	eventReporterErrMsg      = "Event reporter producer error recieved"
-	createProducerErr        = "Error while attempting to create kafka producer"
+	consumerErrMsg           = "kafka Consumer Error recieved"
+	createConsumerErr        = "error while attempting to create kafka consumer"
+	producerErrMsg           = "completed instance producer error recieved"
+	eventReporterErrMsg      = "event reporter producer error recieved"
+	createProducerErr        = "error while attempting to create kafka producer"
 	createConnPoolErr        = "unexpected error while to create database connection pool"
-	errorEventsProducerErr   = "Error while attempting to create kafka producer"
-	gracefulShutdownMsg      = "Commencing graceful shutdown..."
-	gracefulShutdownComplete = "Graceful shutdown completed successfully, exiting application"
-	loadConfigErr            = "Error while loading application config."
+	gracefulShutdownMsg      = "commencing graceful shutdown..."
+	gracefulShutdownComplete = "graceful shutdown completed successfully, exiting application"
+	loadConfigErr            = "error while loading application config."
 )
 
 type responseBodyReader struct{}
@@ -70,19 +69,25 @@ func main() {
 	}
 
 	// ImportAPI HTTP client.
-	datasetAPICli := client.NewDatasetAPI(cfg.DatasetAPIAddr, cfg.DatasetAPIAuthToken, responseBodyReader{}, &http.Client{})
+	datasetAPICli := client.DatasetAPI{
+		DatasetAPIHost:      cfg.DatasetAPIAddr,
+		DatasetAPIAuthToken: cfg.DatasetAPIAuthToken,
+		HTTPClient:          &http.Client{},
+		ResponseBodyReader:  responseBodyReader{},
+	}
 
 	// Handler for dimensionsExtracted events.
-	eventHandler := handler.NewDimensionExtractedEventHandler(
-		newDimensionInserterFunc,
-		&repository.InstanceRepository{Neo4j: neo4jClient},
-		datasetAPICli)
+	instanceEventHandler := &handler.InstanceEventHandler{
+		NewDimensionInserter: newDimensionInserterFunc,
+		DatasetAPICli:        datasetAPICli,
+		InstanceRepository:   &repository.InstanceRepository{Neo4j: neo4jClient},
+	}
 
 	// MessageProducer for dimensionsInsertedEvents
-	instanceCompletedProducer := message.NewInstanceCompletedProducer(
-		instanceCompleteProducer,
-		schema.InstanceCompletedSchema,
-	)
+	instanceCompletedProducer := message.InstanceCompletedProducer{
+		Producer:   instanceCompleteProducer,
+		Marshaller: schema.InstanceCompletedSchema,
+	}
 
 	// Errors handler
 	errorEventHandler := &handler.ErrorHandler{
@@ -90,8 +95,10 @@ func main() {
 		Marshaller: schema.ErrorEventSchema,
 	}
 
+	healthCheckErrors := make(chan error)
+
 	// HTTP Health check endpoint.
-	healthcheck.NewHandler(cfg.BindAddr, cfg.ShutdownTimeout)
+	healthcheck.NewHandler(cfg.BindAddr, healthCheckErrors)
 
 	ctx, cancelConsumerLoop := context.WithCancel(context.Background())
 
@@ -111,18 +118,21 @@ func main() {
 	}
 
 	// run the consumer
-	message.Consume(ctx, instanceConsumer, instanceCompletedProducer, eventHandler, errorEventHandler)
+	message.Consume(ctx, instanceConsumer, instanceCompletedProducer, instanceEventHandler, errorEventHandler)
 
 	for {
 		select {
 		case err := <-instanceConsumer.Errors():
-			log.ErrorC(conumserErrMsg, err, log.Data{logKeys.ErrorDetails: err})
+			log.ErrorC(consumerErrMsg, err, log.Data{logKeys.ErrorDetails: err})
 			gracefulShutdown()
 		case err := <-instanceCompleteProducer.Errors():
 			log.ErrorC(producerErrMsg, err, nil)
 			gracefulShutdown()
 		case err := <-errorEventProducer.Errors():
 			log.ErrorC(eventReporterErrMsg, err, nil)
+			gracefulShutdown()
+		case err := <-healthCheckErrors:
+			log.ErrorC("receieved error healthcheck server", err, nil)
 			gracefulShutdown()
 		case <-signals:
 			log.Info("Signal intercepted", nil)
@@ -143,7 +153,7 @@ func newConsumer(kafkaAddr []string, topic string, namespace string) *kafka.Cons
 func newProducer(kafkaAddr []string, topic string) kafka.Producer {
 	producer, err := kafka.NewProducer(kafkaAddr, topic, 0)
 	if err != nil {
-		log.ErrorC(errorEventsProducerErr, err, log.Data{logKeys.KafkaTopic: topic})
+		log.ErrorC(createProducerErr, err, log.Data{logKeys.KafkaTopic: topic})
 		os.Exit(1)
 	}
 	return producer

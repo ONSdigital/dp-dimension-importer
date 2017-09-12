@@ -60,15 +60,6 @@ type DatasetAPI struct {
 	HTTPClient          HTTPClient
 }
 
-func NewDatasetAPI(host string, authToken string, responseBodyReader ResponseBodyReader, httpClient HTTPClient) DatasetAPI {
-	return DatasetAPI{
-		DatasetAPIHost:      host,
-		DatasetAPIAuthToken: authToken,
-		ResponseBodyReader:  responseBodyReader,
-		HTTPClient:          httpClient,
-	}
-}
-
 // GetInstance returns instance data from the import API.
 func (api DatasetAPI) GetInstance(instanceID string) (*model.Instance, error) {
 

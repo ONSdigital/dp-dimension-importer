@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	marshalErr = "Unexpected error while attempting to avro marshall event.InstanceCompletedEvent"
+	marshalErr = "unexpected error while attempting to avro marshall event.InstanceCompletedEvent"
 )
 
 //go:generate moq -out ./message_test/producer_generated_mocks.go -pkg message_test . Marshaller KafkaProducer
@@ -24,13 +24,6 @@ type Marshaller interface {
 type InstanceCompletedProducer struct {
 	Marshaller Marshaller
 	Producer   KafkaProducer
-}
-
-func NewInstanceCompletedProducer(producer KafkaProducer, marshaller Marshaller) InstanceCompletedProducer {
-	return InstanceCompletedProducer{
-		Producer:   producer,
-		Marshaller: marshaller,
-	}
 }
 
 // Completed kafka message to complete dimension inserted event

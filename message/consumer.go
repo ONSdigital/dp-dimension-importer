@@ -12,17 +12,17 @@ import (
 //go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessage KafkaConsumer CompletedProducer ErrorEventHandler
 
 const (
-	eventRecieved        = "Recieved NewInstanceEvent"
+	eventRecieved        = "recieved NewInstanceEvent"
 	eventKey             = "event"
-	eventHandlerErr      = "Unexpected error encountered while handling NewInstanceEvent"
-	eventHandlerSuccess  = "Instance has been successfully imported"
-	errorRecieved        = "Consumer exit channel recieved error. Exiting dimensionExtractedConsumer"
-	conumserErrMsg       = "Kafka Consumer Error recieved"
-	producerErrMsg       = "Completed Error recieved"
+	eventHandlerErr      = "unexpected error encountered while handling NewInstanceEvent"
+	eventHandlerSuccess  = "instance has been successfully imported"
+	errorRecieved        = "consumer exit channel recieved error. Exiting dimensionExtractedConsumer"
+	conumserErrMsg       = "kafka Consumer Error recieved"
+	producerErrMsg       = "completed Error recieved"
 	consumerStoppedMsg   = "context.Done invoked. Exiting Consumer loop"
-	unmarshallErrMsg     = "Unexpected error when unmarshalling avro message to newInstanceEvent"
-	processingSuccessful = "Instance processed successfully"
-	processingErr        = "Instance processing failed due to unexpected error"
+	unmarshallErrMsg     = "unexpected error when unmarshalling avro message to newInstanceEvent"
+	processingSuccessful = "instance processed successfully"
+	processingErr        = "instance processing failed due to unexpected error"
 )
 
 // KafkaMessage type representing a kafka message.
