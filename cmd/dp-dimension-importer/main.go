@@ -68,6 +68,12 @@ func main() {
 		return repository.NewDimensionRepository(neo4jClient, map[string]string{})
 	}
 
+	// MessageProducer for instanceComplete events.
+	instanceCompletedProducer := message.InstanceCompletedProducer{
+		Producer:   instanceCompleteProducer,
+		Marshaller: schema.InstanceCompletedSchema,
+	}
+
 	// ImportAPI HTTP client.
 	datasetAPICli := client.DatasetAPI{
 		DatasetAPIHost:      cfg.DatasetAPIAddr,
@@ -76,21 +82,16 @@ func main() {
 		ResponseBodyReader:  responseBodyReader{},
 	}
 
-	// Handler for dimensionsExtracted events.
+	// MessageHandler for NewInstance events.
 	instanceEventHandler := &handler.InstanceEventHandler{
 		NewDimensionInserter: newDimensionInserterFunc,
 		DatasetAPICli:        datasetAPICli,
 		InstanceRepository:   &repository.InstanceRepository{Neo4j: neo4jClient},
-	}
-
-	// MessageProducer for dimensionsInsertedEvents
-	instanceCompletedProducer := message.InstanceCompletedProducer{
-		Producer:   instanceCompleteProducer,
-		Marshaller: schema.InstanceCompletedSchema,
+		Producer:             instanceCompletedProducer,
 	}
 
 	// Errors handler
-	errorEventHandler := &handler.ErrorHandler{
+	errEventHandler := &handler.ErrorHandler{
 		Producer:   errorEventProducer,
 		Marshaller: schema.ErrorEventSchema,
 	}
@@ -100,25 +101,30 @@ func main() {
 	// HTTP Health check endpoint.
 	healthcheck.NewHandler(cfg.BindAddr, healthCheckErrors)
 
-	ctx, cancelConsumerLoop := context.WithCancel(context.Background())
+	messageHandler := message.KafkaMessageHandler{
+		InstanceHandler: instanceEventHandler,
+		ErrEventHandler: errEventHandler,
+	}
+
+	consumer := message.NewConsumer(instanceConsumer, messageHandler)
+	consumer.Listen()
 
 	// Gracefully shutdown the application closing any open resources.
 	gracefulShutdown := func() {
 		log.Info(gracefulShutdownMsg, nil)
-		shutdownCTX, _ := context.WithTimeout(ctx, cfg.ShutdownTimeout)
 
-		cancelConsumerLoop()
-		instanceConsumer.Close(shutdownCTX)
-		instanceCompleteProducer.Close(shutdownCTX)
-		errorEventProducer.Close(shutdownCTX)
-		healthcheck.Close(shutdownCTX)
+		ctx, _ := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+
+		consumer.Close(ctx)
+
+		instanceConsumer.Close(ctx)
+		instanceCompleteProducer.Close(ctx)
+		errorEventProducer.Close(ctx)
+		healthcheck.Close(ctx)
 
 		log.Info(gracefulShutdownComplete, nil)
 		os.Exit(1)
 	}
-
-	// run the consumer
-	message.Consume(ctx, instanceConsumer, instanceCompletedProducer, instanceEventHandler, errorEventHandler)
 
 	for {
 		select {

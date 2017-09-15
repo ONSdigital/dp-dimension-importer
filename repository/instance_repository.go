@@ -14,7 +14,8 @@ import (
 
 const (
 	// Create an Insatnce node.
-	createInstanceStmt = "CREATE (i:`%s` { header:'%s'}) RETURN i"
+	//createInstanceStmt = "CREATE (i:`%s` { header:'%s'}) RETURN i"
+	createInstanceStmt = "MERGE (i:`%s` { header:'%s'}) RETURN i"
 
 	// Update the Instance node with the list of dimension types it contains.
 	addInstanceDimensionsStmt = "MATCH (i:`%s`) SET i.dimensions = {dimensions_list}"

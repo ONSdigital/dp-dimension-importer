@@ -59,17 +59,24 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			},
 		}
 
+		completedProducer := &mocks.CompletedProducerMock{
+			CompletedFunc: func(e event.InstanceCompleted) error {
+				return nil
+			},
+		}
+
 		handler := InstanceEventHandler{
 			NewDimensionInserter: func() DimensionRepository {
 				return dimensionRepository
 			},
 			InstanceRepository: instanceRepositoryMock,
 			DatasetAPICli:      datasetAPIMock,
+			Producer:           completedProducer,
 		}
 
 		Convey("When given a valid event", func() {
-			event := event.NewInstance{InstanceID: testInstanceID}
-			handler.HandleEvent(event)
+			newInstance := event.NewInstance{InstanceID: testInstanceID}
+			handler.Handle(newInstance)
 
 			Convey("Then DatasetAPICli.GetDimensions is called 1 time with the expected parameters", func() {
 				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
@@ -107,10 +114,18 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
+
+			Convey("And Producer.Complete is called 1 time with the expected parameters", func() {
+				calls := completedProducer.CompletedCalls()
+				So(len(calls), ShouldEqual, 1)
+
+				expected := event.InstanceCompleted{FileURL: newInstance.FileURL, InstanceID: newInstance.InstanceID}
+				So(calls[0].E, ShouldResemble, expected)
+			})
 		})
 
 		Convey("When given an invalid event", func() {
-			err := handler.HandleEvent(event.NewInstance{})
+			err := handler.Handle(event.NewInstance{})
 
 			Convey("Then the appropriate error is returned", func() {
 				So(err, ShouldResemble, errors.New(instanceIDNilErr))
@@ -133,7 +148,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 				return nil, getDimensionsErr
 			}
 
-			err := handler.HandleEvent(event)
+			err := handler.Handle(event)
 
 			Convey("Then the DatasetAPICli.GetDimensions is called 1 time", func() {
 				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
@@ -163,7 +178,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 				return expectedErr
 			}
 
-			err := handler.HandleEvent(event)
+			err := handler.Handle(event)
 
 			Convey("Then the DatasetAPICli.GetDimensions is called 1 time", func() {
 				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
@@ -197,7 +212,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, expectedErr
 			}
-			err := handler.HandleEvent(event)
+			err := handler.Handle(event)
 
 			Convey("Then the DatasetAPICli.GetDimensions is called 1 time", func() {
 				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
@@ -241,7 +256,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 				return expectedErr
 			}
 
-			err := handler.HandleEvent(event)
+			err := handler.Handle(event)
 
 			Convey("Then the DatasetAPICli.GetDimensions is called 1 time", func() {
 				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
@@ -295,7 +310,7 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 				return expectedErr
 			}
 
-			err := handler.HandleEvent(event)
+			err := handler.Handle(event)
 
 			Convey("Then the DatasetAPICli.GetDimensions is called 1 time", func() {
 				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
@@ -349,9 +364,9 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 				return dimensionRepository
 			},
 		}
-		Convey("When HandleEvent is called", func() {
+		Convey("When Handle is called", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
-			err := handler.HandleEvent(event)
+			err := handler.Handle(event)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(datasetAPINilErr))
@@ -376,9 +391,9 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 				return dimensionRepository
 			},
 		}
-		Convey("When HandleEvent is called", func() {
+		Convey("When Handle is called", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
-			err := handler.HandleEvent(event)
+			err := handler.Handle(event)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(instanceRepoNilErr))
@@ -400,9 +415,9 @@ func TestDimensionsExtractedEventHandler_HandleEvent(t *testing.T) {
 			InstanceRepository:   instanceRepositoryMock,
 			NewDimensionInserter: nil,
 		}
-		Convey("When HandleEvent is called", func() {
+		Convey("When Handle is called", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
-			err := handler.HandleEvent(event)
+			err := handler.Handle(event)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errors.New(createDimRepoNilErr))

@@ -37,6 +37,7 @@ func (c *Config) String() string {
 
 // Load load the configuration & apply defaults where necessary
 func Load() (*Config, error) {
+	// TODO HANDLE ERR
 	defaultTimeout, _ := time.ParseDuration("5s")
 
 	cfg := Config{

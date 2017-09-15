@@ -2,25 +2,43 @@ package message_test
 
 import (
 	"github.com/ONSdigital/dp-dimension-importer/event"
+	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/go-ns/kafka"
 )
 
-type EventHandlerMock struct {
-	Param           []event.NewInstance
-	HandleEventFunc func(event.NewInstance) error
+type InstanceEventHandler struct {
+	HandleFunc func(event.NewInstance) error
 }
 
-func (m *EventHandlerMock) HandleEvent(event event.NewInstance) error {
-	m.Param = append(m.Param, event)
-	return m.HandleEventFunc(event)
+func (h InstanceEventHandler) Handle(e event.NewInstance) error {
+	return h.HandleFunc(e)
+}
+
+type ErrorHandler struct {
+	HandleFunc func(instanceID string, err error, data log.Data)
+}
+
+func (h ErrorHandler) Handle(instanceID string, err error, data log.Data) {
+	h.HandleFunc(instanceID, err, data)
+}
+
+type MessageHandler struct {
+	HandleFunc func (message kafka.Message)
+}
+
+func (mh MessageHandler) Handle(message kafka.Message) {
+	mh.HandleFunc(message)
 }
 
 type MessageMock struct {
+	Params    []bool
 	Committed chan bool
-	Data []byte
+	Data      []byte
 }
 
 func (m *MessageMock) Commit() {
 	m.Committed <- true
+	m.Params = append(m.Params, true)
 }
 
 func (m *MessageMock) GetData() []byte {

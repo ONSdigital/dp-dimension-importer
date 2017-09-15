@@ -4,6 +4,7 @@
 package mocks
 
 import (
+	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"sync"
 )
@@ -338,5 +339,69 @@ func (mock *DimensionRepositoryMock) InsertCalls() []struct {
 	lockDimensionRepositoryMockInsert.RLock()
 	calls = mock.calls.Insert
 	lockDimensionRepositoryMockInsert.RUnlock()
+	return calls
+}
+
+var (
+	lockCompletedProducerMockCompleted sync.RWMutex
+)
+
+// CompletedProducerMock is a mock implementation of CompletedProducer.
+//
+//     func TestSomethingThatUsesCompletedProducer(t *testing.T) {
+//
+//         // make and configure a mocked CompletedProducer
+//         mockedCompletedProducer := &CompletedProducerMock{
+//             CompletedFunc: func(e event.InstanceCompleted) error {
+// 	               panic("TODO: mock out the Completed method")
+//             },
+//         }
+//
+//         // TODO: use mockedCompletedProducer in code that requires CompletedProducer
+//         //       and then make assertions.
+//
+//     }
+type CompletedProducerMock struct {
+	// CompletedFunc mocks the Completed method.
+	CompletedFunc func(e event.InstanceCompleted) error
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// Completed holds details about calls to the Completed method.
+		Completed []struct {
+			// E is the e argument value.
+			E event.InstanceCompleted
+		}
+	}
+}
+
+// Completed calls CompletedFunc.
+func (mock *CompletedProducerMock) Completed(e event.InstanceCompleted) error {
+	if mock.CompletedFunc == nil {
+		panic("moq: CompletedProducerMock.CompletedFunc is nil but CompletedProducer.Completed was just called")
+	}
+	callInfo := struct {
+		E event.InstanceCompleted
+	}{
+		E: e,
+	}
+	lockCompletedProducerMockCompleted.Lock()
+	mock.calls.Completed = append(mock.calls.Completed, callInfo)
+	lockCompletedProducerMockCompleted.Unlock()
+	return mock.CompletedFunc(e)
+}
+
+// CompletedCalls gets all the calls that were made to Completed.
+// Check the length with:
+//     len(mockedCompletedProducer.CompletedCalls())
+func (mock *CompletedProducerMock) CompletedCalls() []struct {
+	E event.InstanceCompleted
+} {
+	var calls []struct {
+		E event.InstanceCompleted
+	}
+	lockCompletedProducerMockCompleted.RLock()
+	calls = mock.calls.Completed
+	lockCompletedProducerMockCompleted.RUnlock()
 	return calls
 }

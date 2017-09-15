@@ -17,7 +17,10 @@ const (
 	uniqueDimConstStmt = "CREATE CONSTRAINT ON (d:`%s`) ASSERT d.value IS UNIQUE"
 
 	// Create the dimension node and the HAS_DIMENSION relationship to the Instance it belongs to.
-	createDimensionAndInstanceRelStmt = "MATCH (i:`%s`) CREATE (d:`%s` {value: {value}}) CREATE (i)-[:HAS_DIMENSION]->(d) RETURN ID(d)"
+	//createDimensionAndInstanceRelStmt = "MATCH (i:`%s`) CREATE (d:`%s` {value: {value}}) CREATE (i)-[:HAS_DIMENSION]->(d) RETURN ID(d)"
+
+	//MATCH (i:_200_Instance) MERGE (d:_200_Age {value: 99}) MERGE (i)-[:HAS_DIMENSION]->(d) RETURN ID(d)
+	createDimensionAndInstanceRelStmt = "MATCH (i:`%s`) MERGE (d:`%s` {value: {value}}) MERGE (i)-[:HAS_DIMENSION]->(d) RETURN ID(d)"
 
 	instanceLabelFmt          = "_%s_Instance"
 	stmtKey                   = "statement"

@@ -1,15 +1,13 @@
 package message
 
 import (
-	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
-	"github.com/ONSdigital/dp-dimension-importer/event"
-	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"context"
+	"time"
 )
 
-//go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessage KafkaConsumer CompletedProducer ErrorEventHandler
+//go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessage KafkaConsumer
 
 const (
 	eventRecieved        = "recieved NewInstance"
@@ -22,40 +20,54 @@ const (
 	consumerStoppedMsg   = "context.Done invoked. Exiting Consumer loop"
 	unmarshallErrMsg     = "unexpected error when unmarshalling avro message to newInstanceEvent"
 	processingSuccessful = "instance processed successfully"
-	processingErr        = "instance processing failed due to unexpected error"
+	processingErr        = "instance processing failed due to unexpected error kafka message offset will NOT be updated"
 )
 
 // KafkaMessage type representing a kafka message.
 type KafkaMessage kafka.Message
 
-// eventHandler defines an eventHandler.
-type EventHandler interface {
-	HandleEvent(event event.NewInstance) error
-}
-
 type KafkaConsumer interface {
 	Incoming() chan kafka.Message
 }
 
-// CompletedProducer producer kafka messages for instances that have been successfully processed.
-type CompletedProducer interface {
-	Completed(e event.InstanceCompleted) error
+type MessageHandler interface {
+	Handle(message kafka.Message)
 }
 
-// ErrorEventHandler handler for dealing with any error while processing an inbound message.
-type ErrorEventHandler interface {
-	Handle(instanceID string, err error, data log.Data)
+// Consumer listens for kafka messages on the specified topic, processes thems & sends an outbound kafka message when complete.
+type Consumer struct {
+	closed         chan bool
+	ctx            context.Context
+	cancel         context.CancelFunc
+	consumer       KafkaConsumer
+	messageHandler MessageHandler
 }
 
-// Consume run a consumer to process incoming messages.
-func Consume(ctx context.Context, consumer KafkaConsumer, producer CompletedProducer, eventHandler EventHandler, errorEventHandler ErrorEventHandler) {
+// NewConsumer create a NewInstance event consumer.
+func NewConsumer(consumer KafkaConsumer, messageHandler MessageHandler) Consumer {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	return Consumer{
+		closed:         make(chan bool, 1),
+		ctx:            ctx,
+		cancel:         cancel,
+		consumer:       consumer,
+		messageHandler: messageHandler,
+	}
+}
+
+func (c Consumer) Listen() {
 	go func() {
+		defer func() {
+			// Notify that the consumer loop has closed.
+			c.closed <- true
+		}()
+
 		for {
 			select {
-			case consumedMessage := <-consumer.Incoming():
-				processMessage(consumedMessage.GetData(), producer, eventHandler, errorEventHandler)
-				consumedMessage.Commit()
-			case <-ctx.Done():
+			case consumedMessage := <-c.consumer.Incoming():
+				c.messageHandler.Handle(consumedMessage)
+			case <-c.ctx.Done():
 				log.Info(consumerStoppedMsg, nil)
 				return
 			}
@@ -63,37 +75,26 @@ func Consume(ctx context.Context, consumer KafkaConsumer, producer CompletedProd
 	}()
 }
 
-func processMessage(consumedData []byte, producer CompletedProducer, eventHandler EventHandler, errorEventHandler ErrorEventHandler) {
-	var newInstanceEvent event.NewInstance
-	if err := schema.NewInstanceSchema.Unmarshal(consumedData, &newInstanceEvent); err != nil {
-		log.ErrorC(unmarshallErrMsg, err, nil)
-		errorEventHandler.Handle("", err, nil)
-		log.Info(processingErr, nil)
-		return
+// Close shutdown Consumer.Listen loop.
+func (c Consumer) Close(ctx context.Context) {
+	// if nil use a default context with a timeout
+	if ctx == nil {
+		ctx, _ = context.WithTimeout(context.Background(), time.Second*10)
 	}
 
-	logData := map[string]interface{}{eventKey: newInstanceEvent}
-	log.Debug(eventRecieved, logData)
-
-	if err := eventHandler.HandleEvent(newInstanceEvent); err != nil {
-		log.ErrorC(eventHandlerErr, err, logData)
-		errorEventHandler.Handle(newInstanceEvent.InstanceID, err, nil)
-		log.Info(processingErr, logData)
-		return
+	// if the context is not nil but no deadline is set the apply the default
+	if _, ok := ctx.Deadline(); !ok {
+		ctx, _ = context.WithTimeout(context.Background(), time.Second*10)
 	}
 
-	logData[logKeys.InstanceID] = newInstanceEvent.InstanceID
-	log.Debug(eventHandlerSuccess, logData)
+	// Call cancel to attempt to exit the consumer loop.
+	c.cancel()
 
-	insertedEvent := event.InstanceCompleted{
-		FileURL:    newInstanceEvent.FileURL,
-		InstanceID: newInstanceEvent.InstanceID,
+	// Wait for the consumer to tell is has exited or the context timeout occurs.
+	select {
+	case <-c.closed:
+		log.Info("gracefully shutdown consumer loop", nil)
+	case <-ctx.Done():
+		log.Info("forced shutdown of consumer loop", nil)
 	}
-
-	if err := producer.Completed(insertedEvent); err != nil {
-		errorEventHandler.Handle(newInstanceEvent.InstanceID, err, nil)
-		log.Info(processingErr, logData)
-	}
-
-	log.Info(processingSuccessful, logData)
 }
