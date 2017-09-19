@@ -24,6 +24,9 @@ const (
 	insertDimErr            = "error while attempting to insert dimension"
 	addInsanceDimsErr       = "instance repository: add dimensions returned an error"
 	eventProcessingComplete = "event processing complete"
+	instanceExists          = "instance already exists, removing existing before continuing"
+	removeInstanceErr       = "unexpected error while attempting to remove instance and its dimensions."
+	removeInstanceSuccess   = "successfully deleted instance and all of its dimensions and relationships"
 )
 
 // DatasetAPIClient defines interface of an Dataset API client,
@@ -37,6 +40,8 @@ type DatasetAPIClient interface {
 type InstanceRepository interface {
 	Create(instance *model.Instance) error
 	AddDimensions(instance *model.Instance) error
+	Exists(instance *model.Instance) (bool, error)
+	Delete(instance *model.Instance) error
 }
 
 // DimensionRepository defines a Dimensions repository
@@ -96,6 +101,20 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 	if err != nil {
 		log.ErrorC(instanceErrMsg, err, logData)
 		return errors.New(instanceErrMsg)
+	}
+
+	var exists bool
+	if exists, err = hdlr.InstanceRepository.Exists(instance); err != nil {
+		return err
+	}
+
+	if exists {
+		logData := log.Data{logKeys.InstanceID: instance.InstanceID}
+		log.Info(instanceExists, logData)
+		if err := hdlr.InstanceRepository.Delete(instance); err != nil {
+			log.ErrorC(removeInstanceErr, err, logData)
+			return err
+		}
 	}
 
 	if err = hdlr.InstanceRepository.Create(instance); err != nil {

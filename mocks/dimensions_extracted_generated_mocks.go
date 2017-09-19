@@ -168,6 +168,8 @@ func (mock *DatasetAPIClientMock) PutDimensionNodeIDCalls() []struct {
 var (
 	lockInstanceRepositoryMockAddDimensions sync.RWMutex
 	lockInstanceRepositoryMockCreate        sync.RWMutex
+	lockInstanceRepositoryMockDelete        sync.RWMutex
+	lockInstanceRepositoryMockExists        sync.RWMutex
 )
 
 // InstanceRepositoryMock is a mock implementation of InstanceRepository.
@@ -182,6 +184,12 @@ var (
 //             CreateFunc: func(instance *model.Instance) error {
 // 	               panic("TODO: mock out the Create method")
 //             },
+//             DeleteFunc: func(instance *model.Instance) error {
+// 	               panic("TODO: mock out the Delete method")
+//             },
+//             ExistsFunc: func(instance *model.Instance) (bool, error) {
+// 	               panic("TODO: mock out the Exists method")
+//             },
 //         }
 //
 //         // TODO: use mockedInstanceRepository in code that requires InstanceRepository
@@ -195,6 +203,12 @@ type InstanceRepositoryMock struct {
 	// CreateFunc mocks the Create method.
 	CreateFunc func(instance *model.Instance) error
 
+	// DeleteFunc mocks the Delete method.
+	DeleteFunc func(instance *model.Instance) error
+
+	// ExistsFunc mocks the Exists method.
+	ExistsFunc func(instance *model.Instance) (bool, error)
+
 	// calls tracks calls to the methods.
 	calls struct {
 		// AddDimensions holds details about calls to the AddDimensions method.
@@ -204,6 +218,16 @@ type InstanceRepositoryMock struct {
 		}
 		// Create holds details about calls to the Create method.
 		Create []struct {
+			// Instance is the instance argument value.
+			Instance *model.Instance
+		}
+		// Delete holds details about calls to the Delete method.
+		Delete []struct {
+			// Instance is the instance argument value.
+			Instance *model.Instance
+		}
+		// Exists holds details about calls to the Exists method.
+		Exists []struct {
 			// Instance is the instance argument value.
 			Instance *model.Instance
 		}
@@ -269,6 +293,68 @@ func (mock *InstanceRepositoryMock) CreateCalls() []struct {
 	lockInstanceRepositoryMockCreate.RLock()
 	calls = mock.calls.Create
 	lockInstanceRepositoryMockCreate.RUnlock()
+	return calls
+}
+
+// Delete calls DeleteFunc.
+func (mock *InstanceRepositoryMock) Delete(instance *model.Instance) error {
+	if mock.DeleteFunc == nil {
+		panic("moq: InstanceRepositoryMock.DeleteFunc is nil but InstanceRepository.Delete was just called")
+	}
+	callInfo := struct {
+		Instance *model.Instance
+	}{
+		Instance: instance,
+	}
+	lockInstanceRepositoryMockDelete.Lock()
+	mock.calls.Delete = append(mock.calls.Delete, callInfo)
+	lockInstanceRepositoryMockDelete.Unlock()
+	return mock.DeleteFunc(instance)
+}
+
+// DeleteCalls gets all the calls that were made to Delete.
+// Check the length with:
+//     len(mockedInstanceRepository.DeleteCalls())
+func (mock *InstanceRepositoryMock) DeleteCalls() []struct {
+	Instance *model.Instance
+} {
+	var calls []struct {
+		Instance *model.Instance
+	}
+	lockInstanceRepositoryMockDelete.RLock()
+	calls = mock.calls.Delete
+	lockInstanceRepositoryMockDelete.RUnlock()
+	return calls
+}
+
+// Exists calls ExistsFunc.
+func (mock *InstanceRepositoryMock) Exists(instance *model.Instance) (bool, error) {
+	if mock.ExistsFunc == nil {
+		panic("moq: InstanceRepositoryMock.ExistsFunc is nil but InstanceRepository.Exists was just called")
+	}
+	callInfo := struct {
+		Instance *model.Instance
+	}{
+		Instance: instance,
+	}
+	lockInstanceRepositoryMockExists.Lock()
+	mock.calls.Exists = append(mock.calls.Exists, callInfo)
+	lockInstanceRepositoryMockExists.Unlock()
+	return mock.ExistsFunc(instance)
+}
+
+// ExistsCalls gets all the calls that were made to Exists.
+// Check the length with:
+//     len(mockedInstanceRepository.ExistsCalls())
+func (mock *InstanceRepositoryMock) ExistsCalls() []struct {
+	Instance *model.Instance
+} {
+	var calls []struct {
+		Instance *model.Instance
+	}
+	lockInstanceRepositoryMockExists.RLock()
+	calls = mock.calls.Exists
+	lockInstanceRepositoryMockExists.RUnlock()
 	return calls
 }
 
