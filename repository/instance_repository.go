@@ -4,13 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
+	"github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/model"
+	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"github.com/ONSdigital/go-ns/log"
 	"strings"
 )
-
-//go:generate moq -out ../mocks/repository_generated_mocks.go -pkg mocks . Neo4jClient
 
 const (
 	// Create an Insatnce node.
@@ -37,14 +36,39 @@ const (
 	removeInstanceSuccess        = "successfully deleted instance and all of its dimensions and relationships"
 	removeStatsKey               = "stats"
 	removeInstanceErr            = "unexpected error while attempting to remove instance and its dimensions"
+	closeErr                     = "unexpected error while attempting to close neo4j conn"
+	openConnErr                  = "unexpected error while attempting to open neo4j conn"
 )
 
-// InstanceRepository provides functionality for insterting & updating Instances into a Neo4j graph database
-type InstanceRepository struct {
-	Neo4j Neo4jClient
+// NewInstanceRepository creates a new InstanceRepository. A bolt.Conn will be obtained from the supplied connectionPool.
+// The obtained bolt.Conn will be used for the life time of the InstanceRepository struct
+// - it is the responsibility of the caller to call Close when they have finished.
+func NewInstanceRepository(connPool common.NeoDriverPool, neo Neo4jClient) (*InstanceRepository, error) {
+	conn, err := connPool.OpenPool()
+	if err != nil {
+		log.ErrorC(openConnErr, err, nil)
+		return nil, err
+	}
+	return &InstanceRepository{neo4j: neo, conn: conn}, nil
 }
 
-// Create creates an Instance node in a Neo4j graph database
+// InstanceRepository provides functionality for insterting & updating Instances into a neo4j graph database
+type InstanceRepository struct {
+	neo4j Neo4jClient
+	conn  bolt.Conn
+}
+
+// Close - closes an open resourecs held by the InstanceRepository.
+func (repo *InstanceRepository) Close() {
+	if repo.conn != nil {
+		if err := repo.conn.Close(); err != nil {
+			log.ErrorC(closeErr, err, nil)
+		}
+	}
+	log.Info("InstanceRepository conn closed", nil)
+}
+
+// Create creates an Instance node in a neo4j graph database
 func (repo *InstanceRepository) Create(i *model.Instance) error {
 	var err error
 
@@ -63,16 +87,16 @@ func (repo *InstanceRepository) Create(i *model.Instance) error {
 	createStmt := fmt.Sprintf(createInstanceStmt, instanceLabel, strings.Join(i.CSVHeader, ","))
 
 	logDebug := map[string]interface{}{
-		logKeys.InstanceID: i.InstanceID,
-		stmtKey:            createStmt,
+		common.InstanceID: i.InstanceID,
+		stmtKey:           createStmt,
 	}
 
-	if _, err = repo.Neo4j.ExecStmt(createStmt, nil); err != nil {
+	if _, err = repo.neo4j.ExecStmt(repo.conn, createStmt, nil); err != nil {
 		log.ErrorC(createInstanceExecErr, err, logDebug)
 		return err
 	}
 
-	log.Debug(createInstanceSuccess, logDebug)
+	log.Info(createInstanceSuccess, logDebug)
 	return nil
 }
 
@@ -90,26 +114,27 @@ func (repo *InstanceRepository) AddDimensions(i *model.Instance) error {
 	params := map[string]interface{}{dimensionsList: i.GetDimensions()}
 
 	logDebug := map[string]interface{}{
-		stmtKey:            stmt,
-		stmtParamsKey:      params,
-		logKeys.InstanceID: i.InstanceID,
-		dimensionsKey:      i.GetDimensions(),
+		stmtKey:           stmt,
+		stmtParamsKey:     params,
+		common.InstanceID: i.InstanceID,
+		dimensionsKey:     i.GetDimensions(),
 	}
 
-	if _, err := repo.Neo4j.ExecStmt(stmt, params); err != nil {
+	if _, err := repo.neo4j.ExecStmt(repo.conn, stmt, params); err != nil {
 		log.ErrorC(addInstanceDimensionsExecErr, err, nil)
 		return err
 	}
 
-	log.Debug(addInstanceDimensionsSuccess, logDebug)
+	log.Info(addInstanceDimensionsSuccess, logDebug)
 	return nil
 }
 
+// Exists returns true if an instance already exists with the provided instanceID.
 func (repo *InstanceRepository) Exists(i *model.Instance) (bool, error) {
 	countStmt := fmt.Sprintf(countInstanceStmt, fmt.Sprintf(instanceLabelFmt, i.GetID()))
-	rows, err := repo.Neo4j.Query(countStmt, nil)
+	rows, err := repo.neo4j.Query(repo.conn, countStmt, nil)
 	if err != nil {
-		log.ErrorC(instanceCountQueryErr, err, log.Data{logKeys.InstanceID: i.GetID()})
+		log.ErrorC(instanceCountQueryErr, err, log.Data{common.InstanceID: i.GetID()})
 		return false, err
 	}
 
@@ -122,12 +147,13 @@ func (repo *InstanceRepository) Exists(i *model.Instance) (bool, error) {
 	return instanceCount >= 1, nil
 }
 
+// Delete - delete an instance and all dimensions and relationships it has.
 func (repo *InstanceRepository) Delete(i *model.Instance) error {
-	logData := log.Data{logKeys.InstanceID: i.InstanceID}
+	logData := log.Data{common.InstanceID: i.InstanceID}
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
 
 	stmt := fmt.Sprintf(removeInstanceDimensionsAndRelationships, instanceLabel)
-	results, err := repo.Neo4j.ExecStmt(stmt, nil)
+	results, err := repo.neo4j.ExecStmt(repo.conn, stmt, nil)
 
 	if err != nil {
 		log.ErrorC(deleteInstanceErr, err, logData)

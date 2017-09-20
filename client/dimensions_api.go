@@ -113,7 +113,7 @@ func (api DatasetAPI) GetInstance(instanceID string) (*model.Instance, error) {
 		return nil, JSONErr
 	}
 
-	log.Debug(getInstanceSuccess, data)
+	log.Info(getInstanceSuccess, data)
 	return instance, nil
 }
 
@@ -168,11 +168,11 @@ func (api DatasetAPI) GetDimensions(instanceID string) ([]*model.Dimension, erro
 
 	if err != nil {
 		data[logKeys.ErrorDetails] = err.Error()
-		log.Debug(unmarshallingErr, data)
+		log.Info(unmarshallingErr, data)
 		return nil, err
 	}
 
-	log.Debug(getDimensionsSuccess, data)
+	log.Info(getDimensionsSuccess, data)
 	return dimensionsResult.Items, nil
 }
 

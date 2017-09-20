@@ -62,10 +62,23 @@ func main() {
 	// Outgoing topic for any errors while processing an instance
 	errorEventProducer := newProducer(cfg.KafkaAddr, cfg.EventReporterTopic)
 
-	neo4jClient := createNeo4jClient(cfg)
+	neo4jCli := client.Neo4j{}
 
-	newDimensionInserterFunc := func() handler.DimensionRepository {
-		return repository.NewDimensionRepository(neo4jClient, map[string]string{})
+	connectionPool, err := repository.NewConnectionPool(cfg.DatabaseURL, cfg.PoolSize)
+	if err != nil {
+		log.ErrorC(createConnPoolErr, err, log.Data{
+			logKeys.URL:      cfg.DatabaseURL,
+			logKeys.PoolSize: cfg.PoolSize,
+		})
+		os.Exit(1)
+	}
+
+	newDimensionInserterFunc := func() (handler.DimensionRepository, error) {
+		return repository.NewDimensionRepository(connectionPool, neo4jCli)
+	}
+
+	newInstanceRepoFunc := func() (handler.InstanceRepository, error) {
+		return repository.NewInstanceRepository(connectionPool, neo4jCli)
 	}
 
 	// MessageProducer for instanceComplete events.
@@ -84,10 +97,10 @@ func main() {
 
 	// MessageHandler for NewInstance events.
 	instanceEventHandler := &handler.InstanceEventHandler{
-		NewDimensionInserter: newDimensionInserterFunc,
-		DatasetAPICli:        datasetAPICli,
-		InstanceRepository:   &repository.InstanceRepository{Neo4j: neo4jClient},
-		Producer:             instanceCompletedProducer,
+		NewDimensionInserter:  newDimensionInserterFunc,
+		NewInstanceRepository: newInstanceRepoFunc,
+		DatasetAPICli:         datasetAPICli,
+		Producer:              instanceCompletedProducer,
 	}
 
 	// Errors handler
@@ -163,18 +176,4 @@ func newProducer(kafkaAddr []string, topic string) kafka.Producer {
 		os.Exit(1)
 	}
 	return producer
-}
-
-func createNeo4jClient(cfg *config.Config) *client.Neo4j {
-	var neo4jCli *client.Neo4j
-	var err error
-
-	if neo4jCli, err = client.NewNeo4j(cfg.DatabaseURL, cfg.PoolSize); err != nil {
-		log.ErrorC(createConnPoolErr, err, log.Data{
-			logKeys.URL:      cfg.DatabaseURL,
-			logKeys.PoolSize: cfg.PoolSize,
-		})
-		os.Exit(1)
-	}
-	return neo4jCli
 }

@@ -328,10 +328,12 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		dimensionRepository := &mocks.DimensionRepositoryMock{}
 
 		handler := InstanceEventHandler{
-			DatasetAPICli:      nil,
-			InstanceRepository: instanceRepositoryMock,
-			NewDimensionInserter: func() DimensionRepository {
-				return dimensionRepository
+			DatasetAPICli: nil,
+			NewDimensionInserter: func() (DimensionRepository, error) {
+				return dimensionRepository, nil
+			},
+			NewInstanceRepository: func() (InstanceRepository, error) {
+				return instanceRepositoryMock, nil
 			},
 		}
 		Convey("When Handle is called", func() {
@@ -355,10 +357,10 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		datasetAPIMock := &mocks.DatasetAPIClientMock{}
 
 		handler := InstanceEventHandler{
-			DatasetAPICli:      datasetAPIMock,
-			InstanceRepository: nil,
-			NewDimensionInserter: func() DimensionRepository {
-				return dimensionRepository
+			DatasetAPICli:         datasetAPIMock,
+			NewInstanceRepository: nil,
+			NewDimensionInserter: func() (DimensionRepository, error) {
+				return dimensionRepository, nil
 			},
 		}
 		Convey("When Handle is called", func() {
@@ -376,13 +378,15 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		})
 	})
 
-	Convey("Given handler.InstanceRepository has not been configured", t, func() {
+	Convey("Given handler.NewDimensionInserter has not been configured", t, func() {
 		datasetAPIMock := &mocks.DatasetAPIClientMock{}
 		instanceRepositoryMock := &mocks.InstanceRepositoryMock{}
 
 		handler := InstanceEventHandler{
-			DatasetAPICli:        datasetAPIMock,
-			InstanceRepository:   instanceRepositoryMock,
+			DatasetAPICli: datasetAPIMock,
+			NewInstanceRepository: func() (InstanceRepository, error) {
+				return instanceRepositoryMock, nil
+			},
 			NewDimensionInserter: nil,
 		}
 		Convey("When Handle is called", func() {
@@ -575,11 +579,17 @@ func setUp() (*mocks.InstanceRepositoryMock, *mocks.DimensionRepositoryMock, *mo
 		CreateFunc: func(instance *model.Instance) error {
 			return nil
 		},
+		CloseFunc: func() {
+			// Do nothing.
+		},
 	}
 
 	dimensionRepository := &mocks.DimensionRepositoryMock{
 		InsertFunc: func(instance *model.Instance, d *model.Dimension) (*model.Dimension, error) {
 			return d, nil
+		},
+		CloseFunc: func() {
+			// Do nothing.
 		},
 	}
 
@@ -602,12 +612,14 @@ func setUp() (*mocks.InstanceRepositoryMock, *mocks.DimensionRepositoryMock, *mo
 	}
 
 	handler := InstanceEventHandler{
-		NewDimensionInserter: func() DimensionRepository {
-			return dimensionRepository
+		NewDimensionInserter: func() (DimensionRepository, error) {
+			return dimensionRepository, nil
 		},
-		InstanceRepository: instanceRepositoryMock,
-		DatasetAPICli:      datasetAPIMock,
-		Producer:           completedProducer,
+		NewInstanceRepository: func() (InstanceRepository, error) {
+			return instanceRepositoryMock, nil
+		},
+		DatasetAPICli: datasetAPIMock,
+		Producer:      completedProducer,
 	}
 	return instanceRepositoryMock, dimensionRepository, datasetAPIMock, completedProducer, handler
 }

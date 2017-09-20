@@ -42,11 +42,13 @@ type InstanceRepository interface {
 	AddDimensions(instance *model.Instance) error
 	Exists(instance *model.Instance) (bool, error)
 	Delete(instance *model.Instance) error
+	Close()
 }
 
 // DimensionRepository defines a Dimensions repository
 type DimensionRepository interface {
 	Insert(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error)
+	Close()
 }
 
 // CompletedProducer Producer kafka messages for instances that have been successfully processed.
@@ -56,10 +58,10 @@ type CompletedProducer interface {
 
 // InstanceEventHandler provides functions for handling DimensionsExtractedEvents.
 type InstanceEventHandler struct {
-	NewDimensionInserter func() DimensionRepository
-	InstanceRepository   InstanceRepository
-	DatasetAPICli        DatasetAPIClient
-	Producer             CompletedProducer
+	NewDimensionInserter  func() (DimensionRepository, error)
+	NewInstanceRepository func() (InstanceRepository, error)
+	DatasetAPICli         DatasetAPIClient
+	Producer              CompletedProducer
 }
 
 // Handle retrieves the dimensions for specified instanceID from the Import API, creates an MyInstance entity for
@@ -69,7 +71,7 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 	if hdlr.DatasetAPICli == nil {
 		return errors.New(datasetAPINilErr)
 	}
-	if hdlr.InstanceRepository == nil {
+	if hdlr.NewInstanceRepository == nil {
 		return errors.New(instanceRepoNilErr)
 	}
 	if hdlr.NewDimensionInserter == nil {
@@ -83,7 +85,7 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 		logKeys.InstanceID:      newInstance.InstanceID,
 		logKeys.DimensionsCount: 0,
 	}
-	log.Debug(logEventRecieved, logData)
+	log.Info(logEventRecieved, logData)
 
 	start := time.Now()
 	var dimensions []*model.Dimension
@@ -103,26 +105,36 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 		return errors.New(instanceErrMsg)
 	}
 
+	instanceRepo, err := hdlr.NewInstanceRepository()
+	if err != nil {
+		return err
+	}
+	defer instanceRepo.Close()
+
 	var exists bool
-	if exists, err = hdlr.InstanceRepository.Exists(instance); err != nil {
+	if exists, err = instanceRepo.Exists(instance); err != nil {
 		return err
 	}
 
 	if exists {
 		logData := log.Data{logKeys.InstanceID: instance.InstanceID}
 		log.Info(instanceExists, logData)
-		if err := hdlr.InstanceRepository.Delete(instance); err != nil {
+		if err := instanceRepo.Delete(instance); err != nil {
 			log.ErrorC(removeInstanceErr, err, logData)
 			return err
 		}
 	}
 
-	if err = hdlr.InstanceRepository.Create(instance); err != nil {
+	if err = instanceRepo.Create(instance); err != nil {
 		log.ErrorC(createInstanceErr, err, logData)
 		return errors.New(createInstanceErr)
 	}
 
-	dimensionInserter := hdlr.NewDimensionInserter()
+	dimensionInserter, err := hdlr.NewDimensionInserter()
+	if err != nil {
+		return err
+	}
+	defer dimensionInserter.Close()
 
 	for _, dimension := range dimensions {
 		if dimension, err = dimensionInserter.Insert(instance, dimension); err != nil {
@@ -136,13 +148,13 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 		}
 	}
 
-	if err = hdlr.InstanceRepository.AddDimensions(instance); err != nil {
+	if err = instanceRepo.AddDimensions(instance); err != nil {
 		log.ErrorC(addInsanceDimsErr, err, logData)
 		return errors.New(addInsanceDimsErr)
 	}
 
 	logData[logKeys.ProcessingTime] = time.Since(start).Seconds()
-	log.Debug(eventProcessingComplete, logData)
+	log.Info(eventProcessingComplete, logData)
 
 	instanceProcessed := event.InstanceCompleted{
 		FileURL:    newInstance.FileURL,

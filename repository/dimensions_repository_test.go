@@ -37,12 +37,9 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				So(err, ShouldResemble, errors.New(instanceNilErr))
 			})
 
-			Convey("And Neo4j.Exec is never called", func() {
-				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
-			})
-
-			Convey("And Neo4j.Query is never called", func() {
+			Convey("And there are no interactions with neo4j", func() {
 				So(len(neo4jMock.QueryCalls()), ShouldEqual, 0)
+				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
 			})
 		})
 	})
@@ -60,12 +57,9 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				So(err, ShouldResemble, errors.New(instanceIDReqErr))
 			})
 
-			Convey("And Neo4j.Exec is never called", func() {
-				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
-			})
-
-			Convey("And Neo4j.Query is never called", func() {
+			Convey("And there are no interactions with neo4j", func() {
 				So(len(neo4jMock.QueryCalls()), ShouldEqual, 0)
+				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
 			})
 		})
 	})
@@ -83,12 +77,9 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				So(err, ShouldResemble, errors.New(dimensionNilErr))
 			})
 
-			Convey("And Neo4j.Exec is never called", func() {
-				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
-			})
-
-			Convey("And Neo4j.Query is never called", func() {
+			Convey("And there are no interactions with neo4j", func() {
 				So(len(neo4jMock.QueryCalls()), ShouldEqual, 0)
+				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
 			})
 		})
 	})
@@ -106,12 +97,9 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				So(err, ShouldResemble, errors.New(dimensionIDRequiredErr))
 			})
 
-			Convey("And Neo4j.Exec is never called", func() {
-				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
-			})
-
-			Convey("And Neo4j.Query is never called", func() {
+			Convey("And there are no interactions with neo4j", func() {
 				So(len(neo4jMock.QueryCalls()), ShouldEqual, 0)
+				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
 			})
 		})
 	})
@@ -119,13 +107,14 @@ func TestDimensionRepository_Insert(t *testing.T) {
 	Convey("Given a dimension type that has already been processed", t, func() {
 		var nodeID int64 = 1234
 		data := [][]interface{}{[]interface{}{nodeID}}
-
 		neoRows := &common.NeoRows{
 			Data: data,
 		}
 
+		connMock := &mocks.NeoConnMock{}
+
 		neo4jMock := &mocks.Neo4jClientMock{
-			QueryFunc: func(query string, params map[string]interface{}) (*common.NeoRows, error) {
+			QueryFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (*common.NeoRows, error) {
 				return neoRows, nil
 			},
 		}
@@ -133,6 +122,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 		repo := DimensionRepository{
 			neo4jCli:         neo4jMock,
 			constraintsCache: map[string]string{dimension.DimensionID: ""},
+			conn:             connMock,
 		}
 
 		Convey("When Insert is invoked", func() {
@@ -143,11 +133,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				So(err, ShouldEqual, nil)
 			})
 
-			Convey("And Neo4j.Exec is never called", func() {
-				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
-			})
-
-			Convey("And Neo4j.Query is called 1 time with the expected parameters", func() {
+			Convey("And neo4j.Query is called 1 time with the expected parameters", func() {
 				calls := neo4jMock.QueryCalls()
 				So(len(calls), ShouldEqual, 1)
 
@@ -157,19 +143,24 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				expectedParams := map[string]interface{}{valueKey: dimension.Value}
 				So(calls[0].Params, ShouldResemble, expectedParams)
 			})
+
+			Convey("And there are no other calls to neo4j", func() {
+				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
+			})
 		})
 	})
 
 	Convey("Given a dimension type that has already been processed", t, func() {
-		//var nodeID int64 = 1234
 		data := [][]interface{}{[]interface{}{""}}
 
 		neoRows := &common.NeoRows{
 			Data: data,
 		}
 
+		connMock := &mocks.NeoConnMock{}
+
 		neo4jMock := &mocks.Neo4jClientMock{
-			QueryFunc: func(query string, params map[string]interface{}) (*common.NeoRows, error) {
+			QueryFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (*common.NeoRows, error) {
 				return neoRows, nil
 			},
 		}
@@ -177,6 +168,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 		repo := DimensionRepository{
 			neo4jCli:         neo4jMock,
 			constraintsCache: map[string]string{dimension.DimensionID: ""},
+			conn:             connMock,
 		}
 
 		Convey("When Insert is invoked", func() {
@@ -187,11 +179,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				So(err, ShouldResemble, errors.New(nodeIDCastErr))
 			})
 
-			Convey("And Neo4j.Exec is never called", func() {
-				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
-			})
-
-			Convey("And Neo4j.Query is called 1 time with the expected parameters", func() {
+			Convey("And neo4j.Query is called 1 time with the expected parameters", func() {
 				calls := neo4jMock.QueryCalls()
 				So(len(calls), ShouldEqual, 1)
 
@@ -200,6 +188,10 @@ func TestDimensionRepository_Insert(t *testing.T) {
 
 				expectedParams := map[string]interface{}{valueKey: dimension.Value}
 				So(calls[0].Params, ShouldResemble, expectedParams)
+			})
+
+			Convey("And there are no other calls to neo4j", func() {
+				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
 			})
 		})
 	})
@@ -212,12 +204,13 @@ func TestDimensionRepository_Insert(t *testing.T) {
 			Data: data,
 		}
 
+		connMock := &mocks.NeoConnMock{}
+
 		neo4jMock := &mocks.Neo4jClientMock{
-			QueryFunc: func(query string, params map[string]interface{}) (*common.NeoRows, error) {
+			QueryFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (*common.NeoRows, error) {
 				return neoRows, nil
 			},
-
-			ExecStmtFunc: func(query string, params map[string]interface{}) (bolt.Result, error) {
+			ExecStmtFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error) {
 				return nil, nil
 			},
 		}
@@ -225,6 +218,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 		repo := DimensionRepository{
 			neo4jCli:         neo4jMock,
 			constraintsCache: map[string]string{},
+			conn:             connMock,
 		}
 
 		Convey("When Insert is invoked", func() {
@@ -235,7 +229,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				So(err, ShouldEqual, nil)
 			})
 
-			Convey("And Neo4j.Exec is called 1 time with the expected parameters", func() {
+			Convey("And neo4j.Exec is called 1 time with the expected parameters", func() {
 				calls := neo4jMock.ExecStmtCalls()
 				So(len(calls), ShouldEqual, 1)
 
@@ -244,7 +238,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				So(calls[0].Params, ShouldEqual, nil)
 			})
 
-			Convey("And Neo4j.Query is called 1 time with the expected parameters", func() {
+			Convey("And neo4j.Query is called 1 time with the expected parameters", func() {
 				calls := neo4jMock.QueryCalls()
 				So(len(calls), ShouldEqual, 1)
 
@@ -265,12 +259,13 @@ func TestDimensionRepository_Insert(t *testing.T) {
 			Data: data,
 		}
 
+		connMock := &mocks.NeoConnMock{}
+
 		neo4jMock := &mocks.Neo4jClientMock{
-			QueryFunc: func(query string, params map[string]interface{}) (*common.NeoRows, error) {
+			QueryFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (*common.NeoRows, error) {
 				return neoRows, nil
 			},
-
-			ExecStmtFunc: func(query string, params map[string]interface{}) (bolt.Result, error) {
+			ExecStmtFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error) {
 				return nil, expectedErr
 			},
 		}
@@ -278,6 +273,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 		repo := DimensionRepository{
 			neo4jCli:         neo4jMock,
 			constraintsCache: map[string]string{},
+			conn:             connMock,
 		}
 
 		Convey("When Insert is invoked", func() {
@@ -288,7 +284,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				So(err, ShouldResemble, expectedErr)
 			})
 
-			Convey("And Neo4j.Exec is called 1 time with the expected parameters", func() {
+			Convey("And neo4j.Exec is called 1 time with the expected parameters", func() {
 				calls := neo4jMock.ExecStmtCalls()
 				So(len(calls), ShouldEqual, 1)
 
@@ -297,20 +293,20 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				So(calls[0].Params, ShouldEqual, nil)
 			})
 
-			Convey("And Neo4j.Query is never invoked", func() {
-				calls := neo4jMock.QueryCalls()
-				So(len(calls), ShouldEqual, 0)
+			Convey("And there is no other calls to neo4j", func() {
+				So(len(neo4jMock.QueryCalls()), ShouldEqual, 0)
 			})
 		})
 	})
 
-	Convey("Given Neo4j.Query returns an error", t, func() {
+	Convey("Given neo4j.Query returns an error", t, func() {
+		connMock := &mocks.NeoConnMock{}
+
 		neo4jMock := &mocks.Neo4jClientMock{
-			QueryFunc: func(query string, params map[string]interface{}) (*common.NeoRows, error) {
+			QueryFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (*common.NeoRows, error) {
 				return nil, expectedErr
 			},
-
-			ExecStmtFunc: func(query string, params map[string]interface{}) (bolt.Result, error) {
+			ExecStmtFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error) {
 				return nil, nil
 			},
 		}
@@ -318,6 +314,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 		repo := DimensionRepository{
 			neo4jCli:         neo4jMock,
 			constraintsCache: map[string]string{dimension.DimensionID: dimension.DimensionID},
+			conn:             connMock,
 		}
 
 		Convey("When Insert is invoked", func() {
@@ -328,12 +325,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				So(err, ShouldResemble, expectedErr)
 			})
 
-			Convey("And Neo4j.Exec is never called", func() {
-				calls := neo4jMock.ExecStmtCalls()
-				So(len(calls), ShouldEqual, 0)
-			})
-
-			Convey("And Neo4j.Query is called 1 time with the expected parameters", func() {
+			Convey("And neo4j.Query is called 1 time with the expected parameters", func() {
 				calls := neo4jMock.QueryCalls()
 				So(len(calls), ShouldEqual, 1)
 
@@ -342,6 +334,68 @@ func TestDimensionRepository_Insert(t *testing.T) {
 
 				expectedParams := map[string]interface{}{valueKey: dimension.Value}
 				So(calls[0].Params, ShouldResemble, expectedParams)
+			})
+
+			Convey("And there is no other calls to neo4j", func() {
+				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
+				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
+			})
+		})
+	})
+}
+
+func TestNewDimensionRepository(t *testing.T) {
+	Convey("Given valid parameters", t, func() {
+		connMock := &mocks.NeoConnMock{}
+		neo4jCliMock := &mocks.Neo4jClientMock{}
+		connectionPool := &mocks.NeoDriverPoolMock{
+			OpenPoolFunc: func() (bolt.Conn, error) {
+				return connMock, nil
+			},
+		}
+
+		Convey("When NewDimensionRepository is called", func() {
+			repo, err := NewDimensionRepository(connectionPool, neo4jCliMock)
+
+			Convey("Then the expected repository is returned with no error", func() {
+				So(repo.conn, ShouldEqual, connMock)
+				So(repo.neo4jCli, ShouldEqual, neo4jCliMock)
+				So(err, ShouldBeNil)
+			})
+
+			Convey("And connectionPool.OpenPool is called 1 time", func() {
+				So(len(connectionPool.OpenPoolCalls()), ShouldEqual, 1)
+			})
+		})
+
+		Convey("When connectionPoo.OpenPool returns an error", func() {
+			connectionPool.OpenPoolFunc = func() (bolt.Conn, error) {
+				return nil, errors.New("Conn pool error")
+			}
+
+			repo, err := NewDimensionRepository(connectionPool, neo4jCliMock)
+			Convey("Then the error is propagated", func() {
+				So(err, ShouldResemble, errors.New("Conn pool error"))
+				So(repo, ShouldBeNil)
+			})
+		})
+	})
+}
+
+func TestDimensionRepository_Close(t *testing.T) {
+	Convey("Given DimensionRepository.conn is not nil", t, func() {
+		connMock := &mocks.NeoConnMock{
+			CloseFunc: func() error {
+				return nil
+			},
+		}
+		repo := DimensionRepository{conn: connMock}
+
+		Convey("When Close is invoked", func() {
+			repo.Close()
+
+			Convey("Then conn.Close is called 1 time", func() {
+				So(len(connMock.CloseCalls()), ShouldEqual, 1)
 			})
 		})
 	})

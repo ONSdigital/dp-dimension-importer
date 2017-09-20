@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ONSdigital/dp-dimension-importer/client"
 	"github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
+
+//go:generate moq -out ../mocks/repository_generated_mocks.go -pkg mocks . Neo4jClient
 
 const (
 	// Create a unique constraint on the dimension type value.
@@ -38,24 +39,40 @@ const (
 	dimensionkey              = "dimension"
 )
 
-// Neo4jClient defines a client for executing statements and queries against a Neo4j graph database.
+// Neo4jClient defines a client for executing statements and queries against a neo4j graph database.
 type Neo4jClient interface {
-	Query(query string, params map[string]interface{}) (*common.NeoRows, error)
-	ExecStmt(query string, params map[string]interface{}) (bolt.Result, error)
+	Query(conn bolt.Conn, query string, params map[string]interface{}) (*common.NeoRows, error)
+	ExecStmt(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error)
 }
 
 // DimensionRepository provides functionality for inserting Dimensions into a database.
 type DimensionRepository struct {
 	constraintsCache map[string]string
 	neo4jCli         Neo4jClient
+	conn             bolt.Conn
 }
 
 // NewDimensionRepository returns a new instance using the given neo4j client.
-func NewDimensionRepository(neo4jCli *client.Neo4j, constraintsCache map[string]string) *DimensionRepository {
+func NewDimensionRepository(connPool common.NeoDriverPool, neo4jCli Neo4jClient) (*DimensionRepository, error) {
+	conn, err := connPool.OpenPool()
+	if err != nil {
+		log.ErrorC(openConnErr, err, nil)
+		return nil, err
+	}
+
 	return &DimensionRepository{
 		neo4jCli:         neo4jCli,
-		constraintsCache: constraintsCache,
+		constraintsCache: make(map[string]string, 0),
+		conn:             conn,
+	}, nil
+}
+
+func (repo DimensionRepository) Close() {
+	if err := repo.conn.Close(); err != nil {
+		log.ErrorC(closeErr, err, nil)
+		return
 	}
+	log.Info("DimensionRepository conn closed", nil)
 }
 
 // Insert inster a dimension into the database and create a unique constrainton the dimension label & value if one
@@ -85,7 +102,7 @@ func (repo DimensionRepository) Insert(i *model.Instance, d *model.Dimension) (*
 		if d != nil && len(d.DimensionID) > 0 {
 			logData[common.DimensionID] = d.DimensionID
 		}
-		log.Debug(insertDimErr, logData)
+		log.Info(insertDimErr, logData)
 		return nil, err
 	}
 	return d, nil
@@ -96,14 +113,14 @@ func (repo DimensionRepository) createUniqueConstraint(d *model.Dimension) error
 	dimensionLabel := "_" + d.DimensionID
 	stmt := fmt.Sprintf(uniqueDimConstStmt, dimensionLabel)
 
-	if _, err := repo.neo4jCli.ExecStmt(stmt, nil); err != nil {
+	if _, err := repo.neo4jCli.ExecStmt(repo.conn, stmt, nil); err != nil {
 		logData[common.ErrorDetails] = err.Error()
 		log.ErrorC(uniqueConstErr, err, logData)
 		return err
 	}
 
 	logData[dimensionkey] = d.DimensionID
-	log.Debug(uniqueConstSuccess, logData)
+	log.Info(uniqueConstSuccess, logData)
 	return nil
 }
 
@@ -121,7 +138,7 @@ func (repo DimensionRepository) insertDimension(i *model.Instance, d *model.Dime
 	dimensionLabel := "_" + d.DimensionID
 
 	var rows *common.NeoRows
-	if rows, err = repo.neo4jCli.Query(fmt.Sprintf(createDimensionAndInstanceRelStmt, instanceLabel, dimensionLabel), params); err != nil {
+	if rows, err = repo.neo4jCli.Query(repo.conn, fmt.Sprintf(createDimensionAndInstanceRelStmt, instanceLabel, dimensionLabel), params); err != nil {
 		log.ErrorC(errExecutingStatment, err, logData)
 		return nil, err
 	}

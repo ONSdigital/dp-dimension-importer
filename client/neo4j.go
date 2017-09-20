@@ -5,56 +5,28 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	"sync"
 )
 
-// Neo4j client provides functions for inserting dimension, instances and relationships into a Neo4j database.
-type Neo4j struct {
-	driverPool common.NeoDriverPool
-}
+// Neo4j client provides functions running queries and executing statments against a Neo4j database.
+type Neo4j struct{}
 
 const (
 	stmtKey               = "statement"
 	stmtParamsKey         = "params"
 	openConnErr           = "error while attempting to open connection"
 	errExecutingStatement = "error while attempting to execute statement"
-	errDrivePoolInit      = "error while attempting to initialize neo4j driver pool"
 	errCreatingStatement  = "error while attempting to create neo4j statement"
 	errQueryWasEmpty      = "query is required but was nil or empty"
 	errStmtWasEmpty       = "statement is required but was nil or empty"
 	errRetrievingRows     = "error while attempting to retrieve row data"
+	errConnNil            = "conn is required but was nil"
 )
 
-var once sync.Once
-
-// NewNeo4j creates a new instance of the Neo4j client and does the initial setup required for the
-// client to connect to the database instance.
-func NewNeo4j(url string, poolSize int) (*Neo4j, error) {
-	var err error
-	var neo4j *Neo4j
-	var pool common.NeoDriverPool
-
-	once.Do(func() {
-		pool, err = bolt.NewDriverPool(url, poolSize)
-		if err != nil {
-			// TODO sort this out.
-			panic(err)
-		}
-		neo4j = &Neo4j{driverPool: pool}
-	})
-
-	if err != nil {
-		log.ErrorC(errDrivePoolInit, err, log.Data{
-			common.URL:      url,
-			common.PoolSize: poolSize,
-		})
-		return nil, err
+// Query execute a query against neo. Caller is responsible for closing conn
+func (neo Neo4j) Query(conn bolt.Conn, query string, params map[string]interface{}) (*common.NeoRows, error) {
+	if conn == nil {
+		return nil, errors.New(errConnNil)
 	}
-	return neo4j, nil
-}
-
-// Query execute a query against neo.
-func (neo Neo4j) Query(query string, params map[string]interface{}) (*common.NeoRows, error) {
 	if len(query) == 0 {
 		return nil, errors.New(errQueryWasEmpty)
 	}
@@ -62,14 +34,7 @@ func (neo Neo4j) Query(query string, params map[string]interface{}) (*common.Neo
 		stmtKey:       query,
 		stmtParamsKey: params,
 	}
-	var conn bolt.Conn
 	var err error
-
-	if conn, err = neo.driverPool.OpenPool(); err != nil {
-		log.ErrorC(openConnErr, err, nil)
-		return nil, err
-	}
-	defer conn.Close()
 
 	var neoStmt bolt.Stmt
 	if neoStmt, err = createStmt(conn, query); err != nil {
@@ -92,8 +57,11 @@ func (neo Neo4j) Query(query string, params map[string]interface{}) (*common.Neo
 	return &common.NeoRows{Data: allRows}, nil
 }
 
-// ExecStmt execute a statement against neo.
-func (neo Neo4j) ExecStmt(stmt string, params map[string]interface{}) (bolt.Result, error) {
+// ExecStmt execute a statement against neo. Caller is responsible for closing conn
+func (neo Neo4j) ExecStmt(conn bolt.Conn, stmt string, params map[string]interface{}) (bolt.Result, error) {
+	if conn == nil {
+		return nil, errors.New(errConnNil)
+	}
 	if len(stmt) == 0 {
 		return nil, errors.New(errStmtWasEmpty)
 	}
@@ -102,14 +70,7 @@ func (neo Neo4j) ExecStmt(stmt string, params map[string]interface{}) (bolt.Resu
 		stmtParamsKey: params,
 	}
 
-	var conn bolt.Conn
 	var err error
-
-	if conn, err = neo.driverPool.OpenPool(); err != nil {
-		log.ErrorC(openConnErr, err, nil)
-		return nil, err
-	}
-	defer conn.Close()
 
 	var neoStmt bolt.Stmt
 	if neoStmt, err = createStmt(conn, stmt); err != nil {
