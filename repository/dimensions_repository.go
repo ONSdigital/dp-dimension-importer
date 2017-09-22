@@ -66,14 +66,15 @@ func (repo DimensionRepository) Insert(i *model.Instance, d *model.Dimension) (*
 	if err := validateDimension(d); err != nil {
 		return nil, err
 	}
+	dimensionID := fmt.Sprintf("_%s_%s", i.InstanceID, d.DimensionID)
 
-	if _, exists := repo.constraintsCache[d.DimensionID]; !exists {
+	if _, exists := repo.constraintsCache[dimensionID]; !exists {
 
-		if err := repo.createUniqueConstraint(d); err != nil {
+		if err := repo.createUniqueConstraint(i.InstanceID, d); err != nil {
 			log.ErrorC(uniqueConstraintErr, err, nil)
 			return nil, err
 		}
-		repo.constraintsCache[d.DimensionID] = d.DimensionID
+		repo.constraintsCache[dimensionID] = dimensionID
 		i.AddDimension(d)
 	}
 
@@ -90,9 +91,9 @@ func (repo DimensionRepository) Insert(i *model.Instance, d *model.Dimension) (*
 	return d, nil
 }
 
-func (repo DimensionRepository) createUniqueConstraint(d *model.Dimension) error {
+func (repo DimensionRepository) createUniqueConstraint(instanceId string, d *model.Dimension) error {
 	logDebug := map[string]interface{}{}
-	dimensionLabel := "_" + d.DimensionID
+	dimensionLabel := fmt.Sprintf("_%s_%s", instanceId, d.DimensionID)
 	stmt := fmt.Sprintf(uniqueDimConstStmt, dimensionLabel)
 
 	if _, err := repo.neo4jCli.ExecStmt(stmt, nil); err != nil {
@@ -116,7 +117,7 @@ func (repo DimensionRepository) insertDimension(i *model.Instance, d *model.Dime
 	logData[stmtParamsKey] = params
 
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
-	dimensionLabel := "_" + d.DimensionID
+	dimensionLabel := fmt.Sprintf("_%s_%s", i.InstanceID, d.DimensionID)
 
 	var rows *common.NeoRows
 	if rows, err = repo.neo4jCli.Query(fmt.Sprintf(createDimensionAndInstanceRelStmt, instanceLabel, dimensionLabel), params); err != nil {
