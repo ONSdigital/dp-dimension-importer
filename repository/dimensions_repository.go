@@ -66,15 +66,15 @@ func (repo DimensionRepository) Insert(i *model.Instance, d *model.Dimension) (*
 	if err := validateDimension(d); err != nil {
 		return nil, err
 	}
-	dimensionID := fmt.Sprintf("_%s_%s", i.InstanceID, d.DimensionID)
+	dimensionLabel := fmt.Sprintf("_%s_%s", i.InstanceID, d.DimensionID)
 
-	if _, exists := repo.constraintsCache[dimensionID]; !exists {
+	if _, exists := repo.constraintsCache[dimensionLabel]; !exists {
 
 		if err := repo.createUniqueConstraint(i.InstanceID, d); err != nil {
 			log.ErrorC(uniqueConstraintErr, err, nil)
 			return nil, err
 		}
-		repo.constraintsCache[dimensionID] = dimensionID
+		repo.constraintsCache[dimensionLabel] = dimensionLabel
 		i.AddDimension(d)
 	}
 
