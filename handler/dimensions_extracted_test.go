@@ -13,13 +13,13 @@ var testInstanceID = "1234567890"
 
 var d1 = &model.Dimension{
 	DimensionID: "1234567890_Geography",
-	Value:       "England",
+	Option:      "England",
 	NodeID:      "1",
 }
 
 var d2 = &model.Dimension{
 	DimensionID: "1234567890_Geography",
-	Value:       "Wales",
+	Option:      "Wales",
 	NodeID:      "2",
 }
 

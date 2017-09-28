@@ -109,11 +109,11 @@ func (repo DimensionRepository) createUniqueConstraint(instanceId string, d *mod
 func (repo DimensionRepository) insertDimension(i *model.Instance, d *model.Dimension) (*model.Dimension, error) {
 	logData := log.Data{
 		common.DimensionID: d.DimensionID,
-		valueKey:           d.Value,
+		valueKey:           d.Option,
 	}
 
 	var err error
-	params := map[string]interface{}{valueKey: d.Value}
+	params := map[string]interface{}{valueKey: d.Option}
 	logData[stmtParamsKey] = params
 
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
@@ -149,13 +149,13 @@ func validateDimension(d *model.Dimension) error {
 	if d == nil {
 		return errors.New(dimensionNilErr)
 	}
-	if len(d.DimensionID) == 0 && len(d.Value) == 0 {
+	if len(d.DimensionID) == 0 && len(d.Option) == 0 {
 		return errors.New(dimensionInvalidErr)
 	}
 	if len(d.DimensionID) == 0 {
 		return errors.New(dimensionIDRequiredErr)
 	}
-	if len(d.Value) == 0 {
+	if len(d.Option) == 0 {
 		return errors.New(dimensionValueRequiredErr)
 	}
 	return nil
