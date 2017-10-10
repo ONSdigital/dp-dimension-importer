@@ -1,9 +1,9 @@
 package message
 
 import (
+	"context"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"context"
 	"time"
 )
 
@@ -30,29 +30,29 @@ type KafkaConsumer interface {
 	Incoming() chan kafka.Message
 }
 
-type MessageHandler interface {
-	Handle(message kafka.Message)
+type Reciever interface {
+	OnMessage(message kafka.Message)
 }
 
 // Consumer listens for kafka messages on the specified topic, processes thems & sends an outbound kafka message when complete.
 type Consumer struct {
-	closed         chan bool
-	ctx            context.Context
-	cancel         context.CancelFunc
-	consumer       KafkaConsumer
-	messageHandler MessageHandler
+	closed          chan bool
+	ctx             context.Context
+	cancel          context.CancelFunc
+	consumer        KafkaConsumer
+	messageReciever Reciever
 }
 
 // NewConsumer create a NewInstance event consumer.
-func NewConsumer(consumer KafkaConsumer, messageHandler MessageHandler) Consumer {
+func NewConsumer(consumer KafkaConsumer, messageReciever Reciever) Consumer {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return Consumer{
-		closed:         make(chan bool, 1),
-		ctx:            ctx,
-		cancel:         cancel,
-		consumer:       consumer,
-		messageHandler: messageHandler,
+		closed:          make(chan bool, 1),
+		ctx:             ctx,
+		cancel:          cancel,
+		consumer:        consumer,
+		messageReciever: messageReciever,
 	}
 }
 
@@ -66,7 +66,7 @@ func (c Consumer) Listen() {
 		for {
 			select {
 			case consumedMessage := <-c.consumer.Incoming():
-				c.messageHandler.Handle(consumedMessage)
+				c.messageReciever.OnMessage(consumedMessage)
 			case <-c.ctx.Done():
 				log.Info(consumerStoppedMsg, nil)
 				return

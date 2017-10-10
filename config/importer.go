@@ -3,9 +3,10 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"time"
+
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/kelseyhightower/envconfig"
-	"time"
 )
 
 // Config struct to hold application configuration.
@@ -37,8 +38,11 @@ func (c *Config) String() string {
 
 // Load load the configuration & apply defaults where necessary
 func Load() (*Config, error) {
-	// TODO HANDLE ERR
-	defaultTimeout, _ := time.ParseDuration("5s")
+	defaultTimeout, err := time.ParseDuration("5s")
+	if err != nil {
+		log.ErrorC("error while attempting to parse default timeout from string", err, nil)
+		return nil, err
+	}
 
 	cfg := Config{
 		BindAddr:               ":21000",
@@ -53,7 +57,7 @@ func Load() (*Config, error) {
 		ShutdownTimeout:        defaultTimeout,
 	}
 
-	err := envconfig.Process("", &cfg)
+	err = envconfig.Process("", &cfg)
 
 	if len(cfg.DatasetAPIAuthToken) == 0 {
 		err := errors.New("error while attempting to load config. dataset api auth token is required but has not been configured")

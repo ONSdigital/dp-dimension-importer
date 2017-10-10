@@ -3,11 +3,12 @@ package message
 import (
 	"errors"
 	"testing"
-	. "github.com/smartystreets/goconvey/convey"
+	"time"
+
 	mock "github.com/ONSdigital/dp-dimension-importer/message/message_test"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"time"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 var (
@@ -37,8 +38,8 @@ func TestConsumer_Listen(t *testing.T) {
 		}
 
 		handleCalls := make([]kafka.Message, 0)
-		msgHdlr := mock.MessageHandler{
-			HandleFunc: func(message kafka.Message) {
+		recieverMock := mock.MessageReciever{
+			OnMessageFunc: func(message kafka.Message) {
 				handleCalls = append(handleCalls, message)
 				handlerInvoked <- message
 			},
@@ -46,7 +47,7 @@ func TestConsumer_Listen(t *testing.T) {
 
 		msg := &mock.KafkaMessageMock{}
 
-		consumer := NewConsumer(kafkaConsumer, msgHdlr)
+		consumer := NewConsumer(kafkaConsumer, recieverMock)
 		consumer.Listen()
 
 		Convey("When the consumer receieves a valid message", func() {
@@ -61,7 +62,7 @@ func TestConsumer_Listen(t *testing.T) {
 			}
 			consumer.Close(nil)
 
-			Convey("Then messageHandler.Handle is called 1 time with the expected parameters", func() {
+			Convey("Then messageReciever.OnMessage is called 1 time with the expected parameters", func() {
 				So(len(handleCalls), ShouldEqual, 1)
 			})
 		})

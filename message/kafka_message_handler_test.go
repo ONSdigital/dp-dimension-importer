@@ -2,12 +2,13 @@ package message
 
 import (
 	"testing"
-	. "github.com/smartystreets/goconvey/convey"
-	mock "github.com/ONSdigital/dp-dimension-importer/message/message_test"
+
 	"github.com/ONSdigital/dp-dimension-importer/event"
+	mock "github.com/ONSdigital/dp-dimension-importer/message/message_test"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/dp-reporter-client/reporter/reportertest"
 	"github.com/pkg/errors"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestKafkaMessageHandler_Handle(t *testing.T) {
@@ -23,23 +24,23 @@ func TestKafkaMessageHandler_Handle(t *testing.T) {
 
 	fixture := newFixture(avroBytes, handleInstanceFunc)
 
-	Convey("Given KafkaMessageHandler has been correctly configured", t, func() {
-		handler := KafkaMessageHandler{
+	Convey("Given KafkaMessageReciever has been correctly configured", t, func() {
+		handler := KafkaMessageReciever{
 			InstanceHandler: fixture.instanceHandler,
-			ErrEventHandler: fixture.errorHandler,
+			ErrorReporter:   fixture.errorReporter,
 		}
 
-		Convey("When Handle is called with a valid message", func() {
-			handler.Handle(fixture.message)
+		Convey("When OnMessage is called with a valid message", func() {
+			handler.OnMessage(fixture.message)
 		})
 
-		Convey("Then InstanceHandler.Handle is called 1 time with the expected parameters", func() {
+		Convey("Then InstanceHandler.OnMessage is called 1 time with the expected parameters", func() {
 			So(len(fixture.instanceHdlrCalls), ShouldEqual, 1)
 			So(fixture.instanceHdlrCalls[0], ShouldResemble, newInstanceEvent)
 		})
 
-		Convey("And ErrEventHandler.Handle is never called", func() {
-			So(len(fixture.errorHdlrCalls), ShouldEqual, 0)
+		Convey("And ErrorReporter.Notify is never called", func() {
+			So(len(fixture.errorReporter.NotifyCalls()), ShouldEqual, 0)
 		})
 
 		Convey("And message.Commit is called 1 time", func() {
@@ -55,21 +56,20 @@ func TestKafkaMessageHandler_Handle_InvalidKafkaMessage(t *testing.T) {
 
 	fix := newFixture([]byte("I am not a valid message"), handleInstanceFunc)
 
-	Convey("Given KafkaMessageHandler has been correctly configured", t, func() {
-		handler := KafkaMessageHandler{
+	Convey("Given KafkaMessageReciever has been correctly configured", t, func() {
+		handler := KafkaMessageReciever{
 			InstanceHandler: fix.instanceHandler,
-			ErrEventHandler: fix.errorHandler,
+			ErrorReporter:   fix.errorReporter,
 		}
 
 		Convey("When an invalid message is receieved", func() {
-			handler.Handle(fix.message)
+			handler.OnMessage(fix.message)
 
-			Convey("Then ErrEventHandler.Handle is called 1 time with the expected parameters", func() {
-				So(len(fix.errorHdlrCalls), ShouldEqual, 1)
-				So(fix.errorHdlrCalls[0].InstanceID, ShouldEqual, "")
+			Convey("Then ErrorReporter.Notify is never called", func() {
+				So(len(fix.errorReporter.NotifyCalls()), ShouldEqual, 0)
 			})
 
-			Convey("And InstanceHandler.Handle is never called", func() {
+			Convey("And InstanceHandler.OnMessage is never called", func() {
 				So(len(fix.instanceHdlrCalls), ShouldEqual, 0)
 			})
 
@@ -95,24 +95,24 @@ func TestKafkaMessageHandler_Handle_InstanceHandlerError(t *testing.T) {
 
 	fix := newFixture(avroBytes, handleInstanceFunc)
 
-	Convey("Given KafkaMessageHandler has been correctly configured", t, func() {
-		handler := KafkaMessageHandler{
+	Convey("Given KafkaMessageReciever has been correctly configured", t, func() {
+		handler := KafkaMessageReciever{
 			InstanceHandler: fix.instanceHandler,
-			ErrEventHandler: fix.errorHandler,
+			ErrorReporter:   fix.errorReporter,
 		}
 
-		Convey("When Handle is called with a valid message", func() {
-			handler.Handle(fix.message)
+		Convey("When OnMessage is called with a valid message", func() {
+			handler.OnMessage(fix.message)
 		})
 
-		Convey("Then InstanceHandler.Handle is called 1 time with the expected parameters", func() {
+		Convey("Then InstanceHandler.OnMessage is called 1 time with the expected parameters", func() {
 			So(len(fix.instanceHdlrCalls), ShouldEqual, 1)
 			So(fix.instanceHdlrCalls[0], ShouldResemble, newInstanceEvent)
 		})
 
-		Convey("And ErrEventHandler.Handle is called 1 time with the expected parameters", func() {
-			So(len(fix.errorHdlrCalls), ShouldEqual, 1)
-			So(fix.errorHdlrCalls[0].EventMsg, ShouldEqual, instanceHandlerErr.Error())
+		Convey("And ErrorReporter.Notify is called 1 time with the expected parameters", func() {
+			So(len(fix.errorReporter.NotifyCalls()), ShouldEqual, 1)
+			So(fix.errorReporter.NotifyCalls()[0].ErrContext, ShouldEqual, eventHandlerErr)
 		})
 
 		Convey("And message.Commit is never called", func() {
@@ -123,19 +123,16 @@ func TestKafkaMessageHandler_Handle_InstanceHandlerError(t *testing.T) {
 
 type fixture struct {
 	instanceHdlrCalls []event.NewInstance
-	errorHdlrCalls    []event.Error
 	instanceHandler   mock.InstanceEventHandler
-	errorHandler      mock.ErrorHandler
+	errorReporter     *reportertest.ImportErrorReporterMock
 	message           *mock.KafkaMessageMock
 }
 
 func newFixture(messageBytes []byte, handleInstanceFunc func(e event.NewInstance) error) *fixture {
 	instanceHdlrCalls := make([]event.NewInstance, 0)
-	errorHdlrCalls := make([]event.Error, 0)
 
 	fix := &fixture{
 		instanceHdlrCalls: instanceHdlrCalls,
-		errorHdlrCalls:    errorHdlrCalls,
 		message: &mock.KafkaMessageMock{
 			CommitFunc: func() {
 				// DO Nothing
@@ -153,14 +150,7 @@ func newFixture(messageBytes []byte, handleInstanceFunc func(e event.NewInstance
 		},
 	}
 
-	errorHandler := mock.ErrorHandler{
-		HandleFunc: func(instanceID string, err error, data log.Data) {
-			errEvent := event.Error{InstanceID: instanceID, EventType: "Error", EventMsg: err.Error()}
-			fix.errorHdlrCalls = append(fix.errorHdlrCalls, errEvent)
-		},
-	}
-
 	fix.instanceHandler = instanceHandler
-	fix.errorHandler = errorHandler
+	fix.errorReporter = reportertest.NewImportErrorReporterMock(nil)
 	return fix
 }

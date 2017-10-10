@@ -3,22 +3,24 @@ package main
 import (
 	"os"
 
+	"context"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"os/signal"
+	"syscall"
+
 	"github.com/ONSdigital/dp-dimension-importer/client"
 	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/handler"
+	"github.com/ONSdigital/dp-dimension-importer/healthcheck"
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	"github.com/ONSdigital/dp-dimension-importer/repository"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
+	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"github.com/ONSdigital/dp-dimension-importer/healthcheck"
-	"os/signal"
-	"syscall"
-	"context"
 )
 
 const (
@@ -30,7 +32,8 @@ const (
 	createConnPoolErr        = "unexpected error while to create database connection pool"
 	gracefulShutdownMsg      = "commencing graceful shutdown..."
 	gracefulShutdownComplete = "graceful shutdown completed successfully, exiting application"
-	loadConfigErr            = "error while loading application config."
+	loadConfigErr            = "error while loading application config"
+	newReporterErr           = "error while attempting to create new ImportErrorReporter"
 )
 
 type responseBodyReader struct{}
@@ -60,7 +63,7 @@ func main() {
 	instanceCompleteProducer := newProducer(cfg.KafkaAddr, cfg.OutgoingInstancesTopic)
 
 	// Outgoing topic for any errors while processing an instance
-	errorEventProducer := newProducer(cfg.KafkaAddr, cfg.EventReporterTopic)
+	errorReporterProducer := newProducer(cfg.KafkaAddr, cfg.EventReporterTopic)
 
 	neo4jCli := client.Neo4j{}
 
@@ -95,7 +98,7 @@ func main() {
 		ResponseBodyReader:  responseBodyReader{},
 	}
 
-	// MessageHandler for NewInstance events.
+	// Reciever for NewInstance events.
 	instanceEventHandler := &handler.InstanceEventHandler{
 		NewDimensionInserter:  newDimensionInserterFunc,
 		NewInstanceRepository: newInstanceRepoFunc,
@@ -104,9 +107,10 @@ func main() {
 	}
 
 	// Errors handler
-	errEventHandler := &handler.ErrorHandler{
-		Producer:   errorEventProducer,
-		Marshaller: schema.ErrorEventSchema,
+	errorReporter, err := reporter.NewImportErrorReporter(errorReporterProducer, log.Namespace)
+	if err != nil {
+		log.ErrorC(newReporterErr, err, nil)
+		os.Exit(1)
 	}
 
 	healthCheckErrors := make(chan error)
@@ -114,12 +118,12 @@ func main() {
 	// HTTP Health check endpoint.
 	healthcheck.NewHandler(cfg.BindAddr, healthCheckErrors)
 
-	messageHandler := message.KafkaMessageHandler{
+	messageReciever := message.KafkaMessageReciever{
 		InstanceHandler: instanceEventHandler,
-		ErrEventHandler: errEventHandler,
+		ErrorReporter:   errorReporter,
 	}
 
-	consumer := message.NewConsumer(instanceConsumer, messageHandler)
+	consumer := message.NewConsumer(instanceConsumer, messageReciever)
 	consumer.Listen()
 
 	// Gracefully shutdown the application closing any open resources.
@@ -132,7 +136,7 @@ func main() {
 
 		instanceConsumer.Close(ctx)
 		instanceCompleteProducer.Close(ctx)
-		errorEventProducer.Close(ctx)
+		errorReporterProducer.Close(ctx)
 		healthcheck.Close(ctx)
 
 		log.Info(gracefulShutdownComplete, nil)
@@ -147,7 +151,7 @@ func main() {
 		case err := <-instanceCompleteProducer.Errors():
 			log.ErrorC(producerErrMsg, err, nil)
 			gracefulShutdown()
-		case err := <-errorEventProducer.Errors():
+		case err := <-errorReporterProducer.Errors():
 			log.ErrorC(eventReporterErrMsg, err, nil)
 			gracefulShutdown()
 		case err := <-healthCheckErrors:

@@ -2,7 +2,6 @@ package message_test
 
 import (
 	"github.com/ONSdigital/dp-dimension-importer/event"
-	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/kafka"
 )
 
@@ -14,20 +13,12 @@ func (h InstanceEventHandler) Handle(e event.NewInstance) error {
 	return h.HandleFunc(e)
 }
 
-type ErrorHandler struct {
-	HandleFunc func(instanceID string, err error, data log.Data)
+type MessageReciever struct {
+	OnMessageFunc func(message kafka.Message)
 }
 
-func (h ErrorHandler) Handle(instanceID string, err error, data log.Data) {
-	h.HandleFunc(instanceID, err, data)
-}
-
-type MessageHandler struct {
-	HandleFunc func (message kafka.Message)
-}
-
-func (mh MessageHandler) Handle(message kafka.Message) {
-	mh.HandleFunc(message)
+func (mh MessageReciever) OnMessage(message kafka.Message) {
+	mh.OnMessageFunc(message)
 }
 
 type MessageMock struct {

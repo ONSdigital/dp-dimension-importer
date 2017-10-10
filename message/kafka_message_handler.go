@@ -3,8 +3,13 @@ package message
 import (
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
+	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
+)
+
+const (
+	reporterErr = "unexpected error returned from import error reporter"
 )
 
 // InstanceHandler defines an InstanceHandler.
@@ -12,33 +17,27 @@ type InstanceEventHandler interface {
 	Handle(e event.NewInstance) error
 }
 
-// ErrorHandler handler for dealing with any error while processing an inbound message.
-type ErrorHandler interface {
-	Handle(instanceID string, err error, data log.Data)
-}
-
-// KafkaMessageHandler  ...
-type KafkaMessageHandler struct {
+// KafkaMessageReciever  ...
+type KafkaMessageReciever struct {
 	InstanceHandler InstanceEventHandler
-	ErrEventHandler ErrorHandler
+	ErrorReporter   reporter.ErrorReporter
 }
 
-func (hdlr KafkaMessageHandler) Handle(message kafka.Message) {
+func (r KafkaMessageReciever) OnMessage(message kafka.Message) {
 	var newInstanceEvent event.NewInstance
 	if err := schema.NewInstanceSchema.Unmarshal(message.GetData(), &newInstanceEvent); err != nil {
 		log.ErrorC(unmarshallErrMsg, err, nil)
-		hdlr.ErrEventHandler.Handle("", err, nil)
-		log.Info(processingErr, nil)
 		return
 	}
 
 	logData := map[string]interface{}{eventKey: newInstanceEvent}
 	log.Debug(eventRecieved, logData)
 
-	if err := hdlr.InstanceHandler.Handle(newInstanceEvent); err != nil {
+	if err := r.InstanceHandler.Handle(newInstanceEvent); err != nil {
 		log.ErrorC(eventHandlerErr, err, logData)
-		hdlr.ErrEventHandler.Handle(newInstanceEvent.InstanceID, err, nil)
-		log.Info(processingErr, logData)
+		if err := r.ErrorReporter.Notify(newInstanceEvent.InstanceID, eventHandlerErr, err); err != nil {
+			log.Info(reporterErr, logData)
+		}
 		return
 	}
 

@@ -41,7 +41,7 @@ type Setter interface {
 }
 
 func (e *ParseError) Error() string {
-	return fmt.Sprintf("envconfig.Handle: assigning %[1]s to %[2]s: converting '%[3]s' to type %[4]s. details: %[5]s", e.KeyName, e.FieldName, e.Value, e.TypeName, e.Err)
+	return fmt.Sprintf("envconfig.Process: assigning %[1]s to %[2]s: converting '%[3]s' to type %[4]s. details: %[5]s", e.KeyName, e.FieldName, e.Value, e.TypeName, e.Err)
 }
 
 // varInfo maintains information about the configuration variable
@@ -142,7 +142,7 @@ func gatherInfo(prefix string, spec interface{}) ([]varInfo, error) {
 	return infos, nil
 }
 
-// Handle populates the specified struct based on environment variables
+// Process populates the specified struct based on environment variables
 func Process(prefix string, spec interface{}) error {
 	infos, err := gatherInfo(prefix, spec)
 
@@ -185,7 +185,7 @@ func Process(prefix string, spec interface{}) error {
 	return err
 }
 
-// MustProcess is the same as Handle but panics if an error occurs
+// MustProcess is the same as Process but panics if an error occurs
 func MustProcess(prefix string, spec interface{}) {
 	if err := Process(prefix, spec); err != nil {
 		panic(err)
@@ -266,24 +266,26 @@ func processField(value string, field reflect.Value) error {
 		}
 		field.Set(sl)
 	case reflect.Map:
-		pairs := strings.Split(value, ",")
 		mp := reflect.MakeMap(typ)
-		for _, pair := range pairs {
-			kvpair := strings.Split(pair, ":")
-			if len(kvpair) != 2 {
-				return fmt.Errorf("invalid map item: %q", pair)
+		if len(strings.TrimSpace(value)) != 0 {
+			pairs := strings.Split(value, ",")
+			for _, pair := range pairs {
+				kvpair := strings.Split(pair, ":")
+				if len(kvpair) != 2 {
+					return fmt.Errorf("invalid map item: %q", pair)
+				}
+				k := reflect.New(typ.Key()).Elem()
+				err := processField(kvpair[0], k)
+				if err != nil {
+					return err
+				}
+				v := reflect.New(typ.Elem()).Elem()
+				err = processField(kvpair[1], v)
+				if err != nil {
+					return err
+				}
+				mp.SetMapIndex(k, v)
 			}
-			k := reflect.New(typ.Key()).Elem()
-			err := processField(kvpair[0], k)
-			if err != nil {
-				return err
-			}
-			v := reflect.New(typ.Elem()).Elem()
-			err = processField(kvpair[1], v)
-			if err != nil {
-				return err
-			}
-			mp.SetMapIndex(k, v)
 		}
 		field.Set(mp)
 	}

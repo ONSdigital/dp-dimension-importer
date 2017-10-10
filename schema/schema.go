@@ -43,26 +43,3 @@ var instanceCompleted = `{
 var InstanceCompletedSchema *avro.Schema = &avro.Schema{
 	Definition: instanceCompleted,
 }
-
-var errorEvent = `{
-  "type": "record",
-  "name": "report-event",
-  "fields": [
-    {
-    	"name": "instance_id",
-    	"type": "string"
-	 },
-    {
-    	"name": "event_type",
-    	"type": "string"
-	 },
-    {
-    	"name": "event_message",
-	 	"type": "string"
-	 }
-  ]
-}`
-
-var ErrorEventSchema *avro.Schema = &avro.Schema{
-	Definition: errorEvent,
-}
