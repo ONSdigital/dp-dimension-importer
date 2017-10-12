@@ -198,7 +198,7 @@ func (api DatasetAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) 
 	logData[logKeys.DimensionsKey] = d.DimensionID
 	logData[logKeys.NodeID] = d.NodeID
 
-	url := fmt.Sprintf(putDimensionNodeIDURI, api.DatasetAPIHost, instanceID, d.DimensionID, url.PathEscape(d.Value), d.NodeID)
+	url := fmt.Sprintf(putDimensionNodeIDURI, api.DatasetAPIHost, instanceID, d.DimensionID, url.PathEscape(d.Option), d.NodeID)
 	logData[logKeys.URL] = url
 
 	req, err := http.NewRequest(http.MethodPut, url, nil)

@@ -3,23 +3,23 @@ package repository
 import (
 	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/mocks"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 var instance = &model.Instance{InstanceID: instanceID}
 var dimension = &model.Dimension{
-	DimensionID: "0123456789_Sex",
-	Value:       "Male",
+	DimensionID: "Sex",
+	Option:      "Male",
 }
 
 var expectedDimension = &model.Dimension{
-	DimensionID: "0123456789_Sex",
-	Value:       "Male",
+	DimensionID: "Sex",
+	Option:      "Male",
 	NodeID:      "1234",
 }
 
@@ -90,7 +90,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 		repo := DimensionRepository{}
 
 		Convey("When Insert is invoked", func() {
-			dim, err := repo.Insert(instance, &model.Dimension{Value: "10"})
+			dim, err := repo.Insert(instance, &model.Dimension{Option: "10"})
 
 			Convey("Then the expected error is returned with a nil dimension", func() {
 				So(dim, ShouldEqual, nil)
@@ -121,8 +121,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 
 		repo := DimensionRepository{
 			neo4jCli:         neo4jMock,
-			constraintsCache: map[string]string{dimension.DimensionID: ""},
-			conn:             connMock,
+			constraintsCache: map[string]string{"_" + instanceID + "_" + dimension.DimensionID: ""},
 		}
 
 		Convey("When Insert is invoked", func() {
@@ -137,10 +136,10 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				calls := neo4jMock.QueryCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				expectedQuery := fmt.Sprintf(createDimensionAndInstanceRelStmt, "_"+instanceID+"_Instance", "_"+dimension.DimensionID)
+				expectedQuery := fmt.Sprintf(createDimensionAndInstanceRelStmt, "_"+instanceID+"_Instance", "_"+instanceID+"_"+dimension.DimensionID)
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 
-				expectedParams := map[string]interface{}{valueKey: dimension.Value}
+				expectedParams := map[string]interface{}{valueKey: dimension.Option}
 				So(calls[0].Params, ShouldResemble, expectedParams)
 			})
 
@@ -167,8 +166,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 
 		repo := DimensionRepository{
 			neo4jCli:         neo4jMock,
-			constraintsCache: map[string]string{dimension.DimensionID: ""},
-			conn:             connMock,
+			constraintsCache: map[string]string{"_" + instanceID + "_" + dimension.DimensionID: ""},
 		}
 
 		Convey("When Insert is invoked", func() {
@@ -183,10 +181,10 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				calls := neo4jMock.QueryCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				expectedQuery := fmt.Sprintf(createDimensionAndInstanceRelStmt, "_"+instanceID+"_Instance", "_"+dimension.DimensionID)
+				expectedQuery := fmt.Sprintf(createDimensionAndInstanceRelStmt, "_"+instanceID+"_Instance", "_"+instanceID+"_"+dimension.DimensionID)
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 
-				expectedParams := map[string]interface{}{valueKey: dimension.Value}
+				expectedParams := map[string]interface{}{valueKey: dimension.Option}
 				So(calls[0].Params, ShouldResemble, expectedParams)
 			})
 
@@ -233,7 +231,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				calls := neo4jMock.ExecStmtCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				expectedQuery := fmt.Sprintf(uniqueDimConstStmt, "_"+dimension.DimensionID)
+				expectedQuery := fmt.Sprintf(uniqueDimConstStmt, "_"+instanceID+"_Sex")
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 				So(calls[0].Params, ShouldEqual, nil)
 			})
@@ -242,10 +240,10 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				calls := neo4jMock.QueryCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				expectedQuery := fmt.Sprintf(createDimensionAndInstanceRelStmt, "_"+instanceID+"_Instance", "_"+dimension.DimensionID)
+				expectedQuery := fmt.Sprintf(createDimensionAndInstanceRelStmt, "_"+instanceID+"_Instance", "_"+instanceID+"_"+dimension.DimensionID)
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 
-				expectedParams := map[string]interface{}{valueKey: dimension.Value}
+				expectedParams := map[string]interface{}{valueKey: dimension.Option}
 				So(calls[0].Params, ShouldResemble, expectedParams)
 			})
 		})
@@ -288,7 +286,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				calls := neo4jMock.ExecStmtCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				expectedQuery := fmt.Sprintf(uniqueDimConstStmt, "_"+dimension.DimensionID)
+				expectedQuery := fmt.Sprintf(uniqueDimConstStmt, "_"+instanceID+"_"+dimension.DimensionID)
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 				So(calls[0].Params, ShouldEqual, nil)
 			})
@@ -313,8 +311,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 
 		repo := DimensionRepository{
 			neo4jCli:         neo4jMock,
-			constraintsCache: map[string]string{dimension.DimensionID: dimension.DimensionID},
-			conn:             connMock,
+			constraintsCache: map[string]string{"_" + instanceID + "_" + dimension.DimensionID: dimension.DimensionID},
 		}
 
 		Convey("When Insert is invoked", func() {
@@ -329,10 +326,10 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				calls := neo4jMock.QueryCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				expectedQuery := fmt.Sprintf(createDimensionAndInstanceRelStmt, "_"+instanceID+"_Instance", "_"+dimension.DimensionID)
+				expectedQuery := fmt.Sprintf(createDimensionAndInstanceRelStmt, "_"+instanceID+"_Instance", "_123456789_"+dimension.DimensionID)
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 
-				expectedParams := map[string]interface{}{valueKey: dimension.Value}
+				expectedParams := map[string]interface{}{valueKey: dimension.Option}
 				So(calls[0].Params, ShouldResemble, expectedParams)
 			})
 

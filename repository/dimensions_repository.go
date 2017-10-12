@@ -84,14 +84,15 @@ func (repo DimensionRepository) Insert(i *model.Instance, d *model.Dimension) (*
 	if err := validateDimension(d); err != nil {
 		return nil, err
 	}
+	dimensionLabel := fmt.Sprintf("_%s_%s", i.InstanceID, d.DimensionID)
 
-	if _, exists := repo.constraintsCache[d.DimensionID]; !exists {
+	if _, exists := repo.constraintsCache[dimensionLabel]; !exists {
 
-		if err := repo.createUniqueConstraint(d); err != nil {
+		if err := repo.createUniqueConstraint(i.InstanceID, d); err != nil {
 			log.ErrorC(uniqueConstraintErr, err, nil)
 			return nil, err
 		}
-		repo.constraintsCache[d.DimensionID] = d.DimensionID
+		repo.constraintsCache[dimensionLabel] = dimensionLabel
 		i.AddDimension(d)
 	}
 
@@ -108,9 +109,9 @@ func (repo DimensionRepository) Insert(i *model.Instance, d *model.Dimension) (*
 	return d, nil
 }
 
-func (repo DimensionRepository) createUniqueConstraint(d *model.Dimension) error {
-	logData := map[string]interface{}{}
-	dimensionLabel := "_" + d.DimensionID
+func (repo DimensionRepository) createUniqueConstraint(instanceId string, d *model.Dimension) error {
+	logDebug := map[string]interface{}{}
+	dimensionLabel := fmt.Sprintf("_%s_%s", instanceId, d.DimensionID)
 	stmt := fmt.Sprintf(uniqueDimConstStmt, dimensionLabel)
 
 	if _, err := repo.neo4jCli.ExecStmt(repo.conn, stmt, nil); err != nil {
@@ -127,15 +128,15 @@ func (repo DimensionRepository) createUniqueConstraint(d *model.Dimension) error
 func (repo DimensionRepository) insertDimension(i *model.Instance, d *model.Dimension) (*model.Dimension, error) {
 	logData := log.Data{
 		common.DimensionID: d.DimensionID,
-		valueKey:           d.Value,
+		valueKey:           d.Option,
 	}
 
 	var err error
-	params := map[string]interface{}{valueKey: d.Value}
+	params := map[string]interface{}{valueKey: d.Option}
 	logData[stmtParamsKey] = params
 
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
-	dimensionLabel := "_" + d.DimensionID
+	dimensionLabel := fmt.Sprintf("_%s_%s", i.InstanceID, d.DimensionID)
 
 	var rows *common.NeoRows
 	if rows, err = repo.neo4jCli.Query(repo.conn, fmt.Sprintf(createDimensionAndInstanceRelStmt, instanceLabel, dimensionLabel), params); err != nil {
@@ -167,13 +168,13 @@ func validateDimension(d *model.Dimension) error {
 	if d == nil {
 		return errors.New(dimensionNilErr)
 	}
-	if len(d.DimensionID) == 0 && len(d.Value) == 0 {
+	if len(d.DimensionID) == 0 && len(d.Option) == 0 {
 		return errors.New(dimensionInvalidErr)
 	}
 	if len(d.DimensionID) == 0 {
 		return errors.New(dimensionIDRequiredErr)
 	}
-	if len(d.Value) == 0 {
+	if len(d.Option) == 0 {
 		return errors.New(dimensionValueRequiredErr)
 	}
 	return nil

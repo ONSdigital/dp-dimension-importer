@@ -21,8 +21,8 @@ const (
 )
 
 var expectedErr = errors.New("BOOM!")
-var dimensionOne = &model.Dimension{DimensionID: "666_SEX_MALE", NodeID: "1111", Value: "Male"}
-var dimensionTwo = &model.Dimension{DimensionID: "666_SEX_FEMALE", NodeID: "1112", Value: "Female"}
+var dimensionOne = &model.Dimension{DimensionID: "666_SEX_MALE", NodeID: "1111", Option: "Male"}
+var dimensionTwo = &model.Dimension{DimensionID: "666_SEX_FEMALE", NodeID: "1112", Option: "Female"}
 
 var expectedDimensions = model.DimensionNodeResults{
 	Items: []*model.Dimension{dimensionOne, dimensionTwo},

@@ -130,6 +130,12 @@
 			"revisionTime": "2016-09-20T23:08:13Z"
 		},
 		{
+			"checksumSHA1": "yIkYzW7bzAD81zHyuCNmEj4+oxQ=",
+			"path": "github.com/gopherjs/gopherjs/js",
+			"revision": "b40cd48c38f9a18eb3db20d163bad78de12cf0b7",
+			"revisionTime": "2017-09-06T18:39:36Z"
+		},
+		{
 			"checksumSHA1": "FRhS1BUn7QYJODTJaU1LF7uCka0=",
 			"path": "github.com/johnnadratowski/golang-neo4j-bolt-driver",
 			"revision": "2387cc1f01254d3a0055e034f5716278a1f420c7",
