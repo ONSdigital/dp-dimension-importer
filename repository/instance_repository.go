@@ -72,8 +72,8 @@ func (repo *InstanceRepository) Create(i *model.Instance) error {
 	createStmt := fmt.Sprintf(createInstanceStmt, instanceLabel, strings.Join(i.CSVHeader, ","))
 
 	logDebug := map[string]interface{}{
-		common.InstanceID: i.InstanceID,
-		stmtKey:           createStmt,
+		"instance_id": i.InstanceID,
+		"statement":   createStmt,
 	}
 	loggerI.Info("executing create instance statement", logDebug)
 	if _, err = repo.neo4j.ExecStmt(repo.conn, createStmt, nil); err != nil {
@@ -95,13 +95,13 @@ func (repo *InstanceRepository) AddDimensions(i *model.Instance) error {
 
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
 	stmt := fmt.Sprintf(addInstanceDimensionsStmt, instanceLabel)
-	params := map[string]interface{}{dimensionsList: i.GetDimensions()}
+	params := map[string]interface{}{"dimensions_list": i.GetDimensions()}
 
 	logDebug := map[string]interface{}{
-		stmtKey:           stmt,
-		stmtParamsKey:     params,
-		common.InstanceID: i.InstanceID,
-		dimensionsKey:     i.GetDimensions(),
+		"statement":   stmt,
+		"params":      params,
+		"instance_id": i.InstanceID,
+		"dimensions":  i.GetDimensions(),
 	}
 	loggerI.Info("executing add dimensions statement", logDebug)
 	if _, err := repo.neo4j.ExecStmt(repo.conn, stmt, params); err != nil {
@@ -116,7 +116,7 @@ func (repo *InstanceRepository) AddDimensions(i *model.Instance) error {
 func (repo *InstanceRepository) Exists(i *model.Instance) (bool, error) {
 	countStmt := fmt.Sprintf(countInstanceStmt, fmt.Sprintf(instanceLabelFmt, i.GetID()))
 
-	loggerI.Info("executing instance exists query", log.Data{stmtKey: countStmt})
+	loggerI.Info("executing instance exists query", log.Data{"statement": countStmt})
 	rows, err := repo.neo4j.Query(repo.conn, countStmt, nil)
 	if err != nil {
 		return false, errors.Wrap(err, "neo4j.Query returned an error")
@@ -133,11 +133,11 @@ func (repo *InstanceRepository) Exists(i *model.Instance) (bool, error) {
 
 // Delete - delete an instance and all dimensions and relationships it has.
 func (repo *InstanceRepository) Delete(i *model.Instance) error {
-	logData := log.Data{common.InstanceID: i.InstanceID}
+	logData := log.Data{"instance_id": i.InstanceID}
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
 
 	stmt := fmt.Sprintf(removeInstanceDimensionsAndRelationships, instanceLabel)
-	logData[stmtKey] = stmt
+	logData["statement"] = stmt
 	loggerI.Info("executing delete instance statement", logData)
 
 	results, err := repo.neo4j.ExecStmt(repo.conn, stmt, nil)

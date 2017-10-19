@@ -1,10 +1,11 @@
 package repository
 
 import (
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	"sync"
+
 	"github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/go-ns/log"
-	"sync"
+	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
 const errDrivePoolInit = "error while attempting to initialize neo4j driver pool"
@@ -22,8 +23,8 @@ func NewConnectionPool(url string, poolSize int) (common.NeoDriverPool, error) {
 
 	if err != nil {
 		log.ErrorC(errDrivePoolInit, err, log.Data{
-			common.URL:      url,
-			common.PoolSize: poolSize,
+			"url":       url,
+			"pool_size": poolSize,
 		})
 	}
 	return pool, nil

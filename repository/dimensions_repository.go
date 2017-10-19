@@ -25,12 +25,6 @@ const (
 	createDimensionAndInstanceRelStmt = "MATCH (i:`%s`) CREATE (d:`%s` {value: {value}}) CREATE (i)-[:HAS_DIMENSION]->(d) RETURN ID(d)"
 
 	instanceLabelFmt = "_%s_Instance"
-	stmtKey          = "statement"
-	stmtParamsKey    = "params"
-	valueKey         = "value"
-	dimensionsKey    = "dimensions"
-	dimensionsList   = "dimensions_list"
-	dimensionkey     = "dimension"
 )
 
 // Neo4jClient defines a client for executing statements and queries against a neo4j graph database.
@@ -106,26 +100,26 @@ func (repo DimensionRepository) createUniqueConstraint(instanceId string, d *mod
 		return errors.Wrap(err, "neoClient.ExecStmt returned an error")
 	}
 
-	logData[dimensionkey] = d.DimensionID
+	logData["dimension"] = d.DimensionID
 	loggerD.Info("successfully created unique constraint on dimension", logData)
 	return nil
 }
 
 func (repo DimensionRepository) insertDimension(i *model.Instance, d *model.Dimension) (*model.Dimension, error) {
 	logData := log.Data{
-		common.DimensionID: d.DimensionID,
-		valueKey:           d.Option,
+		"dimension_id": d.DimensionID,
+		"value":        d.Option,
 	}
 
 	var err error
-	params := map[string]interface{}{valueKey: d.Option}
-	logData[stmtParamsKey] = params
+	params := map[string]interface{}{"value": d.Option}
+	logData["params"] = params
 
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
 	dimensionLabel := fmt.Sprintf("_%s_%s", i.InstanceID, d.DimensionID)
 	stmt := fmt.Sprintf(createDimensionAndInstanceRelStmt, instanceLabel, dimensionLabel)
 
-	logData[stmtKey] = stmt
+	logData["statement"] = stmt
 	loggerD.Info("executing insert dimension statement", logData)
 
 	var rows *common.NeoRows

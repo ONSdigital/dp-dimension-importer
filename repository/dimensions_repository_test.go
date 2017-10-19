@@ -139,7 +139,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				expectedQuery := fmt.Sprintf(createDimensionAndInstanceRelStmt, "_"+instanceID+"_Instance", "_"+instanceID+"_"+dimension.DimensionID)
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 
-				expectedParams := map[string]interface{}{valueKey: dimension.Option}
+				expectedParams := map[string]interface{}{"value": dimension.Option}
 				So(calls[0].Params, ShouldResemble, expectedParams)
 			})
 
@@ -148,49 +148,6 @@ func TestDimensionRepository_Insert(t *testing.T) {
 			})
 		})
 	})
-
-	/*	Convey("Given a dimension type that has already been processed", t, func() {
-		data := [][]interface{}{[]interface{}{""}}
-
-		neoRows := &common.NeoRows{
-			Data: data,
-		}
-
-		neo4jMock := &mocks.Neo4jClientMock{
-			QueryFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (*common.NeoRows, error) {
-				return neoRows, nil
-			},
-		}
-
-		repo := DimensionRepository{
-			neo4jCli:         neo4jMock,
-			constraintsCache: map[string]string{"_" + instanceID + "_" + dimension.DimensionID: ""},
-		}
-
-		Convey("When Insert is invoked", func() {
-			dim, err := repo.Insert(instance, dimension)
-
-			Convey("Then the expected error is returned with a nil dimension", func() {
-				So(dim, ShouldEqual, nil)
-				So(err, ShouldResemble, errors.New(nodeIDCastErr))
-			})
-
-			Convey("And neo4j.Query is called 1 time with the expected parameters", func() {
-				calls := neo4jMock.QueryCalls()
-				So(len(calls), ShouldEqual, 1)
-
-				expectedQuery := fmt.Sprintf(createDimensionAndInstanceRelStmt, "_"+instanceID+"_Instance", "_"+instanceID+"_"+dimension.DimensionID)
-				So(calls[0].Query, ShouldEqual, expectedQuery)
-
-				expectedParams := map[string]interface{}{valueKey: dimension.Option}
-				So(calls[0].Params, ShouldResemble, expectedParams)
-			})
-
-			Convey("And there are no other calls to neo4j", func() {
-				So(len(neo4jMock.ExecStmtCalls()), ShouldEqual, 0)
-			})
-		})
-	})*/
 
 	Convey("Given a dimension type that has not already been processed", t, func() {
 		var nodeID int64 = 1234
@@ -241,7 +198,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				expectedQuery := fmt.Sprintf(createDimensionAndInstanceRelStmt, "_"+instanceID+"_Instance", "_"+instanceID+"_"+dimension.DimensionID)
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 
-				expectedParams := map[string]interface{}{valueKey: dimension.Option}
+				expectedParams := map[string]interface{}{"value": dimension.Option}
 				So(calls[0].Params, ShouldResemble, expectedParams)
 			})
 		})
@@ -326,7 +283,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				expectedQuery := fmt.Sprintf(createDimensionAndInstanceRelStmt, "_"+instanceID+"_Instance", "_123456789_"+dimension.DimensionID)
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 
-				expectedParams := map[string]interface{}{valueKey: dimension.Option}
+				expectedParams := map[string]interface{}{"value": dimension.Option}
 				So(calls[0].Params, ShouldResemble, expectedParams)
 			})
 

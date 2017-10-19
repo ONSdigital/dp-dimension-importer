@@ -97,7 +97,7 @@ func TestInstanceRepository_AddDimensions(t *testing.T) {
 				expectedStmt := fmt.Sprintf(addInstanceDimensionsStmt, instanceLabel)
 				So(calls[0].Query, ShouldEqual, expectedStmt)
 
-				expectedParams := map[string]interface{}{dimensionsList: dimensionNames}
+				expectedParams := map[string]interface{}{"dimensions_list": dimensionNames}
 				So(calls[0].Params, ShouldResemble, expectedParams)
 			})
 		})
@@ -139,7 +139,7 @@ func TestInstanceRepository_AddDimensions(t *testing.T) {
 				expectedStmt := fmt.Sprintf(addInstanceDimensionsStmt, instanceLabel)
 				So(calls[0].Query, ShouldEqual, expectedStmt)
 
-				expectedParams := map[string]interface{}{dimensionsList: dimensionNames}
+				expectedParams := map[string]interface{}{"dimensions_list": dimensionNames}
 				So(calls[0].Params, ShouldResemble, expectedParams)
 			})
 		})

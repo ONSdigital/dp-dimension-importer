@@ -11,7 +11,6 @@ import (
 	"syscall"
 
 	"github.com/ONSdigital/dp-dimension-importer/client"
-	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/handler"
 	"github.com/ONSdigital/dp-dimension-importer/healthcheck"
@@ -32,7 +31,7 @@ func (r responseBodyReader) Read(reader io.Reader) ([]byte, error) {
 func main() {
 	log.Namespace = "dimension-importer"
 
-	signals := make(chan os.Signal)
+	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	cfg, err := config.Load()
@@ -57,8 +56,8 @@ func main() {
 	connectionPool, err := repository.NewConnectionPool(cfg.DatabaseURL, cfg.PoolSize)
 	if err != nil {
 		log.ErrorC("repository.NewConnectionPool returned an error", err, log.Data{
-			logKeys.URL:      cfg.DatabaseURL,
-			logKeys.PoolSize: cfg.PoolSize,
+			"url":       cfg.DatabaseURL,
+			"pool_size": cfg.PoolSize,
 		})
 		os.Exit(1)
 	}
@@ -116,7 +115,7 @@ func main() {
 	for {
 		select {
 		case err := <-instanceConsumer.Errors():
-			log.ErrorC("incoming instance kafka consumer receieved an error, attempting graceful shutdown", err, log.Data{logKeys.ErrorDetails: err})
+			log.ErrorC("incoming instance kafka consumer receieved an error, attempting graceful shutdown", err, nil)
 		case err := <-instanceCompleteProducer.Errors():
 			log.ErrorC("completed instance kafka producer receieved an error, attempting graceful shutdown", err, nil)
 		case err := <-errorReporterProducer.Errors():
@@ -156,7 +155,7 @@ func newConsumer(kafkaAddr []string, topic string, namespace string) *kafka.Cons
 func newProducer(kafkaAddr []string, topic string) kafka.Producer {
 	producer, err := kafka.NewProducer(kafkaAddr, topic, 0)
 	if err != nil {
-		log.ErrorC("kafka.NewProducer returned an error", err, log.Data{logKeys.KafkaTopic: topic})
+		log.ErrorC("kafka.NewProducer returned an error", err, log.Data{"topic": topic})
 		os.Exit(1)
 	}
 	return producer
