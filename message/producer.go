@@ -1,13 +1,15 @@
 package message
 
 import (
+	"fmt"
+
 	"github.com/ONSdigital/dp-dimension-importer/event"
+	"github.com/ONSdigital/dp-dimension-importer/logging"
 	"github.com/ONSdigital/go-ns/log"
+	"github.com/pkg/errors"
 )
 
-const (
-	marshalErr = "unexpected error while attempting to avro marshall event.InstanceCompleted"
-)
+var loggerP = logging.Logger{Prefix: "message.InstanceCompletedProducer"}
 
 //go:generate moq -out ./message_test/producer_generated_mocks.go -pkg message_test . Marshaller KafkaProducer
 
@@ -30,9 +32,9 @@ type InstanceCompletedProducer struct {
 func (p InstanceCompletedProducer) Completed(e event.InstanceCompleted) error {
 	bytes, avroError := p.Marshaller.Marshal(e)
 	if avroError != nil {
-		log.ErrorC(marshalErr, avroError, log.Data{eventKey: e})
-		return avroError
+		return errors.Wrap(avroError, fmt.Sprintf("Marshaller.Marshal returned an error: event=%v", e))
 	}
 	p.Producer.Output() <- bytes
+	loggerP.Info("completed successfully", log.Data{"event": e})
 	return nil
 }

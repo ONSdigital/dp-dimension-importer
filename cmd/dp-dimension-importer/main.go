@@ -23,19 +23,6 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 )
 
-const (
-	consumerErrMsg           = "kafka Consumer Error recieved"
-	createConsumerErr        = "error while attempting to create kafka consumer"
-	producerErrMsg           = "completed instance producer error recieved"
-	eventReporterErrMsg      = "event reporter producer error recieved"
-	createProducerErr        = "error while attempting to create kafka producer"
-	createConnPoolErr        = "unexpected error while to create database connection pool"
-	gracefulShutdownMsg      = "commencing graceful shutdown..."
-	gracefulShutdownComplete = "graceful shutdown completed successfully, exiting application"
-	loadConfigErr            = "error while loading application config"
-	newReporterErr           = "error while attempting to create new ImportErrorReporter"
-)
-
 type responseBodyReader struct{}
 
 func (r responseBodyReader) Read(reader io.Reader) ([]byte, error) {
@@ -50,7 +37,7 @@ func main() {
 
 	cfg, err := config.Load()
 	if err != nil {
-		log.ErrorC(loadConfigErr, err, nil)
+		log.ErrorC("config.Load returned an error", err, nil)
 		os.Exit(1)
 	}
 
@@ -69,7 +56,7 @@ func main() {
 
 	connectionPool, err := repository.NewConnectionPool(cfg.DatabaseURL, cfg.PoolSize)
 	if err != nil {
-		log.ErrorC(createConnPoolErr, err, log.Data{
+		log.ErrorC("repository.NewConnectionPool returned an error", err, log.Data{
 			logKeys.URL:      cfg.DatabaseURL,
 			logKeys.PoolSize: cfg.PoolSize,
 		})
@@ -109,7 +96,7 @@ func main() {
 	// Errors handler
 	errorReporter, err := reporter.NewImportErrorReporter(errorReporterProducer, log.Namespace)
 	if err != nil {
-		log.ErrorC(newReporterErr, err, nil)
+		log.ErrorC("reporter.NewImportErrorReporter returned an error", err, nil)
 		os.Exit(1)
 	}
 
@@ -123,51 +110,44 @@ func main() {
 		ErrorReporter:   errorReporter,
 	}
 
-	consumer := message.NewConsumer(instanceConsumer, messageReciever)
+	consumer := message.NewConsumer(instanceConsumer, messageReciever, cfg.GracefulShutdownTimeout)
 	consumer.Listen()
 
-	// Gracefully shutdown the application closing any open resources.
-	gracefulShutdown := func() {
-		log.Info(gracefulShutdownMsg, nil)
+	for {
+		select {
+		case err := <-instanceConsumer.Errors():
+			log.ErrorC("incoming instance kafka consumer receieved an error, attempting graceful shutdown", err, log.Data{logKeys.ErrorDetails: err})
+		case err := <-instanceCompleteProducer.Errors():
+			log.ErrorC("completed instance kafka producer receieved an error, attempting graceful shutdown", err, nil)
+		case err := <-errorReporterProducer.Errors():
+			log.ErrorC("error reporter kafka producer recieved an error, attempting graceful shutdown", err, nil)
+		case err := <-healthCheckErrors:
+			log.ErrorC("healthcheck server returned an error, attempting graceful shutdown", err, nil)
+		case signal := <-signals:
+			log.Info("os signal receieved, attempting graceful shutdown", log.Data{"signal": signal.String()})
+		}
 
-		ctx, _ := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+		ctx, _ := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
 
 		consumer.Close(ctx)
-
 		instanceConsumer.Close(ctx)
 		instanceCompleteProducer.Close(ctx)
 		errorReporterProducer.Close(ctx)
 		healthcheck.Close(ctx)
 
-		log.Info(gracefulShutdownComplete, nil)
+		log.Info("gracecful shutdown comeplete", nil)
 		os.Exit(1)
-	}
-
-	for {
-		select {
-		case err := <-instanceConsumer.Errors():
-			log.ErrorC(consumerErrMsg, err, log.Data{logKeys.ErrorDetails: err})
-			gracefulShutdown()
-		case err := <-instanceCompleteProducer.Errors():
-			log.ErrorC(producerErrMsg, err, nil)
-			gracefulShutdown()
-		case err := <-errorReporterProducer.Errors():
-			log.ErrorC(eventReporterErrMsg, err, nil)
-			gracefulShutdown()
-		case err := <-healthCheckErrors:
-			log.ErrorC("receieved error healthcheck server", err, nil)
-			gracefulShutdown()
-		case <-signals:
-			log.Info("Signal intercepted", nil)
-			gracefulShutdown()
-		}
 	}
 }
 
 func newConsumer(kafkaAddr []string, topic string, namespace string) *kafka.ConsumerGroup {
 	consumer, err := kafka.NewConsumerGroup(kafkaAddr, topic, namespace, kafka.OffsetNewest)
 	if err != nil {
-		log.ErrorC(createConsumerErr, err, nil)
+		log.ErrorC("kafka.NewConsumerGroup returned an error", err, log.Data{
+			"brokers":        kafkaAddr,
+			"topic":          topic,
+			"consumer_group": namespace,
+		})
 		os.Exit(1)
 	}
 	return consumer
@@ -176,7 +156,7 @@ func newConsumer(kafkaAddr []string, topic string, namespace string) *kafka.Cons
 func newProducer(kafkaAddr []string, topic string) kafka.Producer {
 	producer, err := kafka.NewProducer(kafkaAddr, topic, 0)
 	if err != nil {
-		log.ErrorC(createProducerErr, err, log.Data{logKeys.KafkaTopic: topic})
+		log.ErrorC("kafka.NewProducer returned an error", err, log.Data{logKeys.KafkaTopic: topic})
 		os.Exit(1)
 	}
 	return producer

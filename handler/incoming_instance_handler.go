@@ -1,32 +1,20 @@
 package handler
 
 import (
-	"errors"
-	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
+	"time"
+
 	"github.com/ONSdigital/dp-dimension-importer/event"
+	"github.com/ONSdigital/dp-dimension-importer/logging"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
-	"time"
+	"github.com/pkg/errors"
 )
 
 //go:generate moq -out ../mocks/dimensions_extracted_generated_mocks.go -pkg mocks . DatasetAPIClient InstanceRepository DimensionRepository CompletedProducer
 
-const (
-	logEventRecieved        = "handling dimensions extracted event"
-	dimensionCliErrMsg      = "error when calling dimensions client"
-	instanceErrMsg          = "error when calling the dataset api to retrieve instance data"
-	updateNodeIDErr         = "unexpected error while calling dataset api set dimension node id endpoint"
-	createInstanceErr       = "unexpected error while attempting to call InstanceRepository.Create()"
-	datasetAPINilErr        = "dimensions extracted event handler: dataset api expected but was nil"
-	createDimRepoNilErr     = "dimensions extracted event handler: new dimension inserter expected but was nil"
-	instanceRepoNilErr      = "dimensions extracted event handler: instance repository expected but was nil"
-	instanceIDNilErr        = "dimensions extracted event: instance id is required but was nil"
-	insertDimErr            = "error while attempting to insert dimension"
-	addInsanceDimsErr       = "instance repository: add dimensions returned an error"
-	eventProcessingComplete = "event processing complete"
-	instanceExists          = "instance already exists, removing existing before continuing"
-	removeInstanceErr       = "unexpected error while attempting to remove instance and its dimensions."
-	removeInstanceSuccess   = "successfully deleted instance and all of its dimensions and relationships"
+var (
+	validationErr = errors.New("[handler.InstanceEventHandler] validation error")
+	logger        = logging.Logger{Prefix: "handler.InstanceEventHandler"}
 )
 
 // DatasetAPIClient defines interface of an Dataset API client,
@@ -69,92 +57,81 @@ type InstanceEventHandler struct {
 // and makes a PUT request to the Import API with the database ID of each Dimension entity.
 func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 	if hdlr.DatasetAPICli == nil {
-		return errors.New(datasetAPINilErr)
+		return errors.New(" validation error dataset api client required but was nil")
 	}
 	if hdlr.NewInstanceRepository == nil {
-		return errors.New(instanceRepoNilErr)
+		return errors.New(" validation error new instance repository func required but was nil")
 	}
 	if hdlr.NewDimensionInserter == nil {
-		return errors.New(createDimRepoNilErr)
+		return errors.New(" validation error new dimension inserter func required but was nil")
 	}
 	if len(newInstance.InstanceID) == 0 {
-		return errors.New(instanceIDNilErr)
+		return errors.New(" validation error instance_id required but was empty")
 	}
 
 	logData := log.Data{
-		logKeys.InstanceID:      newInstance.InstanceID,
-		logKeys.DimensionsCount: 0,
+		"instance_id": newInstance.InstanceID,
 	}
-	log.Info(logEventRecieved, logData)
+	logger.Info("handling new instance event", logData)
 
 	start := time.Now()
 	var dimensions []*model.Dimension
 	var err error
 
 	if dimensions, err = hdlr.DatasetAPICli.GetDimensions(newInstance.InstanceID); err != nil {
-		log.ErrorC(dimensionCliErrMsg, err, logData)
-		return errors.New(dimensionCliErrMsg)
+		return errors.Wrap(err, "DatasetAPICli.GetDimensions returned an error")
 	}
 
-	logData[logKeys.DimensionsCount] = len(dimensions)
+	logData["dimensions_count"] = len(dimensions)
 
 	// retrieve the CSV header from the dataset API and attach it to the instance node allowing it to be used after import.
 	instance, err := hdlr.DatasetAPICli.GetInstance(newInstance.InstanceID)
 	if err != nil {
-		log.ErrorC(instanceErrMsg, err, logData)
-		return errors.New(instanceErrMsg)
+		return errors.Wrap(err, "dataset api client get instance returned an error")
 	}
 
 	instanceRepo, err := hdlr.NewInstanceRepository()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "instance repository constructor returned an error")
 	}
 	defer instanceRepo.Close()
 
 	var exists bool
 	if exists, err = instanceRepo.Exists(instance); err != nil {
-		return err
+		return errors.Wrap(err, "instance repository exists check returned an error")
 	}
 
 	if exists {
-		logData := log.Data{logKeys.InstanceID: instance.InstanceID}
-		log.Info(instanceExists, logData)
+		logData := log.Data{"instance_id": instance.InstanceID}
+		logger.Info("an instance with this ID already exists, removing before continuing", logData)
 		if err := instanceRepo.Delete(instance); err != nil {
-			log.ErrorC(removeInstanceErr, err, logData)
-			return err
+			return errors.Wrap(err, "instanceRepo.Delete returned an error")
 		}
 	}
 
 	if err = instanceRepo.Create(instance); err != nil {
-		log.ErrorC(createInstanceErr, err, logData)
-		return errors.New(createInstanceErr)
+		return errors.Wrap(err, "instanceRepo.Create returned an error")
 	}
 
 	dimensionInserter, err := hdlr.NewDimensionInserter()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "NewDimensionInserter returned an error")
 	}
 	defer dimensionInserter.Close()
 
 	for _, dimension := range dimensions {
 		if dimension, err = dimensionInserter.Insert(instance, dimension); err != nil {
-			log.ErrorC(insertDimErr, err, nil)
-			return err
+			return errors.Wrap(err, "error while attempting to insert dimension")
 		}
 
 		if err = hdlr.DatasetAPICli.PutDimensionNodeID(newInstance.InstanceID, dimension); err != nil {
-			log.ErrorC(updateNodeIDErr, err, nil)
-			return errors.New(updateNodeIDErr)
+			return errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
 		}
 	}
 
 	if err = instanceRepo.AddDimensions(instance); err != nil {
-		log.ErrorC(addInsanceDimsErr, err, logData)
-		return errors.New(addInsanceDimsErr)
+		return errors.Wrap(err, "instanceRepo.AddDimensions returned an error")
 	}
-
-	logData[logKeys.ProcessingTime] = time.Since(start).Seconds()
-	log.Info(eventProcessingComplete, logData)
 
 	instanceProcessed := event.InstanceCompleted{
 		FileURL:    newInstance.FileURL,
@@ -162,8 +139,9 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 	}
 
 	if err := hdlr.Producer.Completed(instanceProcessed); err != nil {
-		return err
+		return errors.Wrap(err, "Producer.Completed returned an error")
 	}
 
+	logger.Info("instance processing completed successfully", log.Data{"processing_time": time.Since(start).Seconds()})
 	return nil
 }

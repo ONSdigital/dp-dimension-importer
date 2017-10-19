@@ -112,7 +112,7 @@ func TestKafkaMessageHandler_Handle_InstanceHandlerError(t *testing.T) {
 
 		Convey("And ErrorReporter.Notify is called 1 time with the expected parameters", func() {
 			So(len(fix.errorReporter.NotifyCalls()), ShouldEqual, 1)
-			So(fix.errorReporter.NotifyCalls()[0].ErrContext, ShouldEqual, eventHandlerErr)
+			So(fix.errorReporter.NotifyCalls()[0].ErrContext, ShouldEqual, "InstanceHandler.Handle returned an unexpected error")
 		})
 
 		Convey("And message.Commit is never called", func() {

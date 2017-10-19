@@ -1,12 +1,14 @@
 package handler
 
 import (
-	"errors"
+	"testing"
+
+	"github.com/pkg/errors"
+
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/mocks"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 var (
@@ -15,13 +17,13 @@ var (
 
 	d1 = &model.Dimension{
 		DimensionID: "1234567890_Geography",
-		Value:       "England",
+		Option:      "England",
 		NodeID:      "1",
 	}
 
 	d2 = &model.Dimension{
 		DimensionID: "1234567890_Geography",
-		Value:       "Wales",
+		Option:      "Wales",
 		NodeID:      "2",
 	}
 
@@ -39,6 +41,8 @@ var (
 		FileURL:    fileURL,
 		InstanceID: testInstanceID,
 	}
+
+	mockErr = errors.New("mock error")
 )
 
 func TestInstanceEventHandler_Handle(t *testing.T) {
@@ -98,7 +102,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			err := handler.Handle(event.NewInstance{})
 
 			Convey("Then the appropriate error is returned", func() {
-				So(err, ShouldResemble, errors.New(instanceIDNilErr))
+				So(err.Error(), ShouldResemble, errors.New(" validation error instance_id required but was empty").Error())
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -111,11 +115,10 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		})
 
 		Convey("When DatasetAPICli.GetDimensions returns an error", func() {
-			getDimensionsErr := errors.New("Get Dimensions error")
 			event := event.NewInstance{InstanceID: testInstanceID}
 
 			datasetAPIMock.GetDimensionsFunc = func(instanceID string) ([]*model.Dimension, error) {
-				return nil, getDimensionsErr
+				return nil, mockErr
 			}
 
 			err := handler.Handle(event)
@@ -129,7 +132,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(dimensionCliErrMsg))
+				So(err.Error(), ShouldEqual, errors.Wrap(mockErr, "DatasetAPICli.GetDimensions returned an error").Error())
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -141,11 +144,10 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		})
 
 		Convey("When InstanceRepository.Create returns an error", func() {
-			expectedErr := errors.New("Create Error")
 			event := event.NewInstance{InstanceID: testInstanceID}
 
 			instanceRepositoryMock.CreateFunc = func(instance *model.Instance) error {
-				return expectedErr
+				return mockErr
 			}
 
 			err := handler.Handle(event)
@@ -171,16 +173,15 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(createInstanceErr))
+				So(err.Error(), ShouldEqual, errors.Wrap(mockErr, "instanceRepo.Create returned an error").Error())
 			})
 		})
 
 		Convey("When DimensionRepository.Insert returns an error", func() {
-			expectedErr := errors.New("Insert Error")
 			event := event.NewInstance{InstanceID: testInstanceID}
 
 			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
-				return dimension, expectedErr
+				return dimension, mockErr
 			}
 			err := handler.Handle(event)
 
@@ -206,7 +207,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err, ShouldResemble, expectedErr)
+				So(err.Error(), ShouldEqual, errors.Wrap(mockErr, "error while attempting to insert dimension").Error())
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -216,14 +217,13 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		})
 
 		Convey("When DatasetAPICli.PutDimensionNodeID returns an error", func() {
-			expectedErr := errors.New("Put Node ID error")
 			event := event.NewInstance{InstanceID: testInstanceID}
 
 			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, nil
 			}
 			datasetAPIMock.PutDimensionNodeIDFunc = func(instanceID string, dimension *model.Dimension) error {
-				return expectedErr
+				return mockErr
 			}
 
 			err := handler.Handle(event)
@@ -258,7 +258,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(updateNodeIDErr))
+				So(err.Error(), ShouldEqual, errors.Wrap(mockErr, "DatasetAPICli.PutDimensionNodeID returned an error").Error())
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -267,7 +267,6 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		})
 
 		Convey("When InstanceRepository.AddDimensions returns an error", func() {
-			expectedErr := errors.New("Add dimensions error")
 			event := event.NewInstance{InstanceID: testInstanceID}
 
 			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
@@ -277,7 +276,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				return nil
 			}
 			instanceRepositoryMock.AddDimensionsFunc = func(instance *model.Instance) error {
-				return expectedErr
+				return mockErr
 			}
 
 			err := handler.Handle(event)
@@ -318,7 +317,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(addInsanceDimsErr))
+				So(err.Error(), ShouldEqual, errors.Wrap(mockErr, "instanceRepo.AddDimensions returned an error").Error())
 			})
 		})
 	})
@@ -341,7 +340,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			err := handler.Handle(event)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(datasetAPINilErr))
+				So(err.Error(), ShouldEqual, errors.New(" validation error dataset api client required but was nil").Error())
 			})
 
 			Convey("And the event is not handled", func() {
@@ -368,7 +367,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			err := handler.Handle(event)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(instanceRepoNilErr))
+				So(err.Error(), ShouldEqual, errors.New(" validation error new instance repository func required but was nil").Error())
 			})
 			Convey("And the event is not handled", func() {
 				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
@@ -394,7 +393,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			err := handler.Handle(event)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(createDimRepoNilErr))
+				So(err.Error(), ShouldEqual, errors.New(" validation error new dimension inserter func required but was nil").Error())
 			})
 			Convey("And the event is not handled", func() {
 				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
@@ -475,13 +474,13 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 
 		Convey("When instanceRepository.Exists returns an error", func() {
 			instanceRepoMock.ExistsFunc = func(instance *model.Instance) (bool, error) {
-				return false, errors.New("Bork!")
+				return false, mockErr
 			}
 
 			err := handler.Handle(newInstance)
 
 			Convey("Then handler returns the expected error", func() {
-				So(err, ShouldResemble, errors.New("Bork!"))
+				So(err.Error(), ShouldEqual, errors.Wrap(mockErr, "instance repository exists check returned an error").Error())
 			})
 
 			Convey("And datasetAPICli make the expected calls with the expected parameters", func() {
@@ -522,14 +521,14 @@ func TestInstanceEventHandler_Handle_DeleteInstanceErr(t *testing.T) {
 			return true, nil
 		}
 		instanceRepoMock.DeleteFunc = func(instance *model.Instance) error {
-			return errors.New("Bork!")
+			return mockErr
 		}
 
 		Convey("When instanceRepository.Delete returns an error", func() {
 			err := handler.Handle(newInstance)
 
 			Convey("Then handler returns the expected error", func() {
-				So(err, ShouldResemble, errors.New("Bork!"))
+				So(err.Error(), ShouldEqual, errors.Wrap(mockErr, "instanceRepo.Delete returned an error").Error())
 			})
 
 			Convey("And datasetAPICli make the expected calls with the expected parameters", func() {

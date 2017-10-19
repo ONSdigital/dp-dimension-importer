@@ -47,7 +47,7 @@ func TestConsumer_Listen(t *testing.T) {
 
 		msg := &mock.KafkaMessageMock{}
 
-		consumer := NewConsumer(kafkaConsumer, recieverMock)
+		consumer := NewConsumer(kafkaConsumer, recieverMock, time.Second*10)
 		consumer.Listen()
 
 		Convey("When the consumer receieves a valid message", func() {

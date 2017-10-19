@@ -1,15 +1,20 @@
 package repository
 
 import (
-	"errors"
 	"fmt"
 
-	"github.com/ONSdigital/dp-dimension-importer/common"
-	"github.com/ONSdigital/dp-dimension-importer/model"
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/pkg/errors"
+
 	"strings"
+
+	"github.com/ONSdigital/dp-dimension-importer/common"
+	"github.com/ONSdigital/dp-dimension-importer/logging"
+	"github.com/ONSdigital/dp-dimension-importer/model"
+	"github.com/ONSdigital/go-ns/log"
+	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
+
+var loggerI = logging.Logger{"repository.InstanceRepository"}
 
 const (
 	// Create an Insatnce node.
@@ -23,21 +28,6 @@ const (
 
 	// Update the Instance node with the list of dimension types it contains.
 	addInstanceDimensionsStmt = "MATCH (i:`%s`) SET i.dimensions = {dimensions_list}"
-
-	instanceNilErr               = "instance is required but was nil"
-	instanceIDReqErr             = "instance id is required but was empty"
-	createInstanceExecErr        = "error while executing to create Instance statement"
-	createInstanceSuccess        = "successfully created instance node"
-	addInstanceDimensionsExecErr = "error while executing add instance dimensions statement"
-	addInstanceDimensionsSuccess = "successfully added dimensions to instance node"
-	instanceCountQueryErr        = "Unexpected error while attempting to count instance nodes"
-	castToint64Err               = "unexpected error while attempting to convert value to int64"
-	deleteInstanceErr            = "unexpected error while attempting to delete instance node"
-	removeInstanceSuccess        = "successfully deleted instance and all of its dimensions and relationships"
-	removeStatsKey               = "stats"
-	removeInstanceErr            = "unexpected error while attempting to remove instance and its dimensions"
-	closeErr                     = "unexpected error while attempting to close neo4j conn"
-	openConnErr                  = "unexpected error while attempting to open neo4j conn"
 )
 
 // NewInstanceRepository creates a new InstanceRepository. A bolt.Conn will be obtained from the supplied connectionPool.
@@ -46,8 +36,7 @@ const (
 func NewInstanceRepository(connPool common.NeoDriverPool, neo Neo4jClient) (*InstanceRepository, error) {
 	conn, err := connPool.OpenPool()
 	if err != nil {
-		log.ErrorC(openConnErr, err, nil)
-		return nil, err
+		return nil, errors.Wrap(err, "connPool.OpenPool returned an error")
 	}
 	return &InstanceRepository{neo4j: neo, conn: conn}, nil
 }
@@ -62,10 +51,10 @@ type InstanceRepository struct {
 func (repo *InstanceRepository) Close() {
 	if repo.conn != nil {
 		if err := repo.conn.Close(); err != nil {
-			log.ErrorC(closeErr, err, nil)
+			loggerI.ErrorC("conn.Close returned an error", err, nil)
 		}
 	}
-	log.Info("InstanceRepository conn closed", nil)
+	loggerI.Info("conn closed successfully", nil)
 }
 
 // Create creates an Instance node in a neo4j graph database
@@ -73,14 +62,10 @@ func (repo *InstanceRepository) Create(i *model.Instance) error {
 	var err error
 
 	if i == nil {
-		err = errors.New(instanceNilErr)
-		log.Error(err, nil)
-		return err
+		return errors.New("instance is required but was nil")
 	}
 	if len(i.InstanceID) == 0 {
-		err = errors.New(instanceIDReqErr)
-		log.ErrorC(instanceIDReqErr, err, nil)
-		return err
+		return errors.New("instance id is required but was empty")
 	}
 
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
@@ -90,23 +75,22 @@ func (repo *InstanceRepository) Create(i *model.Instance) error {
 		common.InstanceID: i.InstanceID,
 		stmtKey:           createStmt,
 	}
-
+	loggerI.Info("executing create instance statement", logDebug)
 	if _, err = repo.neo4j.ExecStmt(repo.conn, createStmt, nil); err != nil {
-		log.ErrorC(createInstanceExecErr, err, logDebug)
-		return err
+		return errors.Wrap(err, "neo4j.ExecStmt returned an error")
 	}
 
-	log.Info(createInstanceSuccess, logDebug)
+	loggerI.Info("create instance success", logDebug)
 	return nil
 }
 
 // AddDimensions update dimensions list of the specified Instance node.
 func (repo *InstanceRepository) AddDimensions(i *model.Instance) error {
 	if i == nil {
-		return errors.New(instanceNilErr)
+		return errors.New("instance is required but was nil")
 	}
 	if len(i.InstanceID) == 0 {
-		return errors.New(instanceIDReqErr)
+		return errors.New("instance id is required but was empty")
 	}
 
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
@@ -119,29 +103,29 @@ func (repo *InstanceRepository) AddDimensions(i *model.Instance) error {
 		common.InstanceID: i.InstanceID,
 		dimensionsKey:     i.GetDimensions(),
 	}
-
+	loggerI.Info("executing add dimensions statement", logDebug)
 	if _, err := repo.neo4j.ExecStmt(repo.conn, stmt, params); err != nil {
-		log.ErrorC(addInstanceDimensionsExecErr, err, nil)
-		return err
+		return errors.Wrap(err, "neo4j.ExecStmt returned an error")
 	}
 
-	log.Info(addInstanceDimensionsSuccess, logDebug)
+	loggerI.Info("add instance dimensions success", logDebug)
 	return nil
 }
 
 // Exists returns true if an instance already exists with the provided instanceID.
 func (repo *InstanceRepository) Exists(i *model.Instance) (bool, error) {
 	countStmt := fmt.Sprintf(countInstanceStmt, fmt.Sprintf(instanceLabelFmt, i.GetID()))
+
+	loggerI.Info("executing instance exists query", log.Data{stmtKey: countStmt})
 	rows, err := repo.neo4j.Query(repo.conn, countStmt, nil)
 	if err != nil {
-		log.ErrorC(instanceCountQueryErr, err, log.Data{common.InstanceID: i.GetID()})
-		return false, err
+		return false, errors.Wrap(err, "neo4j.Query returned an error")
 	}
 
 	data := rows.Data[0]
 	instanceCount, ok := data[0].(int64)
 	if !ok {
-		return false, errors.New(castToint64Err)
+		return false, errors.New("unexpected error while attempting to convert value to int64")
 	}
 
 	return instanceCount >= 1, nil
@@ -153,17 +137,19 @@ func (repo *InstanceRepository) Delete(i *model.Instance) error {
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
 
 	stmt := fmt.Sprintf(removeInstanceDimensionsAndRelationships, instanceLabel)
+	logData[stmtKey] = stmt
+	loggerI.Info("executing delete instance statement", logData)
+
 	results, err := repo.neo4j.ExecStmt(repo.conn, stmt, nil)
 
 	if err != nil {
-		log.ErrorC(deleteInstanceErr, err, logData)
-		return err
+		return errors.Wrap(err, "neo4j.ExecStmt returned an error")
 	}
 
-	stats := results.Metadata()[removeStatsKey]
+	stats := results.Metadata()["stats"]
 	if stats != nil {
-		logData[removeStatsKey] = stats.(map[string]interface{})
+		logData["stats"] = stats.(map[string]interface{})
 	}
-	log.Info(removeInstanceSuccess, logData)
+	loggerI.Info("instance deleted successfully", logData)
 	return nil
 }

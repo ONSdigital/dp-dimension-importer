@@ -1,14 +1,15 @@
 package message
 
 import (
-	"testing"
-	. "github.com/smartystreets/goconvey/convey"
-	mock "github.com/ONSdigital/dp-dimension-importer/message/message_test"
+	"fmt"
 	"github.com/ONSdigital/dp-dimension-importer/event"
+	mock "github.com/ONSdigital/dp-dimension-importer/message/message_test"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/go-ns/log"
+	"github.com/pkg/errors"
+	. "github.com/smartystreets/goconvey/convey"
+	"testing"
 	"time"
-	"errors"
 )
 
 var completedEvent = event.InstanceCompleted{
@@ -65,7 +66,7 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 	Convey("Given InstanceCompletedProducer has been configured correctly", t, func() {
 		output := make(chan []byte)
-		expectedErr := errors.New("Boom!")
+		mockError := errors.New("mock error")
 
 		kafkaProducerMock := &mock.KafkaProducerMock{
 			OutputFunc: func() chan []byte {
@@ -74,7 +75,7 @@ func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 		}
 		marshallerMock := &mock.MarshallerMock{
 			MarshalFunc: func(s interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, mockError
 			},
 		}
 
@@ -87,7 +88,8 @@ func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 			err := instanceCompletedProducer.Completed(completedEvent)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, expectedErr)
+				expectedError := errors.Wrap(mockError, fmt.Sprintf("Marshaller.Marshal returned an error: event=%v", completedEvent))
+				So(err.Error(), ShouldEqual, expectedError.Error())
 			})
 
 			Convey("And producer.Output is never called", func() {

@@ -1,21 +1,22 @@
 package healthcheck
 
 import (
+	"context"
 	"net/http"
+	"sync"
+
+	"github.com/ONSdigital/dp-dimension-importer/logging"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
-	"sync"
-	"context"
 )
 
-const (
-	gracefulShutdownMsg = "graceful shutdown of healthcheck endpoint complete"
+var (
+	httpServer   *server.Server
+	serverErrors chan error
+	once         sync.Once
+	logger       = logging.Logger{"healthcheck.Handler"}
 )
-
-var httpServer *server.Server
-var serverErrors chan error
-var once sync.Once
 
 // NewHandler create and run the healthcheck API endpoint.
 func NewHandler(bindAddr string, errorChan chan error) {
@@ -31,7 +32,7 @@ func NewHandler(bindAddr string, errorChan chan error) {
 		go func() {
 			log.Debug("Starting healthcheck endpoint...", nil)
 			if err := httpServer.ListenAndServe(); err != nil {
-				log.ErrorC("healthcheck server returned error", err, nil)
+				logger.ErrorC("healthcheck server returned error", err, nil)
 				serverErrors <- err
 			}
 		}()
@@ -40,11 +41,11 @@ func NewHandler(bindAddr string, errorChan chan error) {
 
 func Close(ctx context.Context) {
 	httpServer.Shutdown(ctx)
-	log.Info(gracefulShutdownMsg, nil)
+	logger.Info("graceful shutdown of healthcheck endpoint complete", nil)
 }
 
 // TODO Implement actual healthcheck.
 func handle(w http.ResponseWriter, r *http.Request) {
-	log.Debug("Healthcheck endpoint.", nil)
+	logger.Info("Healthcheck endpoint.", nil)
 	w.WriteHeader(200)
 }
