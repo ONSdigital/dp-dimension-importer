@@ -4,139 +4,9 @@
 package message_test
 
 import (
-	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/go-ns/kafka"
 	"sync"
 )
-
-var (
-	lockKafkaMessageConsumerMockCloser   sync.RWMutex
-	lockKafkaMessageConsumerMockErrors   sync.RWMutex
-	lockKafkaMessageConsumerMockIncoming sync.RWMutex
-)
-
-// KafkaMessageConsumerMock is a mock implementation of KafkaMessageConsumer.
-//
-//     func TestSomethingThatUsesKafkaMessageConsumer(t *testing.T) {
-//
-//         // make and configure a mocked KafkaMessageConsumer
-//         mockedKafkaMessageConsumer := &KafkaMessageConsumerMock{
-//             CloserFunc: func() chan bool {
-// 	               panic("TODO: mock out the Closer method")
-//             },
-//             ErrorsFunc: func() chan error {
-// 	               panic("TODO: mock out the Errors method")
-//             },
-//             IncomingFunc: func() chan kafka.Message {
-// 	               panic("TODO: mock out the Incoming method")
-//             },
-//         }
-//
-//         // TODO: use mockedKafkaMessageConsumer in code that requires KafkaMessageConsumer
-//         //       and then make assertions.
-//
-//     }
-type KafkaMessageConsumerMock struct {
-	// CloserFunc mocks the Closer method.
-	CloserFunc func() chan bool
-
-	// ErrorsFunc mocks the Errors method.
-	ErrorsFunc func() chan error
-
-	// IncomingFunc mocks the Incoming method.
-	IncomingFunc func() chan kafka.Message
-
-	// calls tracks calls to the methods.
-	calls struct {
-		// Closer holds details about calls to the Closer method.
-		Closer []struct {
-		}
-		// Errors holds details about calls to the Errors method.
-		Errors []struct {
-		}
-		// Incoming holds details about calls to the Incoming method.
-		Incoming []struct {
-		}
-	}
-}
-
-// Closer calls CloserFunc.
-func (mock *KafkaMessageConsumerMock) Closer() chan bool {
-	if mock.CloserFunc == nil {
-		panic("moq: KafkaMessageConsumerMock.CloserFunc is nil but KafkaMessageConsumer.Closer was just called")
-	}
-	callInfo := struct {
-	}{}
-	lockKafkaMessageConsumerMockCloser.Lock()
-	mock.calls.Closer = append(mock.calls.Closer, callInfo)
-	lockKafkaMessageConsumerMockCloser.Unlock()
-	return mock.CloserFunc()
-}
-
-// CloserCalls gets all the calls that were made to Closer.
-// Check the length with:
-//     len(mockedKafkaMessageConsumer.CloserCalls())
-func (mock *KafkaMessageConsumerMock) CloserCalls() []struct {
-} {
-	var calls []struct {
-	}
-	lockKafkaMessageConsumerMockCloser.RLock()
-	calls = mock.calls.Closer
-	lockKafkaMessageConsumerMockCloser.RUnlock()
-	return calls
-}
-
-// Errors calls ErrorsFunc.
-func (mock *KafkaMessageConsumerMock) Errors() chan error {
-	if mock.ErrorsFunc == nil {
-		panic("moq: KafkaMessageConsumerMock.ErrorsFunc is nil but KafkaMessageConsumer.Errors was just called")
-	}
-	callInfo := struct {
-	}{}
-	lockKafkaMessageConsumerMockErrors.Lock()
-	mock.calls.Errors = append(mock.calls.Errors, callInfo)
-	lockKafkaMessageConsumerMockErrors.Unlock()
-	return mock.ErrorsFunc()
-}
-
-// ErrorsCalls gets all the calls that were made to Errors.
-// Check the length with:
-//     len(mockedKafkaMessageConsumer.ErrorsCalls())
-func (mock *KafkaMessageConsumerMock) ErrorsCalls() []struct {
-} {
-	var calls []struct {
-	}
-	lockKafkaMessageConsumerMockErrors.RLock()
-	calls = mock.calls.Errors
-	lockKafkaMessageConsumerMockErrors.RUnlock()
-	return calls
-}
-
-// Incoming calls IncomingFunc.
-func (mock *KafkaMessageConsumerMock) Incoming() chan kafka.Message {
-	if mock.IncomingFunc == nil {
-		panic("moq: KafkaMessageConsumerMock.IncomingFunc is nil but KafkaMessageConsumer.Incoming was just called")
-	}
-	callInfo := struct {
-	}{}
-	lockKafkaMessageConsumerMockIncoming.Lock()
-	mock.calls.Incoming = append(mock.calls.Incoming, callInfo)
-	lockKafkaMessageConsumerMockIncoming.Unlock()
-	return mock.IncomingFunc()
-}
-
-// IncomingCalls gets all the calls that were made to Incoming.
-// Check the length with:
-//     len(mockedKafkaMessageConsumer.IncomingCalls())
-func (mock *KafkaMessageConsumerMock) IncomingCalls() []struct {
-} {
-	var calls []struct {
-	}
-	lockKafkaMessageConsumerMockIncoming.RLock()
-	calls = mock.calls.Incoming
-	lockKafkaMessageConsumerMockIncoming.RUnlock()
-	return calls
-}
 
 var (
 	lockKafkaMessageMockCommit  sync.RWMutex
@@ -232,266 +102,58 @@ func (mock *KafkaMessageMock) GetDataCalls() []struct {
 }
 
 var (
-	lockKafkaMessageProducerMockCloser sync.RWMutex
-	lockKafkaMessageProducerMockErrors sync.RWMutex
-	lockKafkaMessageProducerMockOutput sync.RWMutex
+	lockKafkaConsumerMockIncoming sync.RWMutex
 )
 
-// KafkaMessageProducerMock is a mock implementation of KafkaMessageProducer.
+// KafkaConsumerMock is a mock implementation of KafkaConsumer.
 //
-//     func TestSomethingThatUsesKafkaMessageProducer(t *testing.T) {
+//     func TestSomethingThatUsesKafkaConsumer(t *testing.T) {
 //
-//         // make and configure a mocked KafkaMessageProducer
-//         mockedKafkaMessageProducer := &KafkaMessageProducerMock{
-//             CloserFunc: func() chan bool {
-// 	               panic("TODO: mock out the Closer method")
-//             },
-//             ErrorsFunc: func() chan error {
-// 	               panic("TODO: mock out the Errors method")
-//             },
-//             OutputFunc: func() chan []byte {
-// 	               panic("TODO: mock out the Output method")
+//         // make and configure a mocked KafkaConsumer
+//         mockedKafkaConsumer := &KafkaConsumerMock{
+//             IncomingFunc: func() chan kafka.Message {
+// 	               panic("TODO: mock out the Incoming method")
 //             },
 //         }
 //
-//         // TODO: use mockedKafkaMessageProducer in code that requires KafkaMessageProducer
+//         // TODO: use mockedKafkaConsumer in code that requires KafkaConsumer
 //         //       and then make assertions.
 //
 //     }
-type KafkaMessageProducerMock struct {
-	// CloserFunc mocks the Closer method.
-	CloserFunc func() chan bool
-
-	// ErrorsFunc mocks the Errors method.
-	ErrorsFunc func() chan error
-
-	// OutputFunc mocks the Output method.
-	OutputFunc func() chan []byte
+type KafkaConsumerMock struct {
+	// IncomingFunc mocks the Incoming method.
+	IncomingFunc func() chan kafka.Message
 
 	// calls tracks calls to the methods.
 	calls struct {
-		// Closer holds details about calls to the Closer method.
-		Closer []struct {
-		}
-		// Errors holds details about calls to the Errors method.
-		Errors []struct {
-		}
-		// Output holds details about calls to the Output method.
-		Output []struct {
+		// Incoming holds details about calls to the Incoming method.
+		Incoming []struct {
 		}
 	}
 }
 
-// Closer calls CloserFunc.
-func (mock *KafkaMessageProducerMock) Closer() chan bool {
-	if mock.CloserFunc == nil {
-		panic("moq: KafkaMessageProducerMock.CloserFunc is nil but KafkaMessageProducer.Closer was just called")
+// Incoming calls IncomingFunc.
+func (mock *KafkaConsumerMock) Incoming() chan kafka.Message {
+	if mock.IncomingFunc == nil {
+		panic("moq: KafkaConsumerMock.IncomingFunc is nil but KafkaConsumer.Incoming was just called")
 	}
 	callInfo := struct {
 	}{}
-	lockKafkaMessageProducerMockCloser.Lock()
-	mock.calls.Closer = append(mock.calls.Closer, callInfo)
-	lockKafkaMessageProducerMockCloser.Unlock()
-	return mock.CloserFunc()
+	lockKafkaConsumerMockIncoming.Lock()
+	mock.calls.Incoming = append(mock.calls.Incoming, callInfo)
+	lockKafkaConsumerMockIncoming.Unlock()
+	return mock.IncomingFunc()
 }
 
-// CloserCalls gets all the calls that were made to Closer.
+// IncomingCalls gets all the calls that were made to Incoming.
 // Check the length with:
-//     len(mockedKafkaMessageProducer.CloserCalls())
-func (mock *KafkaMessageProducerMock) CloserCalls() []struct {
+//     len(mockedKafkaConsumer.IncomingCalls())
+func (mock *KafkaConsumerMock) IncomingCalls() []struct {
 } {
 	var calls []struct {
 	}
-	lockKafkaMessageProducerMockCloser.RLock()
-	calls = mock.calls.Closer
-	lockKafkaMessageProducerMockCloser.RUnlock()
-	return calls
-}
-
-// Errors calls ErrorsFunc.
-func (mock *KafkaMessageProducerMock) Errors() chan error {
-	if mock.ErrorsFunc == nil {
-		panic("moq: KafkaMessageProducerMock.ErrorsFunc is nil but KafkaMessageProducer.Errors was just called")
-	}
-	callInfo := struct {
-	}{}
-	lockKafkaMessageProducerMockErrors.Lock()
-	mock.calls.Errors = append(mock.calls.Errors, callInfo)
-	lockKafkaMessageProducerMockErrors.Unlock()
-	return mock.ErrorsFunc()
-}
-
-// ErrorsCalls gets all the calls that were made to Errors.
-// Check the length with:
-//     len(mockedKafkaMessageProducer.ErrorsCalls())
-func (mock *KafkaMessageProducerMock) ErrorsCalls() []struct {
-} {
-	var calls []struct {
-	}
-	lockKafkaMessageProducerMockErrors.RLock()
-	calls = mock.calls.Errors
-	lockKafkaMessageProducerMockErrors.RUnlock()
-	return calls
-}
-
-// Output calls OutputFunc.
-func (mock *KafkaMessageProducerMock) Output() chan []byte {
-	if mock.OutputFunc == nil {
-		panic("moq: KafkaMessageProducerMock.OutputFunc is nil but KafkaMessageProducer.Output was just called")
-	}
-	callInfo := struct {
-	}{}
-	lockKafkaMessageProducerMockOutput.Lock()
-	mock.calls.Output = append(mock.calls.Output, callInfo)
-	lockKafkaMessageProducerMockOutput.Unlock()
-	return mock.OutputFunc()
-}
-
-// OutputCalls gets all the calls that were made to Output.
-// Check the length with:
-//     len(mockedKafkaMessageProducer.OutputCalls())
-func (mock *KafkaMessageProducerMock) OutputCalls() []struct {
-} {
-	var calls []struct {
-	}
-	lockKafkaMessageProducerMockOutput.RLock()
-	calls = mock.calls.Output
-	lockKafkaMessageProducerMockOutput.RUnlock()
-	return calls
-}
-
-var (
-	lockInsertedProducerMockCloser            sync.RWMutex
-	lockInsertedProducerMockDimensionInserted sync.RWMutex
-	lockInsertedProducerMockErrors            sync.RWMutex
-)
-
-// InsertedProducerMock is a mock implementation of InsertedProducer.
-//
-//     func TestSomethingThatUsesInsertedProducer(t *testing.T) {
-//
-//         // make and configure a mocked InsertedProducer
-//         mockedInsertedProducer := &InsertedProducerMock{
-//             CloserFunc: func() chan bool {
-// 	               panic("TODO: mock out the Closer method")
-//             },
-//             DimensionInsertedFunc: func(e event.DimensionsInsertedEvent) error {
-// 	               panic("TODO: mock out the DimensionInserted method")
-//             },
-//             ErrorsFunc: func() chan error {
-// 	               panic("TODO: mock out the Errors method")
-//             },
-//         }
-//
-//         // TODO: use mockedInsertedProducer in code that requires InsertedProducer
-//         //       and then make assertions.
-//
-//     }
-type InsertedProducerMock struct {
-	// CloserFunc mocks the Closer method.
-	CloserFunc func() chan bool
-
-	// DimensionInsertedFunc mocks the DimensionInserted method.
-	DimensionInsertedFunc func(e event.DimensionsInsertedEvent) error
-
-	// ErrorsFunc mocks the Errors method.
-	ErrorsFunc func() chan error
-
-	// calls tracks calls to the methods.
-	calls struct {
-		// Closer holds details about calls to the Closer method.
-		Closer []struct {
-		}
-		// DimensionInserted holds details about calls to the DimensionInserted method.
-		DimensionInserted []struct {
-			// E is the e argument value.
-			E event.DimensionsInsertedEvent
-		}
-		// Errors holds details about calls to the Errors method.
-		Errors []struct {
-		}
-	}
-}
-
-// Closer calls CloserFunc.
-func (mock *InsertedProducerMock) Closer() chan bool {
-	if mock.CloserFunc == nil {
-		panic("moq: InsertedProducerMock.CloserFunc is nil but InsertedProducer.Closer was just called")
-	}
-	callInfo := struct {
-	}{}
-	lockInsertedProducerMockCloser.Lock()
-	mock.calls.Closer = append(mock.calls.Closer, callInfo)
-	lockInsertedProducerMockCloser.Unlock()
-	return mock.CloserFunc()
-}
-
-// CloserCalls gets all the calls that were made to Closer.
-// Check the length with:
-//     len(mockedInsertedProducer.CloserCalls())
-func (mock *InsertedProducerMock) CloserCalls() []struct {
-} {
-	var calls []struct {
-	}
-	lockInsertedProducerMockCloser.RLock()
-	calls = mock.calls.Closer
-	lockInsertedProducerMockCloser.RUnlock()
-	return calls
-}
-
-// DimensionInserted calls DimensionInsertedFunc.
-func (mock *InsertedProducerMock) DimensionInserted(e event.DimensionsInsertedEvent) error {
-	if mock.DimensionInsertedFunc == nil {
-		panic("moq: InsertedProducerMock.DimensionInsertedFunc is nil but InsertedProducer.DimensionInserted was just called")
-	}
-	callInfo := struct {
-		E event.DimensionsInsertedEvent
-	}{
-		E: e,
-	}
-	lockInsertedProducerMockDimensionInserted.Lock()
-	mock.calls.DimensionInserted = append(mock.calls.DimensionInserted, callInfo)
-	lockInsertedProducerMockDimensionInserted.Unlock()
-	return mock.DimensionInsertedFunc(e)
-}
-
-// DimensionInsertedCalls gets all the calls that were made to DimensionInserted.
-// Check the length with:
-//     len(mockedInsertedProducer.DimensionInsertedCalls())
-func (mock *InsertedProducerMock) DimensionInsertedCalls() []struct {
-	E event.DimensionsInsertedEvent
-} {
-	var calls []struct {
-		E event.DimensionsInsertedEvent
-	}
-	lockInsertedProducerMockDimensionInserted.RLock()
-	calls = mock.calls.DimensionInserted
-	lockInsertedProducerMockDimensionInserted.RUnlock()
-	return calls
-}
-
-// Errors calls ErrorsFunc.
-func (mock *InsertedProducerMock) Errors() chan error {
-	if mock.ErrorsFunc == nil {
-		panic("moq: InsertedProducerMock.ErrorsFunc is nil but InsertedProducer.Errors was just called")
-	}
-	callInfo := struct {
-	}{}
-	lockInsertedProducerMockErrors.Lock()
-	mock.calls.Errors = append(mock.calls.Errors, callInfo)
-	lockInsertedProducerMockErrors.Unlock()
-	return mock.ErrorsFunc()
-}
-
-// ErrorsCalls gets all the calls that were made to Errors.
-// Check the length with:
-//     len(mockedInsertedProducer.ErrorsCalls())
-func (mock *InsertedProducerMock) ErrorsCalls() []struct {
-} {
-	var calls []struct {
-	}
-	lockInsertedProducerMockErrors.RLock()
-	calls = mock.calls.Errors
-	lockInsertedProducerMockErrors.RUnlock()
+	lockKafkaConsumerMockIncoming.RLock()
+	calls = mock.calls.Incoming
+	lockKafkaConsumerMockIncoming.RUnlock()
 	return calls
 }

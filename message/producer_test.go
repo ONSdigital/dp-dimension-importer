@@ -1,143 +1,100 @@
 package message
 
 import (
-	"errors"
+	"fmt"
 	"github.com/ONSdigital/dp-dimension-importer/event"
-	"github.com/ONSdigital/dp-dimension-importer/message/message_test"
+	mock "github.com/ONSdigital/dp-dimension-importer/message/message_test"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
+	"github.com/ONSdigital/go-ns/log"
+	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
 )
 
-func TestDimensionInsertedProducer_DimensionInserted(t *testing.T) {
-	Convey("Given a DimensionInsertProducer with valid configuration", t, func() {
-		outputChan := make(chan []byte)
-		closerChan := make(chan bool)
-		errorsChan := make(chan error)
+var completedEvent = event.InstanceCompleted{
+	InstanceID: "1234567890",
+	FileURL:    "/cmd/my.csv",
+}
 
-		insertedEvent := event.DimensionsInsertedEvent{
-			FileURL:    fileURL,
-			InstanceID: instanceID,
-		}
+func TestInstanceCompletedProducer_Completed(t *testing.T) {
+	Convey("Given InstanceCompletedProducer has been configured correctly", t, func() {
+		output := make(chan []byte, 1)
 
-		eventBytes, _ := schema.DimensionsInsertedSchema.Marshal(insertedEvent)
-
-		marshallerMock := &message_test.MarshallerMock{
-			MarshalFunc: func(s interface{}) ([]byte, error) {
-				return eventBytes, nil
-			},
-		}
-
-		producerMock := &message_test.KafkaMessageProducerMock{
+		kafkaProducerMock := &mock.KafkaProducerMock{
 			OutputFunc: func() chan []byte {
-				return outputChan
+				return output
 			},
-			CloserFunc: func() chan bool {
-				return closerChan
-			},
-			ErrorsFunc: func() chan error {
-				return errorsChan
+		}
+		marshallerMock := &mock.MarshallerMock{
+			MarshalFunc: func(s interface{}) ([]byte, error) {
+				return schema.InstanceCompletedSchema.Marshal(s)
 			},
 		}
 
-		target := &DimensionInsertedProducer{
+		instanceCompletedProducer := InstanceCompletedProducer{
+			Producer:   kafkaProducerMock,
 			Marshaller: marshallerMock,
-			Producer:   producerMock,
 		}
 
-		done := false
-		output := make([]byte, 0)
-		go func() {
-			for !done {
-				select {
-				case bytes := <-outputChan:
-					output = bytes
-					done = true
-				case <-time.After(time.Second * 10):
-					done = true
-					t.Fail()
-				}
+		Convey("When given a valid instanceCompletedEvent", func() {
+
+			err := instanceCompletedProducer.Completed(completedEvent)
+
+			var avroBytes []byte
+			select {
+			case avroBytes = <-output:
+				log.Info("Avro byte sent to producer output", nil)
+			case <-time.After(time.Second * 5):
+				log.Info("Failing test due to timed out", nil)
+				t.FailNow()
 			}
-		}()
 
-		Convey("When DimensionInserted is invoked with valid parameters", func() {
-			err := target.DimensionInserted(insertedEvent)
+			Convey("Then no error is returned", func() {
+				So(err, ShouldBeNil)
 
-			Convey("Then, no error is returned", func() {
-				So(err, ShouldEqual, nil)
-			})
-
-			Convey("And the expected data is sent to the Producer.Output chanel", func() {
-				So(len(producerMock.OutputCalls()), ShouldEqual, 1)
-				So(output, ShouldResemble, eventBytes)
-			})
-
-			Convey("And marshal is called 1 time with the expected parameters.", func() {
-				So(len(marshallerMock.MarshalCalls()), ShouldEqual, 1)
-			})
-
-			Convey("And no other calls to the Producer are made.", func() {
-				So(len(producerMock.ErrorsCalls()), ShouldEqual, 0)
-				So(len(producerMock.CloserCalls()), ShouldEqual, 0)
+				Convey("And the exepcted bytes are sent to producer.output", func() {
+					var actual event.InstanceCompleted
+					schema.InstanceCompletedSchema.Unmarshal(avroBytes, &actual)
+					So(completedEvent, ShouldResemble, actual)
+				})
 			})
 		})
 	})
 }
 
-func TestDimensionInsertedProducer_DimensionInserted_MarshalErr(t *testing.T) {
-	Convey("Given a DimensionInsertProducer with valid configuration", t, func() {
-		outputChan := make(chan []byte)
-		closerChan := make(chan bool)
-		errorsChan := make(chan error)
+func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
+	Convey("Given InstanceCompletedProducer has been configured correctly", t, func() {
+		output := make(chan []byte)
+		mockError := errors.New("mock error")
 
-		insertedEvent := event.DimensionsInsertedEvent{
-			FileURL:    fileURL,
-			InstanceID: instanceID,
-		}
-
-		marshallerMock := &message_test.MarshallerMock{}
-
-		producerMock := &message_test.KafkaMessageProducerMock{
+		kafkaProducerMock := &mock.KafkaProducerMock{
 			OutputFunc: func() chan []byte {
-				return outputChan
+				return output
 			},
-			CloserFunc: func() chan bool {
-				return closerChan
-			},
-			ErrorsFunc: func() chan error {
-				return errorsChan
+		}
+		marshallerMock := &mock.MarshallerMock{
+			MarshalFunc: func(s interface{}) ([]byte, error) {
+				return nil, mockError
 			},
 		}
 
-		target := &DimensionInsertedProducer{
+		instanceCompletedProducer := InstanceCompletedProducer{
+			Producer:   kafkaProducerMock,
 			Marshaller: marshallerMock,
-			Producer:   producerMock,
 		}
 
-		Convey("When the Marshaller returns an error", func() {
-			avroErr := errors.New("Avro error")
-
-			marshallerMock.MarshalFunc = func(s interface{}) ([]byte, error) {
-				return nil, avroErr
-			}
-
-			err := target.DimensionInserted(insertedEvent)
+		Convey("When marshaller.Marshal returns an error", func() {
+			err := instanceCompletedProducer.Completed(completedEvent)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, avroErr)
+				expectedError := errors.Wrap(mockError, fmt.Sprintf("Marshaller.Marshal returned an error: event=%v", completedEvent))
+				So(err.Error(), ShouldEqual, expectedError.Error())
 			})
 
-			Convey("And the Marshaller is called 1 time with expected parameters", func() {
-				So(len(marshallerMock.MarshalCalls()), ShouldEqual, 1)
+			Convey("And producer.Output is never called", func() {
+				So(len(kafkaProducerMock.OutputCalls()), ShouldEqual, 0)
 			})
-
-			Convey("And there are no interactions with the Producer", func() {
-				So(len(producerMock.OutputCalls()), ShouldEqual, 0)
-				So(len(producerMock.ErrorsCalls()), ShouldEqual, 0)
-				So(len(producerMock.CloserCalls()), ShouldEqual, 0)
-			})
-
 		})
 	})
 }

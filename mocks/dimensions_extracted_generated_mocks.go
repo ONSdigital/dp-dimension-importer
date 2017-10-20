@@ -4,6 +4,7 @@
 package mocks
 
 import (
+	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"sync"
 )
@@ -166,7 +167,10 @@ func (mock *DatasetAPIClientMock) PutDimensionNodeIDCalls() []struct {
 
 var (
 	lockInstanceRepositoryMockAddDimensions sync.RWMutex
+	lockInstanceRepositoryMockClose         sync.RWMutex
 	lockInstanceRepositoryMockCreate        sync.RWMutex
+	lockInstanceRepositoryMockDelete        sync.RWMutex
+	lockInstanceRepositoryMockExists        sync.RWMutex
 )
 
 // InstanceRepositoryMock is a mock implementation of InstanceRepository.
@@ -178,8 +182,17 @@ var (
 //             AddDimensionsFunc: func(instance *model.Instance) error {
 // 	               panic("TODO: mock out the AddDimensions method")
 //             },
+//             CloseFunc: func()  {
+// 	               panic("TODO: mock out the Close method")
+//             },
 //             CreateFunc: func(instance *model.Instance) error {
 // 	               panic("TODO: mock out the Create method")
+//             },
+//             DeleteFunc: func(instance *model.Instance) error {
+// 	               panic("TODO: mock out the Delete method")
+//             },
+//             ExistsFunc: func(instance *model.Instance) (bool, error) {
+// 	               panic("TODO: mock out the Exists method")
 //             },
 //         }
 //
@@ -191,8 +204,17 @@ type InstanceRepositoryMock struct {
 	// AddDimensionsFunc mocks the AddDimensions method.
 	AddDimensionsFunc func(instance *model.Instance) error
 
+	// CloseFunc mocks the Close method.
+	CloseFunc func()
+
 	// CreateFunc mocks the Create method.
 	CreateFunc func(instance *model.Instance) error
+
+	// DeleteFunc mocks the Delete method.
+	DeleteFunc func(instance *model.Instance) error
+
+	// ExistsFunc mocks the Exists method.
+	ExistsFunc func(instance *model.Instance) (bool, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -201,8 +223,21 @@ type InstanceRepositoryMock struct {
 			// Instance is the instance argument value.
 			Instance *model.Instance
 		}
+		// Close holds details about calls to the Close method.
+		Close []struct {
+		}
 		// Create holds details about calls to the Create method.
 		Create []struct {
+			// Instance is the instance argument value.
+			Instance *model.Instance
+		}
+		// Delete holds details about calls to the Delete method.
+		Delete []struct {
+			// Instance is the instance argument value.
+			Instance *model.Instance
+		}
+		// Exists holds details about calls to the Exists method.
+		Exists []struct {
 			// Instance is the instance argument value.
 			Instance *model.Instance
 		}
@@ -240,6 +275,32 @@ func (mock *InstanceRepositoryMock) AddDimensionsCalls() []struct {
 	return calls
 }
 
+// Close calls CloseFunc.
+func (mock *InstanceRepositoryMock) Close() {
+	if mock.CloseFunc == nil {
+		panic("moq: InstanceRepositoryMock.CloseFunc is nil but InstanceRepository.Close was just called")
+	}
+	callInfo := struct {
+	}{}
+	lockInstanceRepositoryMockClose.Lock()
+	mock.calls.Close = append(mock.calls.Close, callInfo)
+	lockInstanceRepositoryMockClose.Unlock()
+	mock.CloseFunc()
+}
+
+// CloseCalls gets all the calls that were made to Close.
+// Check the length with:
+//     len(mockedInstanceRepository.CloseCalls())
+func (mock *InstanceRepositoryMock) CloseCalls() []struct {
+} {
+	var calls []struct {
+	}
+	lockInstanceRepositoryMockClose.RLock()
+	calls = mock.calls.Close
+	lockInstanceRepositoryMockClose.RUnlock()
+	return calls
+}
+
 // Create calls CreateFunc.
 func (mock *InstanceRepositoryMock) Create(instance *model.Instance) error {
 	if mock.CreateFunc == nil {
@@ -271,7 +332,70 @@ func (mock *InstanceRepositoryMock) CreateCalls() []struct {
 	return calls
 }
 
+// Delete calls DeleteFunc.
+func (mock *InstanceRepositoryMock) Delete(instance *model.Instance) error {
+	if mock.DeleteFunc == nil {
+		panic("moq: InstanceRepositoryMock.DeleteFunc is nil but InstanceRepository.Delete was just called")
+	}
+	callInfo := struct {
+		Instance *model.Instance
+	}{
+		Instance: instance,
+	}
+	lockInstanceRepositoryMockDelete.Lock()
+	mock.calls.Delete = append(mock.calls.Delete, callInfo)
+	lockInstanceRepositoryMockDelete.Unlock()
+	return mock.DeleteFunc(instance)
+}
+
+// DeleteCalls gets all the calls that were made to Delete.
+// Check the length with:
+//     len(mockedInstanceRepository.DeleteCalls())
+func (mock *InstanceRepositoryMock) DeleteCalls() []struct {
+	Instance *model.Instance
+} {
+	var calls []struct {
+		Instance *model.Instance
+	}
+	lockInstanceRepositoryMockDelete.RLock()
+	calls = mock.calls.Delete
+	lockInstanceRepositoryMockDelete.RUnlock()
+	return calls
+}
+
+// Exists calls ExistsFunc.
+func (mock *InstanceRepositoryMock) Exists(instance *model.Instance) (bool, error) {
+	if mock.ExistsFunc == nil {
+		panic("moq: InstanceRepositoryMock.ExistsFunc is nil but InstanceRepository.Exists was just called")
+	}
+	callInfo := struct {
+		Instance *model.Instance
+	}{
+		Instance: instance,
+	}
+	lockInstanceRepositoryMockExists.Lock()
+	mock.calls.Exists = append(mock.calls.Exists, callInfo)
+	lockInstanceRepositoryMockExists.Unlock()
+	return mock.ExistsFunc(instance)
+}
+
+// ExistsCalls gets all the calls that were made to Exists.
+// Check the length with:
+//     len(mockedInstanceRepository.ExistsCalls())
+func (mock *InstanceRepositoryMock) ExistsCalls() []struct {
+	Instance *model.Instance
+} {
+	var calls []struct {
+		Instance *model.Instance
+	}
+	lockInstanceRepositoryMockExists.RLock()
+	calls = mock.calls.Exists
+	lockInstanceRepositoryMockExists.RUnlock()
+	return calls
+}
+
 var (
+	lockDimensionRepositoryMockClose  sync.RWMutex
 	lockDimensionRepositoryMockInsert sync.RWMutex
 )
 
@@ -281,6 +405,9 @@ var (
 //
 //         // make and configure a mocked DimensionRepository
 //         mockedDimensionRepository := &DimensionRepositoryMock{
+//             CloseFunc: func()  {
+// 	               panic("TODO: mock out the Close method")
+//             },
 //             InsertFunc: func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 // 	               panic("TODO: mock out the Insert method")
 //             },
@@ -291,11 +418,17 @@ var (
 //
 //     }
 type DimensionRepositoryMock struct {
+	// CloseFunc mocks the Close method.
+	CloseFunc func()
+
 	// InsertFunc mocks the Insert method.
 	InsertFunc func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
+		// Close holds details about calls to the Close method.
+		Close []struct {
+		}
 		// Insert holds details about calls to the Insert method.
 		Insert []struct {
 			// Instance is the instance argument value.
@@ -304,6 +437,32 @@ type DimensionRepositoryMock struct {
 			Dimension *model.Dimension
 		}
 	}
+}
+
+// Close calls CloseFunc.
+func (mock *DimensionRepositoryMock) Close() {
+	if mock.CloseFunc == nil {
+		panic("moq: DimensionRepositoryMock.CloseFunc is nil but DimensionRepository.Close was just called")
+	}
+	callInfo := struct {
+	}{}
+	lockDimensionRepositoryMockClose.Lock()
+	mock.calls.Close = append(mock.calls.Close, callInfo)
+	lockDimensionRepositoryMockClose.Unlock()
+	mock.CloseFunc()
+}
+
+// CloseCalls gets all the calls that were made to Close.
+// Check the length with:
+//     len(mockedDimensionRepository.CloseCalls())
+func (mock *DimensionRepositoryMock) CloseCalls() []struct {
+} {
+	var calls []struct {
+	}
+	lockDimensionRepositoryMockClose.RLock()
+	calls = mock.calls.Close
+	lockDimensionRepositoryMockClose.RUnlock()
+	return calls
 }
 
 // Insert calls InsertFunc.
@@ -338,5 +497,69 @@ func (mock *DimensionRepositoryMock) InsertCalls() []struct {
 	lockDimensionRepositoryMockInsert.RLock()
 	calls = mock.calls.Insert
 	lockDimensionRepositoryMockInsert.RUnlock()
+	return calls
+}
+
+var (
+	lockCompletedProducerMockCompleted sync.RWMutex
+)
+
+// CompletedProducerMock is a mock implementation of CompletedProducer.
+//
+//     func TestSomethingThatUsesCompletedProducer(t *testing.T) {
+//
+//         // make and configure a mocked CompletedProducer
+//         mockedCompletedProducer := &CompletedProducerMock{
+//             CompletedFunc: func(e event.InstanceCompleted) error {
+// 	               panic("TODO: mock out the Completed method")
+//             },
+//         }
+//
+//         // TODO: use mockedCompletedProducer in code that requires CompletedProducer
+//         //       and then make assertions.
+//
+//     }
+type CompletedProducerMock struct {
+	// CompletedFunc mocks the Completed method.
+	CompletedFunc func(e event.InstanceCompleted) error
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// Completed holds details about calls to the Completed method.
+		Completed []struct {
+			// E is the e argument value.
+			E event.InstanceCompleted
+		}
+	}
+}
+
+// Completed calls CompletedFunc.
+func (mock *CompletedProducerMock) Completed(e event.InstanceCompleted) error {
+	if mock.CompletedFunc == nil {
+		panic("moq: CompletedProducerMock.CompletedFunc is nil but CompletedProducer.Completed was just called")
+	}
+	callInfo := struct {
+		E event.InstanceCompleted
+	}{
+		E: e,
+	}
+	lockCompletedProducerMockCompleted.Lock()
+	mock.calls.Completed = append(mock.calls.Completed, callInfo)
+	lockCompletedProducerMockCompleted.Unlock()
+	return mock.CompletedFunc(e)
+}
+
+// CompletedCalls gets all the calls that were made to Completed.
+// Check the length with:
+//     len(mockedCompletedProducer.CompletedCalls())
+func (mock *CompletedProducerMock) CompletedCalls() []struct {
+	E event.InstanceCompleted
+} {
+	var calls []struct {
+		E event.InstanceCompleted
+	}
+	lockCompletedProducerMockCompleted.RLock()
+	calls = mock.calls.Completed
+	lockCompletedProducerMockCompleted.RUnlock()
 	return calls
 }

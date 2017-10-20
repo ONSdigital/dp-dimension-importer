@@ -20,7 +20,10 @@ func (self *failureSerializer) serializeDetailed(expected, actual interface{}, m
 		Expected: render.Render(expected),
 		Actual:   render.Render(actual),
 	}
-	serialized, _ := json.Marshal(view)
+	serialized, err := json.Marshal(view)
+	if err != nil {
+		return message
+	}
 	return string(serialized)
 }
 
@@ -30,7 +33,10 @@ func (self *failureSerializer) serialize(expected, actual interface{}, message s
 		Expected: fmt.Sprintf("%+v", expected),
 		Actual:   fmt.Sprintf("%+v", actual),
 	}
-	serialized, _ := json.Marshal(view)
+	serialized, err := json.Marshal(view)
+	if err != nil {
+		return message
+	}
 	return string(serialized)
 }
 
@@ -51,8 +57,8 @@ type FailureView struct {
 ///////////////////////////////////////////////////////
 
 // noopSerializer just gives back the original message. This is useful when we are using
-// the assertions from a context other than the GoConvey Web UI, that requires the JSON
-// structure provided by the failureSerializer.
+// the assertions from a context other than the web UI, that requires the JSON structure
+// provided by the failureSerializer.
 type noopSerializer struct{}
 
 func (self *noopSerializer) serialize(expected, actual interface{}, message string) string {

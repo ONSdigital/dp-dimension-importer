@@ -4,7 +4,7 @@ import (
 	"github.com/ONSdigital/go-ns/avro"
 )
 
-var DimensionsExtracted = ` {
+var newInstance = ` {
 	"type": "record",
 	"name": "dimensions-extracted",
 	"namespace": "",
@@ -20,11 +20,11 @@ var DimensionsExtracted = ` {
 	]
 }`
 
-var DimensionsExtractedSchema *avro.Schema = &avro.Schema{
-	Definition: DimensionsExtracted,
+var NewInstanceSchema *avro.Schema = &avro.Schema{
+	Definition: newInstance,
 }
 
-var DimensionsInserted = `{
+var instanceCompleted = `{
 	"type": "record",
 	"name": "dimensions-inserted",
 	"namespace": "",
@@ -40,6 +40,6 @@ var DimensionsInserted = `{
 	]
 }`
 
-var DimensionsInsertedSchema *avro.Schema = &avro.Schema{
-	Definition: DimensionsInserted,
+var InstanceCompletedSchema *avro.Schema = &avro.Schema{
+	Definition: instanceCompleted,
 }

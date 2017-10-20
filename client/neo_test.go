@@ -1,223 +1,173 @@
 package client
 
 import (
-	"errors"
+	"testing"
+
 	"github.com/ONSdigital/dp-dimension-importer/common"
 	"github.com/ONSdigital/dp-dimension-importer/mocks"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
-var rowsData [][]interface{} = [][]interface{}{{1}}
+var (
+	rowsData  [][]interface{} = [][]interface{}{{1}}
+	mockError                 = errors.New("mock error")
+)
 
-func TestNeo4j_Query(t *testing.T) {
-	Convey("Given the driver pool has been correctly configured ", t, func() {
+func TestNeo4j_Query_ConnNil(t *testing.T) {
+	neo4j := Neo4j{}
 
-		query := "Valar morghulis"
-		expectedErr := errors.New("I am expected")
-		params := map[string]interface{}{"param1": "Valar dohaeris"}
+	Convey("Given a conn is nil", t, func() {
+		Convey("When neo4j.Query is invoked", func() {
+			rows, err := neo4j.Query(nil, "", nil)
 
-		mockRows := &mocks.NeoQueryRowsMock{
-			AllFunc: func() ([][]interface{}, map[string]interface{}, error) {
-				return rowsData, nil, nil
-			},
-			CloseFunc: closeNoErr,
-		}
-		mockStmt := &mocks.NeoStmtMock{
-			QueryNeoFunc: func(params map[string]interface{}) (bolt.Rows, error) {
-				return mockRows, nil
-			},
-			CloseFunc: closeNoErr,
-		}
-		mockConn := &mocks.NeoConnMock{
-			PrepareNeoFunc: func(query string) (bolt.Stmt, error) {
-				return mockStmt, nil
-			},
-			CloseFunc: closeNoErr,
-		}
-		mockDriverPool := &mocks.NeoDriverPoolMock{
-			OpenPoolFunc: func() (bolt.Conn, error) {
-				return mockConn, nil
-			},
-		}
-		neo := Neo4j{
-			driverPool: mockDriverPool,
-		}
-
-		Convey("Given an empty statement", func() {
-			query = ""
-
-			Convey("When Query is called", func() {
-				rows, err := neo.Query(query, nil)
-
-				Convey("Then neoDriverPool.OpenPool is never called", func() {
-					So(len(mockDriverPool.OpenPoolCalls()), ShouldEqual, 0)
-				})
-
-				Convey("And the expected error response is returned", func() {
-					So(err, ShouldResemble, errors.New(errQueryWasEmpty))
-					So(rows, ShouldEqual, nil)
-				})
+			Convey("Then the expected error is returned and rows is nil", func() {
+				So(err.Error(), ShouldEqual, connNilErr.Error())
+				So(rows, ShouldBeNil)
 			})
 		})
+	})
+}
 
-		Convey("When Query is called with valid parameters", func() {
+func TestNeo4j_Query_EmptyQuery(t *testing.T) {
+	neo4j := Neo4j{}
+	Convey("Given a conn and an empty query", t, func() {
+		connMock := &mocks.NeoConnMock{}
 
-			expectedRows := &common.NeoRows{Data: [][]interface{}{{1}}}
-			neoRows, err := neo.Query(query, params)
+		Convey("When neo4j.Query is invoked", func() {
+			rows, err := neo4j.Query(connMock, "", nil)
 
-			Convey("Then the expected result should be returned and no errors", func() {
-				So(err, ShouldEqual, nil)
-				So(neoRows, ShouldResemble, expectedRows)
+			Convey("Then the expected error is returned and rows is nil", func() {
+				So(err.Error(), ShouldEqual, errors.New("query required but was empty").Error())
+				So(rows, ShouldBeNil)
 			})
 
-			Convey("And neoDriverPool.OpenPool should be called 1 time", func() {
-				So(len(mockDriverPool.OpenPoolCalls()), ShouldEqual, 1)
-			})
-
-			Convey("And conn.PrepareNeo should be called 1 time with the expected parameters", func() {
-				So(len(mockConn.PrepareNeoCalls()), ShouldEqual, 1)
-				So(mockConn.PrepareNeoCalls()[0].Query, ShouldEqual, query)
-			})
-
-			Convey("And neoStmt.QueryNeo should be called 1 time with the expected parameters", func() {
-				So(len(mockStmt.QueryNeoCalls()), ShouldEqual, 1)
-				So(mockStmt.QueryNeoCalls()[0].Params, ShouldEqual, params)
-			})
-
-			Convey("And rows.All should be called 1 time", func() {
-				So(len(mockRows.AllCalls()), ShouldEqual, 1)
-			})
-
-			Convey("And conn, stmt & rows should all be closed", func() {
-				So(len(mockConn.CloseCalls()), ShouldEqual, 1)
-				So(len(mockStmt.CloseCalls()), ShouldEqual, 1)
-				So(len(mockRows.CloseCalls()), ShouldEqual, 1)
+			Convey("And conn.PrepareNeo is never invoked", func() {
+				So(len(connMock.PrepareNeoCalls()), ShouldEqual, 0)
 			})
 		})
+	})
+}
 
-		Convey("When retrieving the all rows returns an error", func() {
+func TestNeo4j_Query_ConnPrepareNeoErr(t *testing.T) {
+	neo4j := Neo4j{}
 
-			mockRows.AllFunc = func() ([][]interface{}, map[string]interface{}, error) {
-				return rowsData, nil, expectedErr
+	Convey("Given a valid conn and query", t, func() {
+
+		Convey("When conn.PrepareNeo returns an error", func() {
+			connMock := &mocks.NeoConnMock{
+				PrepareNeoFunc: func(query string) (bolt.Stmt, error) {
+					return nil, mockError
+				},
 			}
+			rows, err := neo4j.Query(connMock, "MATCH (N) RETURN N LIMIT 5", nil)
 
-			neoRows, err := neo.Query(query, params)
-
-			Convey("Then the expected result should be returned and no errors", func() {
-				So(err, ShouldResemble, errors.New(errRetrievingRows))
-				So(neoRows, ShouldEqual, nil)
+			Convey("Then the expected error is returned and rows is nil", func() {
+				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "error while attempting to create statement").Error())
+				So(rows, ShouldBeNil)
 			})
 
-			Convey("And neoDriverPool.OpenPool should be called 1 time", func() {
-				So(len(mockDriverPool.OpenPoolCalls()), ShouldEqual, 1)
-			})
-
-			Convey("And conn.PrepareNeo should be called 1 time with the expected parameters", func() {
-				So(len(mockConn.PrepareNeoCalls()), ShouldEqual, 1)
-				So(mockConn.PrepareNeoCalls()[0].Query, ShouldEqual, query)
-			})
-
-			Convey("And neoStmt.QueryNeo should be called 1 time with the expected parameters", func() {
-				So(len(mockStmt.QueryNeoCalls()), ShouldEqual, 1)
-				So(mockStmt.QueryNeoCalls()[0].Params, ShouldEqual, params)
-			})
-
-			Convey("And conn, stmt & rows should all be closed", func() {
-				So(len(mockConn.CloseCalls()), ShouldEqual, 1)
-				So(len(mockStmt.CloseCalls()), ShouldEqual, 1)
-				So(len(mockRows.CloseCalls()), ShouldEqual, 1)
+			Convey("And conn.PrepareNeo is invoked 1 time", func() {
+				So(len(connMock.PrepareNeoCalls()), ShouldEqual, 1)
 			})
 		})
+	})
+}
 
-		Convey("When neoDriverPool.OpenPool returns an error", func() {
-			mockDriverPool.OpenPoolFunc = func() (bolt.Conn, error) { return nil, expectedErr }
-
-			// run test
-			rows, err := neo.Query(query, params)
-
-			Convey("Then neoDriverPool.OpenPool is called 1 time", func() {
-				So(len(mockDriverPool.OpenPoolCalls()), ShouldEqual, 1)
-			})
-			Convey("And the expected error response is returned", func() {
-				So(err, ShouldResemble, expectedErr)
-				So(rows, ShouldEqual, nil)
-			})
-		})
-
-		Convey("When neoStmt.PrepareNeo returns an error", func() {
-
-			mockConn.PrepareNeoFunc = func(query string) (bolt.Stmt, error) {
-				return nil, expectedErr
-			}
-
-			// run test
-			rows, err := neo.Query(query, params)
-
-			Convey("Then neoDriverPool.OpenPool is called 1 time", func() {
-				So(len(mockDriverPool.OpenPoolCalls()), ShouldEqual, 1)
-			})
-
-			Convey("And conn.PrepareNeo is called 1 time with the expected params", func() {
-				calls := mockConn.PrepareNeoCalls()
-				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Query, ShouldEqual, query)
-			})
-
-			Convey("And the connection is closed", func() {
-				So(len(mockConn.CloseCalls()), ShouldEqual, 1)
-			})
-
-			Convey("And the expected error response is returned", func() {
-				So(err, ShouldResemble, expectedErr)
-				So(rows, ShouldEqual, nil)
-			})
-		})
+func TestNeo4j_Query_StmtQueryNeoErr(t *testing.T) {
+	neo4j := Neo4j{}
+	Convey("Given a valid conn and query", t, func() {
 
 		Convey("When neoStmt.QueryNeo returns an error", func() {
-
-			mockStmt.QueryNeoFunc = func(params map[string]interface{}) (bolt.Rows, error) {
-				return nil, expectedErr
+			stmtMock := &mocks.NeoStmtMock{
+				QueryNeoFunc: func(params map[string]interface{}) (bolt.Rows, error) {
+					return nil, mockError
+				},
+				CloseFunc: closeNoErr,
 			}
 
-			// Run test
-			rows, err := neo.Query(query, params)
+			connMock := &mocks.NeoConnMock{
+				PrepareNeoFunc: func(query string) (bolt.Stmt, error) {
+					return stmtMock, nil
+				},
+			}
 
-			Convey("Then neoDriverPool.OpenPool is called 1 time", func() {
-				So(len(mockDriverPool.OpenPoolCalls()), ShouldEqual, 1)
+			rows, err := neo4j.Query(connMock, "MATCH (N) RETURN N LIMIT 5", nil)
+
+			Convey("Then the expected error is returned and rows is nil", func() {
+				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "error while attempting to execute query").Error())
+				So(rows, ShouldBeNil)
 			})
 
-			Convey("And conn.PrepareNeo is called 1 time with the expected params", func() {
-				calls := mockConn.PrepareNeoCalls()
-				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Query, ShouldEqual, query)
+			Convey("And conn.PrepareNeo is invoked 1 time", func() {
+				So(len(connMock.PrepareNeoCalls()), ShouldEqual, 1)
 			})
 
-			Convey("And neoStmt.QueryNeo is called 1 time with the expected parameters", func() {
-				calls := mockStmt.QueryNeoCalls()
-				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Params, ShouldEqual, params)
+			Convey("And neoStmt.QueryNeo is invoked 1 time", func() {
+				So(len(stmtMock.QueryNeoCalls()), ShouldEqual, 1)
 			})
 
-			Convey("And the statement and connection are closed", func() {
-				So(len(mockConn.CloseCalls()), ShouldEqual, 1)
-				So(len(mockStmt.CloseCalls()), ShouldEqual, 1)
-			})
-
-			Convey("And the expected error response is returned", func() {
-				So(err, ShouldResemble, expectedErr)
-				So(rows, ShouldEqual, nil)
+			Convey("And neoStmt.Close is invoked 1 time", func() {
+				So(len(stmtMock.CloseCalls()), ShouldEqual, 1)
 			})
 		})
+	})
+}
 
+func TestNeo4j_Query_Success(t *testing.T) {
+	neo4j := Neo4j{}
+	Convey("Given a valid conn and query", t, func() {
+
+		Convey("When neo4j.Query is invoked", func() {
+
+			rowsMock := &mocks.NeoQueryRowsMock{
+				AllFunc: func() ([][]interface{}, map[string]interface{}, error) {
+					return rowsData, nil, nil
+				},
+				CloseFunc: closeNoErr,
+			}
+
+			stmtMock := &mocks.NeoStmtMock{
+				QueryNeoFunc: func(params map[string]interface{}) (bolt.Rows, error) {
+					return rowsMock, nil
+				},
+				CloseFunc: closeNoErr,
+			}
+
+			connMock := &mocks.NeoConnMock{
+				PrepareNeoFunc: func(query string) (bolt.Stmt, error) {
+					return stmtMock, nil
+				},
+			}
+
+			rows, err := neo4j.Query(connMock, "MATCH (N) RETURN N LIMIT 5", nil)
+
+			Convey("Then the expected value is returned and error is nil", func() {
+				expected := &common.NeoRows{Data: rowsData}
+				So(rows, ShouldResemble, expected)
+				So(err, ShouldBeNil)
+			})
+
+			Convey("And conn.PrepareNeo is invoked 1 time", func() {
+				So(len(connMock.PrepareNeoCalls()), ShouldEqual, 1)
+			})
+
+			Convey("And neoStmt.QueryNeo is invoked 1 time", func() {
+				So(len(stmtMock.QueryNeoCalls()), ShouldEqual, 1)
+			})
+
+			Convey("And close is called 1 times on stmt & rows", func() {
+				So(len(stmtMock.CloseCalls()), ShouldEqual, 1)
+				So(len(rowsMock.CloseCalls()), ShouldEqual, 1)
+			})
+		})
 	})
 }
 
 func TestNeo4j_ExecStmt(t *testing.T) {
-	Convey("Given the driver pool has been configured correctly", t, func() {
+	Convey("Given valid parameters", t, func() {
 		stmt := "Valar morghulis"
-		expectedErr := errors.New("I am expected")
 		params := map[string]interface{}{"param1": "Valar dohaeris"}
 
 		mockResult := &mocks.NeoResultMock{}
@@ -233,30 +183,19 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 			},
 			CloseFunc: closeNoErr,
 		}
-		mockDriverPool := &mocks.NeoDriverPoolMock{
-			OpenPoolFunc: func() (bolt.Conn, error) {
-				return mockConn, nil
-			},
-		}
 
-		neo := Neo4j{
-			driverPool: mockDriverPool,
-		}
+		neo := Neo4j{}
 
 		Convey("When ExecStmt is called with valid parameters", func() {
 
-			results, err := neo.ExecStmt(stmt, params)
+			results, err := neo.ExecStmt(mockConn, stmt, params)
 
 			Convey("Then the expected result should be returned and no errors", func() {
 				So(err, ShouldEqual, nil)
 				So(results, ShouldResemble, mockResult)
 			})
 
-			Convey("And neoDriverPool.OpenPool is called 1 time", func() {
-				So(len(mockDriverPool.OpenPoolCalls()), ShouldEqual, 1)
-			})
-
-			Convey("And conn.PrepareNeo should be called 1 time with the expected parameters", func() {
+			Convey("And conn.PrepareNeo is called 1 time with the expected parameters", func() {
 				So(len(mockConn.PrepareNeoCalls()), ShouldEqual, 1)
 				So(mockConn.PrepareNeoCalls()[0].Query, ShouldEqual, stmt)
 			})
@@ -267,52 +206,28 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 				So(calls[0].Params, ShouldEqual, params)
 			})
 
-			Convey("And the connection and statement are closed", func() {
-				So(len(mockConn.CloseCalls()), ShouldEqual, 1)
+			Convey("And stmt.Close is called 1 time", func() {
 				So(len(mockStmt.CloseCalls()), ShouldEqual, 1)
 			})
 		})
 
 		Convey("When ExecStmt is called with an empty stmt parameter", func() {
 			stmt = ""
-			results, err := neo.ExecStmt(stmt, params)
+			results, err := neo.ExecStmt(mockConn, stmt, params)
 
 			Convey("Then no results and the expected error are returned", func() {
-				So(err, ShouldResemble, errors.New(errStmtWasEmpty))
+				So(err.Error(), ShouldEqual, errors.New("statement required but was empty").Error())
 				So(results, ShouldEqual, nil)
-			})
-
-			Convey("And neoDriverPool.OpenPool is never called", func() {
-				So(len(mockDriverPool.OpenPoolCalls()), ShouldEqual, 0)
-			})
-		})
-
-		Convey("When neoDriverPool.OpenPool returns an error", func() {
-			mockDriverPool.OpenPoolFunc = func() (bolt.Conn, error) { return nil, expectedErr }
-
-			rows, err := neo.ExecStmt(stmt, params)
-
-			Convey("Then neoDriverPool.OpenPool is called 1 time", func() {
-				So(len(mockDriverPool.OpenPoolCalls()), ShouldEqual, 1)
-			})
-
-			Convey("And the expected error response is returned", func() {
-				So(err, ShouldResemble, expectedErr)
-				So(rows, ShouldEqual, nil)
 			})
 		})
 
 		Convey("When neoStmt.PrepareNeo returns an error", func() {
 
 			mockConn.PrepareNeoFunc = func(query string) (bolt.Stmt, error) {
-				return nil, expectedErr
+				return nil, mockError
 			}
 
-			results, err := neo.ExecStmt(stmt, params)
-
-			Convey("Then neoDriverPool.OpenPool is called 1 time", func() {
-				So(len(mockDriverPool.OpenPoolCalls()), ShouldEqual, 1)
-			})
+			results, err := neo.ExecStmt(mockConn, stmt, params)
 
 			Convey("And conn.PrepareNeo is called 1 time with the expected params", func() {
 				calls := mockConn.PrepareNeoCalls()
@@ -320,12 +235,8 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 				So(calls[0].Query, ShouldEqual, stmt)
 			})
 
-			Convey("And the connection is closed", func() {
-				So(len(mockConn.CloseCalls()), ShouldEqual, 1)
-			})
-
 			Convey("And the expected error response is returned", func() {
-				So(err, ShouldResemble, expectedErr)
+				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "error while attempting to create statement").Error())
 				So(results, ShouldEqual, nil)
 			})
 		})
@@ -333,14 +244,10 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 		Convey("When neoStmt.ExecNeo returns an error", func() {
 
 			mockStmt.ExecNeoFunc = func(params map[string]interface{}) (bolt.Result, error) {
-				return nil, expectedErr
+				return nil, mockError
 			}
 
-			results, err := neo.ExecStmt(stmt, params)
-
-			Convey("Then neoDriverPool.OpenPool is called 1 time", func() {
-				So(len(mockDriverPool.OpenPoolCalls()), ShouldEqual, 1)
-			})
+			results, err := neo.ExecStmt(mockConn, stmt, params)
 
 			Convey("And conn.PrepareNeo should be called 1 time with the expected parameters", func() {
 				So(len(mockConn.PrepareNeoCalls()), ShouldEqual, 1)
@@ -353,13 +260,12 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 				So(calls[0].Params, ShouldEqual, params)
 			})
 
-			Convey("And the connection and statement are closed", func() {
-				So(len(mockConn.CloseCalls()), ShouldEqual, 1)
+			Convey("And stmt.Close is invoked 1 time", func() {
 				So(len(mockStmt.CloseCalls()), ShouldEqual, 1)
 			})
 
 			Convey("And the expected error response is returned", func() {
-				So(err, ShouldResemble, expectedErr)
+				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "error while attempting to execute neo statement").Error())
 				So(results, ShouldEqual, nil)
 			})
 		})

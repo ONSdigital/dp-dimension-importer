@@ -2,44 +2,32 @@ package client
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
-	logKeys "github.com/ONSdigital/dp-dimension-importer/common"
-	"github.com/ONSdigital/dp-dimension-importer/model"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/pkg/errors"
+
 	"io"
 	"net/url"
+
+	"github.com/ONSdigital/dp-dimension-importer/logging"
+	"github.com/ONSdigital/dp-dimension-importer/model"
+	"github.com/ONSdigital/go-ns/log"
 )
 
 //go:generate moq -out ../mocks/dimensions_api_generated_mocks.go -pkg mocks . HTTPClient ResponseBodyReader
 
 const (
-	unmarshallingErr      = "unexpected error while unmarshalling response"
-	unexpectedAPIErr      = "unexpected error returned when calling dataset api"
-	hostConfigMissingErr  = "dimensions client requires an api host to be configured"
-	instanceIDRequiredErr = "instance id is required but is empty"
-
-	getInstanceURIFMT  = "%s/instances/%s"
-	getInstanceSuccess = "dataset api get instance success"
-	getInstanceErr     = "get instance returned error status"
-
-	getDimensionsURIFMT  = "%s/instances/%s/dimensions"
-	getDimensionsSuccess = "dataset api get dimensions success"
-	getDimensionsErr     = "get dimensions returned error status"
-
-	createPutNodeIDReqErr = "unexpected error creating request struct"
+	getInstanceURIFMT     = "%s/instances/%s"
+	getDimensionsURIFMT   = "%s/instances/%s/dimensions"
 	putDimensionNodeIDURI = "%s/instances/%s/dimensions/%s/options/%s/node_id/%s"
-	putDimNodeIDReqErr    = "error sending set dimension node id request"
-	putDimNodeIDErr       = "set dimension node id returned error status"
-	dimensionNilErr       = "dimension is required but was nil"
-	dimensionIDReqErr     = "dimension id is required but was empty"
-	unauthorisedResponse  = "dataset api returned unauthorized response status"
-	forbiddenResponse     = "dataset api returned forbidden response status"
 	authTokenHeader       = "Internal-Token"
-	readRespBodyErr       = "unexpected error while attempting to read response body"
-	newReqErr             = "unexpected error while attempting to create new http request"
+)
+
+var (
+	logger             = logging.Logger{Prefix: "client.DatasetAPI"}
+	hostEmptyErr       = errors.New("validation error: api host is required but was empty")
+	instanceIDEmptyErr = errors.New("validation error: instance id is required but is empty")
 )
 
 // ResponseBodyReader defines a http response body reader.
@@ -60,181 +48,112 @@ type DatasetAPI struct {
 	HTTPClient          HTTPClient
 }
 
-// GetInstance returns instance data from the import API.
+// GetInstance retrieve the specified instance from the Dataset API.
 func (api DatasetAPI) GetInstance(instanceID string) (*model.Instance, error) {
-
 	if len(api.DatasetAPIHost) == 0 {
-		err := errors.New(hostConfigMissingErr)
-		log.ErrorC(hostConfigMissingErr, err, nil)
-		return nil, err
+		return nil, hostEmptyErr
 	}
 
 	if len(instanceID) == 0 {
-		return nil, errors.New(instanceIDRequiredErr)
+		return nil, instanceIDEmptyErr
 	}
 
 	url := fmt.Sprintf(getInstanceURIFMT, api.DatasetAPIHost, instanceID)
-	data := log.Data{
-		logKeys.InstanceID: instanceID,
-		logKeys.URL:        url,
-	}
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	resp, err := api.doRequest(http.MethodGet, url, http.StatusOK)
 	if err != nil {
-		log.ErrorC(newReqErr, err, data)
 		return nil, err
 	}
 
-	res, err := api.HTTPClient.Do(req)
+	defer resp.Body.Close()
+
+	body, err := api.ResponseBodyReader.Read(resp.Body)
 	if err != nil {
-		data[logKeys.ErrorDetails] = err.Error()
-		log.ErrorC(unexpectedAPIErr, err, data)
-		return nil, err
-	}
-
-	data[logKeys.RespStatusCode] = res.StatusCode
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		err := errors.New(getInstanceErr)
-		log.ErrorC(getInstanceErr, err, data)
-		return nil, err
-	}
-
-	body, err := api.ResponseBodyReader.Read(res.Body)
-	if err != nil {
-		log.ErrorC(readRespBodyErr, err, data)
-		return nil, err
+		return nil, errors.Wrap(err, "unexpected error while attempting to read response body")
 	}
 
 	var instance *model.Instance
-	JSONErr := json.Unmarshal(body, &instance)
-	if JSONErr != nil {
-		return nil, JSONErr
+	err = json.Unmarshal(body, &instance)
+	if err != nil {
+		return nil, errors.Wrap(err, "error while attempting to unmarshal reponse body into model.Instance")
 	}
 
-	log.Debug(getInstanceSuccess, data)
+	logger.Info("GetInstance completed successfully", log.Data{"instance": instance})
 	return instance, nil
 }
 
-// GetDimensions perform a HTTP GET request to the dp-import-api to retrieve the dataset dimenions for the specified instanceID
+// GetDimensions retrieve the dimensions of the specified instance from the Dataset API
 func (api DatasetAPI) GetDimensions(instanceID string) ([]*model.Dimension, error) {
 	if len(api.DatasetAPIHost) == 0 {
-		err := errors.New(hostConfigMissingErr)
-		log.ErrorC(hostConfigMissingErr, err, nil)
-		return nil, err
+		return nil, hostEmptyErr
 	}
 	if len(instanceID) == 0 {
-		return nil, errors.New(instanceIDRequiredErr)
+		return nil, instanceIDEmptyErr
 	}
 
 	url := fmt.Sprintf(getDimensionsURIFMT, api.DatasetAPIHost, instanceID)
-	data := log.Data{
-		logKeys.InstanceID: instanceID,
-		logKeys.URL:        url,
-	}
 
-	var req *http.Request
-	var err error
-	if req, err = http.NewRequest(http.MethodGet, url, nil); err != nil {
-		log.ErrorC(newReqErr, err, data)
-		return nil, err
-	}
-
-	res, err := api.HTTPClient.Do(req)
+	resp, err := api.doRequest(http.MethodGet, url, http.StatusOK)
 	if err != nil {
-		data[logKeys.ErrorDetails] = err.Error()
-		log.ErrorC(unexpectedAPIErr, err, data)
 		return nil, err
 	}
 
-	data[logKeys.RespStatusCode] = res.StatusCode
-	defer res.Body.Close()
+	defer resp.Body.Close()
 
-	if res.StatusCode != 200 {
-		err := errors.New(getDimensionsErr)
-		log.ErrorC(getDimensionsErr, err, data)
-		return nil, err
-	}
-
-	body, err := api.ResponseBodyReader.Read(res.Body)
+	body, err := api.ResponseBodyReader.Read(resp.Body)
 	if err != nil {
-		log.ErrorC(readRespBodyErr, err, data)
-		return nil, err
+		return nil, errors.Wrap(err, "unexpected error while attempting to read response body")
 	}
 
 	var dimensionsResult model.DimensionNodeResults
 	err = json.Unmarshal(body, &dimensionsResult)
-
 	if err != nil {
-		data[logKeys.ErrorDetails] = err.Error()
-		log.Debug(unmarshallingErr, data)
-		return nil, err
+		return nil, errors.Wrap(err, "errpr while attempting to unmarshal response body into model.DimensionNodeResults")
 	}
 
-	log.Debug(getDimensionsSuccess, data)
+	logger.Info("GetDimensions completed successfully", nil)
 	return dimensionsResult.Items, nil
 }
 
 // PutDimensionNodeID make a HTTP put request to update the node_id of the specified dimension.
 func (api DatasetAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) error {
 	if len(api.DatasetAPIHost) == 0 {
-		err := errors.New(hostConfigMissingErr)
-		log.ErrorC(hostConfigMissingErr, err, nil)
-		return err
+		return hostEmptyErr
 	}
 	if len(instanceID) == 0 {
-		return errors.New(instanceIDRequiredErr)
+		return instanceIDEmptyErr
 	}
 	if d == nil {
-		return errors.New(dimensionNilErr)
+		return errors.New("dimension is required but is nil")
 	}
 	if len(d.DimensionID) == 0 {
-		return errors.New(dimensionIDReqErr)
+		return errors.New("dimension.id is required but is empty")
 	}
 
-	logData := make(map[string]interface{}, 0)
-	logData[logKeys.InstanceID] = instanceID
-	logData[logKeys.DimensionsKey] = d.DimensionID
-	logData[logKeys.NodeID] = d.NodeID
+	putNodeIDURL := fmt.Sprintf(putDimensionNodeIDURI, api.DatasetAPIHost, instanceID, d.DimensionID, url.PathEscape(d.Option), d.NodeID)
 
-	url := fmt.Sprintf(putDimensionNodeIDURI, api.DatasetAPIHost, instanceID, d.DimensionID, url.PathEscape(d.Option), d.NodeID)
-	logData[logKeys.URL] = url
+	_, err := api.doRequest(http.MethodPut, putNodeIDURL, http.StatusOK)
+	return err
+}
 
-	req, err := http.NewRequest(http.MethodPut, url, nil)
+func (api DatasetAPI) doRequest(method string, url string, expectedStatus int) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
-		logData[logKeys.ErrorDetails] = err.Error()
-		log.ErrorC(createPutNodeIDReqErr, err, logData)
-		return err
+		return nil, errors.Wrap(err, fmt.Sprintf("unexpected error while attempting to create new http request: method: %s, url: %s", method, url))
 	}
+
 	req.Header.Set(authTokenHeader, api.DatasetAPIAuthToken)
+
+	logger.Info("HTTPClient.Do sending HTTP Request", log.Data{"method": req.Method, "url": url})
 	resp, err := api.HTTPClient.Do(req)
 	if err != nil {
-		logData[logKeys.ErrorDetails] = err.Error()
-		log.ErrorC(putDimNodeIDReqErr, err, logData)
-		return err
+		return nil, errors.Wrap(err, fmt.Sprintf("HTTPClient.Do returned an error when attempting to make request: method: %s, url: %s", method, url))
 	}
 
-	defer resp.Body.Close()
-	logData[logKeys.RespStatusCode] = resp.StatusCode
-
-	if resp.StatusCode != 200 {
-
-		switch resp.StatusCode {
-		case 401:
-			err = errors.New(unauthorisedResponse)
-			log.ErrorC(unauthorisedResponse, err, logData)
-			return err
-		case 403:
-			err = errors.New(forbiddenResponse)
-			log.ErrorC(forbiddenResponse, err, logData)
-			return err
-		default:
-			err = errors.New(putDimNodeIDErr)
-			log.ErrorC(putDimNodeIDErr, err, logData)
-			return err
-		}
+	if resp.StatusCode != expectedStatus {
+		return nil, errors.Errorf("incorrect status code: expected: %d, actual: %d, url: %s, method: %s", expectedStatus, resp.StatusCode, url, method)
 	}
 
-	return nil
+	logger.Info("HTTPClient.Do received a valid response", log.Data{"url": url, "method": method})
+	return resp, nil
 }

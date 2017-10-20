@@ -3,15 +3,21 @@ package client
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"github.com/ONSdigital/dp-dimension-importer/mocks"
-	"github.com/ONSdigital/dp-dimension-importer/model"
-	. "github.com/smartystreets/goconvey/convey"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"reflect"
 	"testing"
+
+	"fmt"
+
+	"strings"
+
+	"github.com/ONSdigital/dp-dimension-importer/mocks"
+	"github.com/ONSdigital/dp-dimension-importer/model"
+	"github.com/pkg/errors"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 const (
@@ -20,7 +26,7 @@ const (
 	authToken  = "pa55w0rd"
 )
 
-var expectedErr = errors.New("BOOM!")
+var mockErr = errors.New("BOOM!")
 var dimensionOne = &model.Dimension{DimensionID: "666_SEX_MALE", NodeID: "1111", Option: "Male"}
 var dimensionTwo = &model.Dimension{DimensionID: "666_SEX_FEMALE", NodeID: "1112", Option: "Female"}
 
@@ -50,7 +56,7 @@ func TestDatasetAPI_GetInstance_NotConfigured(t *testing.T) {
 
 			Convey("Then a nil instance and the appropriate error is returned.", func() {
 				So(instance, ShouldEqual, nil)
-				So(err, ShouldResemble, errors.New(hostConfigMissingErr))
+				So(err.Error(), ShouldResemble, hostEmptyErr.Error())
 			})
 
 			Convey("And HTTPClient.Do and ResponseBodyReader.ReadAll are never called", func() {
@@ -129,7 +135,7 @@ func TestDatasetAPI_GetInstance_EmptyInstanceID(t *testing.T) {
 
 			Convey("Then the expected error is returned", func() {
 				So(instance, ShouldEqual, nil)
-				So(err, ShouldResemble, errors.New(instanceIDRequiredErr))
+				So(err, ShouldResemble, instanceIDEmptyErr)
 			})
 		})
 	})
@@ -141,7 +147,7 @@ func TestDatasetAPI_GetInstance_HTTPClientErr(t *testing.T) {
 
 		httpClientMock := &mocks.HTTPClientMock{
 			DoFunc: func(req *http.Request) (*http.Response, error) {
-				return nil, expectedErr
+				return nil, mockErr
 			},
 		}
 		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
@@ -157,7 +163,10 @@ func TestDatasetAPI_GetInstance_HTTPClientErr(t *testing.T) {
 
 			Convey("Then the expected error response is returned", func() {
 				So(instance, ShouldEqual, nil)
-				So(err, ShouldResemble, expectedErr)
+
+				url := fmt.Sprintf(getInstanceURIFMT, datasetAPI.DatasetAPIHost, instanceID)
+				expectedError := errors.Wrap(mockErr, fmt.Sprintf("HTTPClient.Do returned an error when attempting to make request: method: %s, url: %s", "GET", url))
+				So(err.Error(), ShouldResemble, expectedError.Error())
 			})
 
 			Convey("And HTTPClient.Do is called 1 time", func() {
@@ -191,7 +200,10 @@ func TestDatasetAPI_GetInstance_HTTPErrResponse(t *testing.T) {
 
 			Convey("Then the expected error response is returned", func() {
 				So(instance, ShouldEqual, nil)
-				So(err, ShouldResemble, errors.New(getInstanceErr))
+
+				url := fmt.Sprintf(getInstanceURIFMT, datasetAPI.DatasetAPIHost, instanceID)
+				expectedErr := errors.Errorf("incorrect status code: expected: %d, actual: %d, url: %s, method: %s", 200, 400, url, "GET")
+				So(err.Error(), ShouldResemble, expectedErr.Error())
 			})
 
 			Convey("And HTTPClient.Do is called 1 time", func() {
@@ -219,7 +231,7 @@ func TestDatasetAPI_GetInstance_ResponseBodyErr(t *testing.T) {
 		}
 		respBodyReaderMock := &mocks.ResponseBodyReaderMock{
 			ReadFunc: func(r io.Reader) ([]byte, error) {
-				return nil, expectedErr
+				return nil, mockErr
 			},
 		}
 
@@ -234,7 +246,7 @@ func TestDatasetAPI_GetInstance_ResponseBodyErr(t *testing.T) {
 
 			Convey("Then the expected error response is returned", func() {
 				So(instance, ShouldEqual, nil)
-				So(err, ShouldResemble, expectedErr)
+				So(err.Error(), ShouldResemble, errors.Wrap(mockErr, "unexpected error while attempting to read response body").Error())
 			})
 
 			Convey("And HTTPClient.Do is called 1 time", func() {
@@ -279,10 +291,9 @@ func TestDatasetAPI_GetInstance_UnmarshalErr(t *testing.T) {
 			instance, err := datasetAPI.GetInstance(instanceID)
 
 			Convey("Then the expected error response is returned", func() {
-				expectedType := reflect.TypeOf((*json.SyntaxError)(nil))
-				actualType := reflect.TypeOf(err)
+				So(err, ShouldNotBeNil)
+				So(strings.Contains(err.Error(), "error while attempting to unmarshal reponse body into model.Instance"), ShouldBeTrue)
 
-				So(actualType, ShouldEqual, expectedType)
 				So(instance, ShouldEqual, nil)
 			})
 
@@ -316,7 +327,7 @@ func TestGetDimensions(t *testing.T) {
 			dims, err := datasetAPI.GetDimensions(instanceID)
 
 			Convey("Then no dimenions and the appropriate error are returned.", func() {
-				So(err, ShouldResemble, errors.New(hostConfigMissingErr))
+				So(err.Error(), ShouldEqual, hostEmptyErr.Error())
 				So(dims, ShouldEqual, nil)
 			})
 
@@ -385,7 +396,7 @@ func TestGetDimensions(t *testing.T) {
 
 			Convey("Then the expected error is returned", func() {
 				So(dims, ShouldEqual, nil)
-				So(err, ShouldResemble, errors.New(instanceIDRequiredErr))
+				So(err.Error(), ShouldEqual, instanceIDEmptyErr.Error())
 			})
 		})
 	})
@@ -393,7 +404,7 @@ func TestGetDimensions(t *testing.T) {
 	Convey("Given HTTPClient.Do will return an error", t, func() {
 		httpClientMock := &mocks.HTTPClientMock{
 			DoFunc: func(req *http.Request) (*http.Response, error) {
-				return nil, expectedErr
+				return nil, mockErr
 			},
 		}
 		respBodyReaderMock := &mocks.ResponseBodyReaderMock{}
@@ -409,7 +420,10 @@ func TestGetDimensions(t *testing.T) {
 
 			Convey("Then the expected error response is returned", func() {
 				So(dims, ShouldEqual, nil)
-				So(err, ShouldResemble, expectedErr)
+
+				url := fmt.Sprintf(getDimensionsURIFMT, datasetAPI.DatasetAPIHost, instanceID)
+				expectedErr := errors.Wrap(mockErr, fmt.Sprintf("HTTPClient.Do returned an error when attempting to make request: method: GET, url: %s", url))
+				So(err.Error(), ShouldEqual, expectedErr.Error())
 			})
 
 			Convey("And HTTPClient.Do is called 1 time", func() {
@@ -441,7 +455,10 @@ func TestGetDimensions(t *testing.T) {
 
 			Convey("Then the expected error response is returned", func() {
 				So(dims, ShouldEqual, nil)
-				So(err, ShouldResemble, errors.New(getDimensionsErr))
+
+				url := fmt.Sprintf(getDimensionsURIFMT, datasetAPI.DatasetAPIHost, instanceID)
+				expectedErr := errors.Errorf("incorrect status code: expected: %d, actual: %d, url: %s, method: GET", 200, 400, url)
+				So(err.Error(), ShouldEqual, expectedErr.Error())
 			})
 
 			Convey("And HTTPClient.Do is called 1 time", func() {
@@ -466,7 +483,7 @@ func TestGetDimensions(t *testing.T) {
 		}
 		respBodyReaderMock := &mocks.ResponseBodyReaderMock{
 			ReadFunc: func(r io.Reader) ([]byte, error) {
-				return nil, expectedErr
+				return nil, mockErr
 			},
 		}
 
@@ -481,7 +498,7 @@ func TestGetDimensions(t *testing.T) {
 
 			Convey("Then the expected error response is returned", func() {
 				So(dims, ShouldEqual, nil)
-				So(err, ShouldResemble, expectedErr)
+				So(err.Error(), ShouldEqual, errors.Wrap(mockErr, "unexpected error while attempting to read response body").Error())
 			})
 
 			Convey("And HTTPClient.Do is called 1 time", func() {
@@ -523,7 +540,7 @@ func TestGetDimensions(t *testing.T) {
 
 			Convey("Then the expected error response is returned", func() {
 				expectedType := reflect.TypeOf((*json.SyntaxError)(nil))
-				actualType := reflect.TypeOf(err)
+				actualType := reflect.TypeOf(errors.Cause(err))
 
 				So(actualType, ShouldEqual, expectedType)
 				So(dims, ShouldEqual, nil)
@@ -543,7 +560,6 @@ func TestGetDimensions(t *testing.T) {
 }
 
 func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
-	// mocks
 
 	Convey("Given datasetAPI.Host has not been set", t, func() {
 		httpCliMock := &mocks.HTTPClientMock{}
@@ -557,7 +573,7 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 			err := datasetAPI.PutDimensionNodeID(instanceID, dimensionOne)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(hostConfigMissingErr))
+				So(err.Error(), ShouldEqual, hostEmptyErr.Error())
 			})
 
 			Convey("And api.HTTPClient.DO is never invoked", func() {
@@ -579,7 +595,7 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 			err := datasetAPI.PutDimensionNodeID("", dimensionOne)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(instanceIDRequiredErr))
+				So(err.Error(), ShouldEqual, instanceIDEmptyErr.Error())
 			})
 
 			Convey("And api.HTTPClient.DO is never invoked", func() {
@@ -601,7 +617,7 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 			err := datasetAPI.PutDimensionNodeID(instanceID, nil)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(dimensionNilErr))
+				So(err.Error(), ShouldEqual, errors.New("dimension is required but is nil").Error())
 			})
 
 			Convey("And api.HTTPClient.DO is never invoked", func() {
@@ -623,7 +639,7 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 			err := datasetAPI.PutDimensionNodeID(instanceID, &model.Dimension{})
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(dimensionIDReqErr))
+				So(err.Error(), ShouldEqual, errors.New("dimension.id is required but is empty").Error())
 			})
 
 			Convey("And api.HTTPClient.DO is never invoked", func() {
@@ -642,14 +658,16 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 			DatasetAPIAuthToken: authToken,
 		}
 		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
-			return nil, expectedErr
+			return nil, mockErr
 		}
 
 		Convey("When PutDimensionNodeID is called", func() {
 			err := datasetAPI.PutDimensionNodeID(instanceID, dimensionOne)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, expectedErr)
+				putNodeIDURL := fmt.Sprintf(putDimensionNodeIDURI, datasetAPI.DatasetAPIHost, instanceID, dimensionOne.DimensionID, url.PathEscape(dimensionOne.Option), dimensionOne.NodeID)
+				expectedErr := errors.Wrap(mockErr, fmt.Sprintf("HTTPClient.Do returned an error when attempting to make request: method: PUT, url: %s", putNodeIDURL))
+				So(err.Error(), ShouldEqual, expectedErr.Error())
 			})
 
 			Convey("And api.HTTPClient.Do is called 1 time", func() {
@@ -665,7 +683,7 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 		})
 	})
 
-	Convey("Given HTTPClient.Do returns an 401 status", t, func() {
+	Convey("Given HTTPClient.Do returns a non 200 status", t, func() {
 		httpCliMock := &mocks.HTTPClientMock{}
 
 		datasetAPI := DatasetAPI{
@@ -681,59 +699,9 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 			err := datasetAPI.PutDimensionNodeID(instanceID, dimensionOne)
 
 			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(unauthorisedResponse))
-			})
-
-			Convey("And api.HTTPClient.Do is called 1 time", func() {
-				calls := len(httpCliMock.DoCalls())
-				So(calls, ShouldEqual, 1)
-			})
-		})
-	})
-
-	Convey("Given HTTPClient.Do returns an 403 status", t, func() {
-		httpCliMock := &mocks.HTTPClientMock{}
-
-		datasetAPI := DatasetAPI{
-			DatasetAPIHost:      host,
-			HTTPClient:          httpCliMock,
-			DatasetAPIAuthToken: authToken,
-		}
-		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
-			return Response([]byte{}, 403, nil)
-		}
-
-		Convey("When PutDimensionNodeID is called", func() {
-			err := datasetAPI.PutDimensionNodeID(instanceID, dimensionOne)
-
-			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(forbiddenResponse))
-			})
-
-			Convey("And api.HTTPClient.Do is called 1 time", func() {
-				calls := len(httpCliMock.DoCalls())
-				So(calls, ShouldEqual, 1)
-			})
-		})
-	})
-
-	Convey("Given HTTPClient.Do returns an unexpected status", t, func() {
-		httpCliMock := &mocks.HTTPClientMock{}
-
-		datasetAPI := DatasetAPI{
-			DatasetAPIHost:      host,
-			HTTPClient:          httpCliMock,
-			DatasetAPIAuthToken: authToken,
-		}
-		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
-			return Response([]byte{}, 500, nil)
-		}
-
-		Convey("When PutDimensionNodeID is called", func() {
-			err := datasetAPI.PutDimensionNodeID(instanceID, dimensionOne)
-
-			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, errors.New(putDimNodeIDErr))
+				putNodeIDURL := fmt.Sprintf(putDimensionNodeIDURI, datasetAPI.DatasetAPIHost, instanceID, dimensionOne.DimensionID, url.PathEscape(dimensionOne.Option), dimensionOne.NodeID)
+				expectedErr := errors.Errorf("incorrect status code: expected: %d, actual: %d, url: %s, method: %s", http.StatusOK, 401, putNodeIDURL, "PUT")
+				So(err.Error(), ShouldResemble, expectedErr.Error())
 			})
 
 			Convey("And api.HTTPClient.Do is called 1 time", func() {

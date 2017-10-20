@@ -20,10 +20,10 @@ var (
 //
 //         // make and configure a mocked Neo4jClient
 //         mockedNeo4jClient := &Neo4jClientMock{
-//             ExecStmtFunc: func(query string, params map[string]interface{}) (golangNeo4jBoltDriver.Result, error) {
+//             ExecStmtFunc: func(conn golangNeo4jBoltDriver.Conn, query string, params map[string]interface{}) (golangNeo4jBoltDriver.Result, error) {
 // 	               panic("TODO: mock out the ExecStmt method")
 //             },
-//             QueryFunc: func(query string, params map[string]interface{}) (*common.NeoRows, error) {
+//             QueryFunc: func(conn golangNeo4jBoltDriver.Conn, query string, params map[string]interface{}) (*common.NeoRows, error) {
 // 	               panic("TODO: mock out the Query method")
 //             },
 //         }
@@ -34,15 +34,17 @@ var (
 //     }
 type Neo4jClientMock struct {
 	// ExecStmtFunc mocks the ExecStmt method.
-	ExecStmtFunc func(query string, params map[string]interface{}) (golangNeo4jBoltDriver.Result, error)
+	ExecStmtFunc func(conn golangNeo4jBoltDriver.Conn, query string, params map[string]interface{}) (golangNeo4jBoltDriver.Result, error)
 
 	// QueryFunc mocks the Query method.
-	QueryFunc func(query string, params map[string]interface{}) (*common.NeoRows, error)
+	QueryFunc func(conn golangNeo4jBoltDriver.Conn, query string, params map[string]interface{}) (*common.NeoRows, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// ExecStmt holds details about calls to the ExecStmt method.
 		ExecStmt []struct {
+			// Conn is the conn argument value.
+			Conn golangNeo4jBoltDriver.Conn
 			// Query is the query argument value.
 			Query string
 			// Params is the params argument value.
@@ -50,6 +52,8 @@ type Neo4jClientMock struct {
 		}
 		// Query holds details about calls to the Query method.
 		Query []struct {
+			// Conn is the conn argument value.
+			Conn golangNeo4jBoltDriver.Conn
 			// Query is the query argument value.
 			Query string
 			// Params is the params argument value.
@@ -59,31 +63,35 @@ type Neo4jClientMock struct {
 }
 
 // ExecStmt calls ExecStmtFunc.
-func (mock *Neo4jClientMock) ExecStmt(query string, params map[string]interface{}) (golangNeo4jBoltDriver.Result, error) {
+func (mock *Neo4jClientMock) ExecStmt(conn golangNeo4jBoltDriver.Conn, query string, params map[string]interface{}) (golangNeo4jBoltDriver.Result, error) {
 	if mock.ExecStmtFunc == nil {
 		panic("moq: Neo4jClientMock.ExecStmtFunc is nil but Neo4jClient.ExecStmt was just called")
 	}
 	callInfo := struct {
+		Conn   golangNeo4jBoltDriver.Conn
 		Query  string
 		Params map[string]interface{}
 	}{
+		Conn:   conn,
 		Query:  query,
 		Params: params,
 	}
 	lockNeo4jClientMockExecStmt.Lock()
 	mock.calls.ExecStmt = append(mock.calls.ExecStmt, callInfo)
 	lockNeo4jClientMockExecStmt.Unlock()
-	return mock.ExecStmtFunc(query, params)
+	return mock.ExecStmtFunc(conn, query, params)
 }
 
 // ExecStmtCalls gets all the calls that were made to ExecStmt.
 // Check the length with:
 //     len(mockedNeo4jClient.ExecStmtCalls())
 func (mock *Neo4jClientMock) ExecStmtCalls() []struct {
+	Conn   golangNeo4jBoltDriver.Conn
 	Query  string
 	Params map[string]interface{}
 } {
 	var calls []struct {
+		Conn   golangNeo4jBoltDriver.Conn
 		Query  string
 		Params map[string]interface{}
 	}
@@ -94,31 +102,35 @@ func (mock *Neo4jClientMock) ExecStmtCalls() []struct {
 }
 
 // Query calls QueryFunc.
-func (mock *Neo4jClientMock) Query(query string, params map[string]interface{}) (*common.NeoRows, error) {
+func (mock *Neo4jClientMock) Query(conn golangNeo4jBoltDriver.Conn, query string, params map[string]interface{}) (*common.NeoRows, error) {
 	if mock.QueryFunc == nil {
 		panic("moq: Neo4jClientMock.QueryFunc is nil but Neo4jClient.Query was just called")
 	}
 	callInfo := struct {
+		Conn   golangNeo4jBoltDriver.Conn
 		Query  string
 		Params map[string]interface{}
 	}{
+		Conn:   conn,
 		Query:  query,
 		Params: params,
 	}
 	lockNeo4jClientMockQuery.Lock()
 	mock.calls.Query = append(mock.calls.Query, callInfo)
 	lockNeo4jClientMockQuery.Unlock()
-	return mock.QueryFunc(query, params)
+	return mock.QueryFunc(conn, query, params)
 }
 
 // QueryCalls gets all the calls that were made to Query.
 // Check the length with:
 //     len(mockedNeo4jClient.QueryCalls())
 func (mock *Neo4jClientMock) QueryCalls() []struct {
+	Conn   golangNeo4jBoltDriver.Conn
 	Query  string
 	Params map[string]interface{}
 } {
 	var calls []struct {
+		Conn   golangNeo4jBoltDriver.Conn
 		Query  string
 		Params map[string]interface{}
 	}
