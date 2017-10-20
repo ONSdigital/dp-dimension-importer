@@ -13,8 +13,8 @@ import (
 //go:generate moq -out ../mocks/dimensions_extracted_generated_mocks.go -pkg mocks . DatasetAPIClient InstanceRepository DimensionRepository CompletedProducer
 
 var (
-	validationErr = errors.New("[handler.InstanceEventHandler] validation error")
-	logger        = logging.Logger{Prefix: "handler.InstanceEventHandler"}
+	errValidationFail = errors.New("[handler.InstanceEventHandler] validation error")
+	logger            = logging.Logger{Prefix: "handler.InstanceEventHandler"}
 )
 
 // DatasetAPIClient defines interface of an Dataset API client,

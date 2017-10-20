@@ -54,6 +54,7 @@ func NewDimensionRepository(connPool common.NeoDriverPool, neo4jCli Neo4jClient)
 	}, nil
 }
 
+// Close attempts to close the repository's neo4j connection.
 func (repo DimensionRepository) Close() {
 	if err := repo.conn.Close(); err != nil {
 		loggerD.ErrorC("conn.Close returned an error", err, nil)
@@ -89,9 +90,9 @@ func (repo DimensionRepository) Insert(i *model.Instance, d *model.Dimension) (*
 	return d, nil
 }
 
-func (repo DimensionRepository) createUniqueConstraint(instanceId string, d *model.Dimension) error {
+func (repo DimensionRepository) createUniqueConstraint(instanceID string, d *model.Dimension) error {
 	logData := map[string]interface{}{}
-	dimensionLabel := fmt.Sprintf("_%s_%s", instanceId, d.DimensionID)
+	dimensionLabel := fmt.Sprintf("_%s_%s", instanceID, d.DimensionID)
 	stmt := fmt.Sprintf(uniqueDimConstStmt, dimensionLabel)
 
 	loggerD.Info("executing create unique constraints statement", logData)

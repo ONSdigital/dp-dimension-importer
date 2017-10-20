@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	errExpected = errors.New("LEEEEROY JENKINS!")
-	exitTest    = errors.New("Force test exit")
+	errExpected   = errors.New("bork")
+	errExitedTest = errors.New("forced test exit")
 )
 
 const (
@@ -37,7 +37,7 @@ func TestConsumer_Listen(t *testing.T) {
 			},
 		}
 
-		handleCalls := make([]kafka.Message, 0)
+		handleCalls := []kafka.Message{}
 		recieverMock := mock.MessageReciever{
 			OnMessageFunc: func(message kafka.Message) {
 				handleCalls = append(handleCalls, message)

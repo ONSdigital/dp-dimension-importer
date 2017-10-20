@@ -15,10 +15,12 @@ var loggerC = logging.Logger{Prefix: "message.Consumer"}
 // KafkaMessage type representing a kafka message.
 type KafkaMessage kafka.Message
 
+// KafkaConsumer consume an incoming kafka message
 type KafkaConsumer interface {
 	Incoming() chan kafka.Message
 }
 
+// Reciever is sent a kafka messages and processes it
 type Reciever interface {
 	OnMessage(message kafka.Message)
 }
@@ -47,6 +49,7 @@ func NewConsumer(consumer KafkaConsumer, messageReciever Reciever, defaultShutdo
 	}
 }
 
+// Listen poll the KafkaConsumer for incoming messages and pass onto the Reciever
 func (c Consumer) Listen() {
 	go func() {
 		defer func() {

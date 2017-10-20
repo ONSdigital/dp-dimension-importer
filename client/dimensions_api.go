@@ -26,8 +26,8 @@ const (
 
 var (
 	logger             = logging.Logger{Prefix: "client.DatasetAPI"}
-	hostEmptyErr       = errors.New("validation error: api host is required but was empty")
-	instanceIDEmptyErr = errors.New("validation error: instance id is required but is empty")
+	errHostEmpty       = errors.New("validation error: api host is required but was empty")
+	errInstanceIDEmpty = errors.New("validation error: instance id is required but is empty")
 )
 
 // ResponseBodyReader defines a http response body reader.
@@ -51,11 +51,11 @@ type DatasetAPI struct {
 // GetInstance retrieve the specified instance from the Dataset API.
 func (api DatasetAPI) GetInstance(instanceID string) (*model.Instance, error) {
 	if len(api.DatasetAPIHost) == 0 {
-		return nil, hostEmptyErr
+		return nil, errHostEmpty
 	}
 
 	if len(instanceID) == 0 {
-		return nil, instanceIDEmptyErr
+		return nil, errInstanceIDEmpty
 	}
 
 	url := fmt.Sprintf(getInstanceURIFMT, api.DatasetAPIHost, instanceID)
@@ -85,10 +85,10 @@ func (api DatasetAPI) GetInstance(instanceID string) (*model.Instance, error) {
 // GetDimensions retrieve the dimensions of the specified instance from the Dataset API
 func (api DatasetAPI) GetDimensions(instanceID string) ([]*model.Dimension, error) {
 	if len(api.DatasetAPIHost) == 0 {
-		return nil, hostEmptyErr
+		return nil, errHostEmpty
 	}
 	if len(instanceID) == 0 {
-		return nil, instanceIDEmptyErr
+		return nil, errInstanceIDEmpty
 	}
 
 	url := fmt.Sprintf(getDimensionsURIFMT, api.DatasetAPIHost, instanceID)
@@ -118,10 +118,10 @@ func (api DatasetAPI) GetDimensions(instanceID string) ([]*model.Dimension, erro
 // PutDimensionNodeID make a HTTP put request to update the node_id of the specified dimension.
 func (api DatasetAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) error {
 	if len(api.DatasetAPIHost) == 0 {
-		return hostEmptyErr
+		return errHostEmpty
 	}
 	if len(instanceID) == 0 {
-		return instanceIDEmptyErr
+		return errInstanceIDEmpty
 	}
 	if d == nil {
 		return errors.New("dimension is required but is nil")

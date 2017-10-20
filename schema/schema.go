@@ -20,7 +20,8 @@ var newInstance = ` {
 	]
 }`
 
-var NewInstanceSchema *avro.Schema = &avro.Schema{
+// NewInstanceSchema avro schema for a newInstance event
+var NewInstanceSchema = &avro.Schema{
 	Definition: newInstance,
 }
 
@@ -40,6 +41,7 @@ var instanceCompleted = `{
 	]
 }`
 
-var InstanceCompletedSchema *avro.Schema = &avro.Schema{
+// InstanceCompletedSchema avro schema for a instanceCompleted event
+var InstanceCompletedSchema = &avro.Schema{
 	Definition: instanceCompleted,
 }

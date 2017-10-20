@@ -9,6 +9,7 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -39,9 +40,13 @@ func NewHandler(bindAddr string, errorChan chan error) {
 	})
 }
 
-func Close(ctx context.Context) {
-	httpServer.Shutdown(ctx)
+// Close properly shutdown the http server
+func Close(ctx context.Context) error {
+	if err := httpServer.Shutdown(ctx); err != nil {
+		return errors.Wrap(err, "httpServer.Shutdown returned an error")
+	}
 	logger.Info("graceful shutdown of healthcheck endpoint complete", nil)
+	return nil
 }
 
 // TODO Implement actual healthcheck.

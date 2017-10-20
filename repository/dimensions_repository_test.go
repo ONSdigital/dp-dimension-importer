@@ -219,7 +219,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 				return neoRows, nil
 			},
 			ExecStmtFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error) {
-				return nil, mockError
+				return nil, errorMock
 			},
 		}
 
@@ -234,7 +234,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 
 			Convey("Then the expected error is returned with a nil dimension", func() {
 				So(dim, ShouldEqual, nil)
-				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "neoClient.ExecStmt returned an error").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "neoClient.ExecStmt returned an error").Error())
 			})
 
 			Convey("And neo4j.Exec is called 1 time with the expected parameters", func() {
@@ -256,7 +256,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 
 		neo4jMock := &mocks.Neo4jClientMock{
 			QueryFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (*common.NeoRows, error) {
-				return nil, mockError
+				return nil, errorMock
 			},
 			ExecStmtFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error) {
 				return nil, nil
@@ -273,7 +273,7 @@ func TestDimensionRepository_Insert(t *testing.T) {
 
 			Convey("Then the expected error is returned with a nil dimension", func() {
 				So(dim, ShouldEqual, nil)
-				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "neoClient.Query returned an error").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "neoClient.Query returned an error").Error())
 			})
 
 			Convey("And neo4j.Query is called 1 time with the expected parameters", func() {
@@ -321,12 +321,12 @@ func TestNewDimensionRepository(t *testing.T) {
 
 		Convey("When connectionPool.OpenPool returns an error", func() {
 			connectionPool.OpenPoolFunc = func() (bolt.Conn, error) {
-				return nil, mockError
+				return nil, errorMock
 			}
 
 			repo, err := NewDimensionRepository(connectionPool, neo4jCliMock)
 			Convey("Then the error is propagated", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "connPool.OpenPool returned an error").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "connPool.OpenPool returned an error").Error())
 				So(repo, ShouldBeNil)
 			})
 		})

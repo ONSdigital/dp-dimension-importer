@@ -13,6 +13,7 @@ var loggerP = logging.Logger{Prefix: "message.InstanceCompletedProducer"}
 
 //go:generate moq -out ./message_test/producer_generated_mocks.go -pkg message_test . Marshaller KafkaProducer
 
+// KafkaProducer send an outbound kafka message
 type KafkaProducer interface {
 	Output() chan []byte
 }

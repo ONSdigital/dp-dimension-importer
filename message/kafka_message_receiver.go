@@ -10,17 +10,19 @@ import (
 
 var loggerR = logging.Logger{Prefix: "message.KafkaMessageReciever"}
 
-// InstanceHandler defines an InstanceHandler.
+// InstanceEventHandler handles a event.NewInstance
 type InstanceEventHandler interface {
 	Handle(e event.NewInstance) error
 }
 
-// KafkaMessageReciever  ...
+// KafkaMessageReciever is a Receiver for handling incoming kafka messages
 type KafkaMessageReciever struct {
 	InstanceHandler InstanceEventHandler
 	ErrorReporter   reporter.ErrorReporter
 }
 
+// OnMessage accepts a kafka message, unmarshals it to the expected model AND passes it to an event handler. Any errors
+// while handling or unmsharalling are send to an error reporter
 func (r KafkaMessageReciever) OnMessage(message kafka.Message) {
 	var newInstanceEvent event.NewInstance
 	if err := schema.NewInstanceSchema.Unmarshal(message.GetData(), &newInstanceEvent); err != nil {

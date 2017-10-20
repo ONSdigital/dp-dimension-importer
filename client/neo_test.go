@@ -10,10 +10,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var (
-	rowsData  [][]interface{} = [][]interface{}{{1}}
-	mockError                 = errors.New("mock error")
-)
+var rowsData = [][]interface{}{{1}}
 
 func TestNeo4j_Query_ConnNil(t *testing.T) {
 	neo4j := Neo4j{}
@@ -23,7 +20,7 @@ func TestNeo4j_Query_ConnNil(t *testing.T) {
 			rows, err := neo4j.Query(nil, "", nil)
 
 			Convey("Then the expected error is returned and rows is nil", func() {
-				So(err.Error(), ShouldEqual, connNilErr.Error())
+				So(err.Error(), ShouldEqual, errConnNil.Error())
 				So(rows, ShouldBeNil)
 			})
 		})
@@ -58,13 +55,13 @@ func TestNeo4j_Query_ConnPrepareNeoErr(t *testing.T) {
 		Convey("When conn.PrepareNeo returns an error", func() {
 			connMock := &mocks.NeoConnMock{
 				PrepareNeoFunc: func(query string) (bolt.Stmt, error) {
-					return nil, mockError
+					return nil, errMock
 				},
 			}
 			rows, err := neo4j.Query(connMock, "MATCH (N) RETURN N LIMIT 5", nil)
 
 			Convey("Then the expected error is returned and rows is nil", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "error while attempting to create statement").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errMock, "error while attempting to create statement").Error())
 				So(rows, ShouldBeNil)
 			})
 
@@ -82,7 +79,7 @@ func TestNeo4j_Query_StmtQueryNeoErr(t *testing.T) {
 		Convey("When neoStmt.QueryNeo returns an error", func() {
 			stmtMock := &mocks.NeoStmtMock{
 				QueryNeoFunc: func(params map[string]interface{}) (bolt.Rows, error) {
-					return nil, mockError
+					return nil, errMock
 				},
 				CloseFunc: closeNoErr,
 			}
@@ -96,7 +93,7 @@ func TestNeo4j_Query_StmtQueryNeoErr(t *testing.T) {
 			rows, err := neo4j.Query(connMock, "MATCH (N) RETURN N LIMIT 5", nil)
 
 			Convey("Then the expected error is returned and rows is nil", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "error while attempting to execute query").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errMock, "error while attempting to execute query").Error())
 				So(rows, ShouldBeNil)
 			})
 
@@ -224,7 +221,7 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 		Convey("When neoStmt.PrepareNeo returns an error", func() {
 
 			mockConn.PrepareNeoFunc = func(query string) (bolt.Stmt, error) {
-				return nil, mockError
+				return nil, errMock
 			}
 
 			results, err := neo.ExecStmt(mockConn, stmt, params)
@@ -236,7 +233,7 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 			})
 
 			Convey("And the expected error response is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "error while attempting to create statement").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errMock, "error while attempting to create statement").Error())
 				So(results, ShouldEqual, nil)
 			})
 		})
@@ -244,7 +241,7 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 		Convey("When neoStmt.ExecNeo returns an error", func() {
 
 			mockStmt.ExecNeoFunc = func(params map[string]interface{}) (bolt.Result, error) {
-				return nil, mockError
+				return nil, errMock
 			}
 
 			results, err := neo.ExecStmt(mockConn, stmt, params)
@@ -265,7 +262,7 @@ func TestNeo4j_ExecStmt(t *testing.T) {
 			})
 
 			Convey("And the expected error response is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "error while attempting to execute neo statement").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errMock, "error while attempting to execute neo statement").Error())
 				So(results, ShouldEqual, nil)
 			})
 		})

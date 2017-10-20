@@ -13,7 +13,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-var mockError = errors.New("I am Expected")
+var errorMock = errors.New("I am Expected")
 var instanceID = "123456789"
 
 func TestInstanceRepository_AddDimensions(t *testing.T) {
@@ -67,7 +67,7 @@ func TestInstanceRepository_AddDimensions(t *testing.T) {
 
 		neo4jMock := &mocks.Neo4jClientMock{
 			ExecStmtFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error) {
-				return nil, mockError
+				return nil, errorMock
 			},
 		}
 		connMock := &mocks.NeoConnMock{}
@@ -86,7 +86,7 @@ func TestInstanceRepository_AddDimensions(t *testing.T) {
 			err := repo.AddDimensions(instance)
 
 			Convey("Then the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "neo4j.ExecStmt returned an error").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "neo4j.ExecStmt returned an error").Error())
 			})
 
 			Convey("And Neo4j.ExecStmt is called 1 time with the expected parameters", func() {
@@ -203,7 +203,7 @@ func TestInstanceRepository_Create(t *testing.T) {
 
 		neo4jMock := &mocks.Neo4jClientMock{
 			ExecStmtFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error) {
-				return nil, mockError
+				return nil, errorMock
 			},
 		}
 
@@ -218,7 +218,7 @@ func TestInstanceRepository_Create(t *testing.T) {
 			err := repo.Create(instance)
 
 			Convey("Then the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "neo4j.ExecStmt returned an error").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "neo4j.ExecStmt returned an error").Error())
 			})
 
 			Convey("And Neo4j.ExecStmt is called 1 time with the expected parameters", func() {
@@ -311,13 +311,13 @@ func TestInstanceRepository_Delete(t *testing.T) {
 
 		Convey("When Delete returns an error", func() {
 			neoMock.ExecStmtFunc = func(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error) {
-				return nil, mockError
+				return nil, errorMock
 			}
 
 			err := repo.Delete(instance)
 
 			Convey("Then repo returns error from Neo4j is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "neo4j.ExecStmt returned an error").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "neo4j.ExecStmt returned an error").Error())
 			})
 
 			Convey("And neo4j.ExexStmt is called 1 time with the expected parameters", func() {
@@ -371,14 +371,14 @@ func TestInstanceRepository_Exists(t *testing.T) {
 
 		Convey("When neo4j.Query returns an error", func() {
 			neoMock.QueryFunc = func(conn bolt.Conn, query string, params map[string]interface{}) (*common.NeoRows, error) {
-				return nil, mockError
+				return nil, errorMock
 			}
 
 			exists, err := repo.Exists(instance)
 
 			Convey("Then the error is propegated back to the caller", func() {
 				So(exists, ShouldBeFalse)
-				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "neo4j.Query returned an error").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "neo4j.Query returned an error").Error())
 			})
 
 			Convey("And neo4j.Query is called 1 time with the expected parameters", func() {
@@ -422,12 +422,12 @@ func TestNewInstanceRepository(t *testing.T) {
 
 		Convey("When connectionPool.OpenPool returns an error", func() {
 			connectionPool.OpenPoolFunc = func() (bolt.Conn, error) {
-				return nil, mockError
+				return nil, errorMock
 			}
 
 			repo, err := NewInstanceRepository(connectionPool, neo4jCliMock)
 			Convey("Then the error is propagated", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(mockError, "connPool.OpenPool returned an error").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "connPool.OpenPool returned an error").Error())
 				So(repo, ShouldBeNil)
 			})
 		})

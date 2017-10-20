@@ -17,13 +17,13 @@ const (
 
 var (
 	neoLogger  = logging.Logger{Prefix: "client.Neo4j"}
-	connNilErr = errors.New("connection required but was nil")
+	errConnNil = errors.New("connection required but was nil")
 )
 
 // Query execute a query against neo. Caller is responsible for closing conn
 func (neo Neo4j) Query(conn bolt.Conn, query string, params map[string]interface{}) (*common.NeoRows, error) {
 	if conn == nil {
-		return nil, connNilErr
+		return nil, errConnNil
 	}
 	if len(query) == 0 {
 		return nil, errors.New("query required but was empty")
@@ -54,7 +54,7 @@ func (neo Neo4j) Query(conn bolt.Conn, query string, params map[string]interface
 // ExecStmt execute a statement against neo. Caller is responsible for closing conn
 func (neo Neo4j) ExecStmt(conn bolt.Conn, stmt string, params map[string]interface{}) (bolt.Result, error) {
 	if conn == nil {
-		return nil, connNilErr
+		return nil, errConnNil
 	}
 	if len(stmt) == 0 {
 		return nil, errors.New("statement required but was empty")

@@ -112,31 +112,29 @@ func main() {
 	consumer := message.NewConsumer(instanceConsumer, messageReciever, cfg.GracefulShutdownTimeout)
 	consumer.Listen()
 
-	for {
-		select {
-		case err := <-instanceConsumer.Errors():
-			log.ErrorC("incoming instance kafka consumer receieved an error, attempting graceful shutdown", err, nil)
-		case err := <-instanceCompleteProducer.Errors():
-			log.ErrorC("completed instance kafka producer receieved an error, attempting graceful shutdown", err, nil)
-		case err := <-errorReporterProducer.Errors():
-			log.ErrorC("error reporter kafka producer recieved an error, attempting graceful shutdown", err, nil)
-		case err := <-healthCheckErrors:
-			log.ErrorC("healthcheck server returned an error, attempting graceful shutdown", err, nil)
-		case signal := <-signals:
-			log.Info("os signal receieved, attempting graceful shutdown", log.Data{"signal": signal.String()})
-		}
-
-		ctx, _ := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
-
-		consumer.Close(ctx)
-		instanceConsumer.Close(ctx)
-		instanceCompleteProducer.Close(ctx)
-		errorReporterProducer.Close(ctx)
-		healthcheck.Close(ctx)
-
-		log.Info("gracecful shutdown comeplete", nil)
-		os.Exit(1)
+	select {
+	case err := <-instanceConsumer.Errors():
+		log.ErrorC("incoming instance kafka consumer receieved an error, attempting graceful shutdown", err, nil)
+	case err := <-instanceCompleteProducer.Errors():
+		log.ErrorC("completed instance kafka producer receieved an error, attempting graceful shutdown", err, nil)
+	case err := <-errorReporterProducer.Errors():
+		log.ErrorC("error reporter kafka producer recieved an error, attempting graceful shutdown", err, nil)
+	case err := <-healthCheckErrors:
+		log.ErrorC("healthcheck server returned an error, attempting graceful shutdown", err, nil)
+	case signal := <-signals:
+		log.Info("os signal receieved, attempting graceful shutdown", log.Data{"signal": signal.String()})
 	}
+
+	ctx, _ := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
+
+	consumer.Close(ctx)
+	instanceConsumer.Close(ctx)
+	instanceCompleteProducer.Close(ctx)
+	errorReporterProducer.Close(ctx)
+	healthcheck.Close(ctx)
+
+	log.Info("gracecful shutdown comeplete", nil)
+	os.Exit(1)
 }
 
 func newConsumer(kafkaAddr []string, topic string, namespace string) *kafka.ConsumerGroup {

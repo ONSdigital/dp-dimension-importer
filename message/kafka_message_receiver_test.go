@@ -129,7 +129,7 @@ type fixture struct {
 }
 
 func newFixture(messageBytes []byte, handleInstanceFunc func(e event.NewInstance) error) *fixture {
-	instanceHdlrCalls := make([]event.NewInstance, 0)
+	instanceHdlrCalls := []event.NewInstance{}
 
 	fix := &fixture{
 		instanceHdlrCalls: instanceHdlrCalls,
