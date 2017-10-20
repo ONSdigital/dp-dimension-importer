@@ -16,7 +16,7 @@ const (
 )
 
 var (
-	neoLogger  = logging.Logger{Prefix: "client.Neo4j"}
+	neoLogger  = logging.Logger{Name: "client.Neo4j"}
 	errConnNil = errors.New("connection required but was nil")
 )
 

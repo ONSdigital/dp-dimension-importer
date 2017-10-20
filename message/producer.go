@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var loggerP = logging.Logger{Prefix: "message.InstanceCompletedProducer"}
+var loggerP = logging.Logger{Name: "message.InstanceCompletedProducer"}
 
 //go:generate moq -out ./message_test/producer_generated_mocks.go -pkg message_test . Marshaller KafkaProducer
 

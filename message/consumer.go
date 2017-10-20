@@ -10,7 +10,7 @@ import (
 
 //go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessage KafkaConsumer
 
-var loggerC = logging.Logger{Prefix: "message.Consumer"}
+var loggerC = logging.Logger{Name: "message.Consumer"}
 
 // KafkaMessage type representing a kafka message.
 type KafkaMessage kafka.Message

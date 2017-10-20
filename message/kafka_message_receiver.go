@@ -8,7 +8,7 @@ import (
 	"github.com/ONSdigital/go-ns/kafka"
 )
 
-var loggerR = logging.Logger{Prefix: "message.KafkaMessageReciever"}
+var loggerR = logging.Logger{Name: "message.KafkaMessageReciever"}
 
 // InstanceEventHandler handles a event.NewInstance
 type InstanceEventHandler interface {
@@ -21,8 +21,7 @@ type KafkaMessageReciever struct {
 	ErrorReporter   reporter.ErrorReporter
 }
 
-// OnMessage accepts a kafka message, unmarshals it to the expected model AND passes it to an event handler. Any errors
-// while handling or unmsharalling are send to an error reporter
+// OnMessage unmarshal the kafka message and pass it to the InstanceEventHandler any errors are sent to the ErrorReporter
 func (r KafkaMessageReciever) OnMessage(message kafka.Message) {
 	var newInstanceEvent event.NewInstance
 	if err := schema.NewInstanceSchema.Unmarshal(message.GetData(), &newInstanceEvent); err != nil {

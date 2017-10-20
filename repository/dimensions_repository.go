@@ -15,7 +15,7 @@ import (
 
 //go:generate moq -out ../mocks/repository_generated_mocks.go -pkg mocks . Neo4jClient
 
-var loggerD = logging.Logger{Prefix: "repository.DimensionRepository"}
+var loggerD = logging.Logger{Name: "repository.DimensionRepository"}
 
 const (
 	// Create a unique constraint on the dimension type value.

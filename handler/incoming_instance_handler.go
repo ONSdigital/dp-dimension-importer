@@ -14,7 +14,7 @@ import (
 
 var (
 	errValidationFail = errors.New("[handler.InstanceEventHandler] validation error")
-	logger            = logging.Logger{Prefix: "handler.InstanceEventHandler"}
+	logger            = logging.Logger{Name: "handler.InstanceEventHandler"}
 )
 
 // DatasetAPIClient defines interface of an Dataset API client,

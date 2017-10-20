@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	logger             = logging.Logger{Prefix: "client.DatasetAPI"}
+	logger             = logging.Logger{Name: "client.DatasetAPI"}
 	errHostEmpty       = errors.New("validation error: api host is required but was empty")
 	errInstanceIDEmpty = errors.New("validation error: instance id is required but is empty")
 )
