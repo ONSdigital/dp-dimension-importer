@@ -18,6 +18,7 @@ type KafkaMessage kafka.Message
 // KafkaConsumer consume an incoming kafka message
 type KafkaConsumer interface {
 	Incoming() chan kafka.Message
+	Release()
 }
 
 // Reciever is sent a kafka messages and processes it
@@ -62,6 +63,7 @@ func (c Consumer) Listen() {
 			case consumedMessage := <-c.consumer.Incoming():
 				loggerC.Info("consumer.incoming receieved a message", nil)
 				c.messageReciever.OnMessage(consumedMessage)
+				c.consumer.Release()
 			case <-c.ctx.Done():
 				loggerC.Info("loggercontext.Done received event, attempting to close consumer", nil)
 				return

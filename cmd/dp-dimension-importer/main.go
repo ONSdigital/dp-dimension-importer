@@ -138,9 +138,9 @@ func main() {
 }
 
 func newConsumer(kafkaAddr []string, topic string, namespace string) *kafka.ConsumerGroup {
-	consumer, err := kafka.NewConsumerGroup(kafkaAddr, topic, namespace, kafka.OffsetNewest)
+	consumer, err := kafka.NewSyncConsumer(kafkaAddr, topic, namespace, kafka.OffsetOldest)
 	if err != nil {
-		log.ErrorC("kafka.NewConsumerGroup returned an error", err, log.Data{
+		log.ErrorC("kafka.NewSyncConsumer returned an error", err, log.Data{
 			"brokers":        kafkaAddr,
 			"topic":          topic,
 			"consumer_group": namespace,

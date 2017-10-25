@@ -45,10 +45,10 @@
 			"revisionTime": "2017-09-06T07:42:54Z"
 		},
 		{
-			"checksumSHA1": "FyeCEY30Rz0d477/Za2UhQ/Jnjs=",
+			"checksumSHA1": "lUqiCTOoWg3IhyenCyYvqbw64OE=",
 			"path": "github.com/ONSdigital/go-ns/kafka",
-			"revision": "f48b96961e1cf255a2e901651a3e629569f20e21",
-			"revisionTime": "2017-09-28T14:04:18Z"
+			"revision": "a1bd0a85bf8904441aa027164380a31c6583cec4",
+			"revisionTime": "2017-10-23T12:32:27Z"
 		},
 		{
 			"checksumSHA1": "AjbjbhFVAOP/1NU5HL+uy+X/yJo=",
@@ -118,6 +118,12 @@
 			"revisionTime": "2017-09-27T19:27:36Z"
 		},
 		{
+			"checksumSHA1": "yIkYzW7bzAD81zHyuCNmEj4+oxQ=",
+			"path": "github.com/gopherjs/gopherjs/js",
+			"revision": "b40cd48c38f9a18eb3db20d163bad78de12cf0b7",
+			"revisionTime": "2017-09-06T18:39:36Z"
+		},
+		{
 			"checksumSHA1": "g/V4qrXjUGG9B+e3hB+4NAYJ5Gs=",
 			"path": "github.com/gorilla/context",
 			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
@@ -128,12 +134,6 @@
 			"path": "github.com/gorilla/mux",
 			"revision": "757bef944d0f21880861c2dd9c871ca543023cba",
 			"revisionTime": "2016-09-20T23:08:13Z"
-		},
-		{
-			"checksumSHA1": "yIkYzW7bzAD81zHyuCNmEj4+oxQ=",
-			"path": "github.com/gopherjs/gopherjs/js",
-			"revision": "b40cd48c38f9a18eb3db20d163bad78de12cf0b7",
-			"revisionTime": "2017-09-06T18:39:36Z"
 		},
 		{
 			"checksumSHA1": "FRhS1BUn7QYJODTJaU1LF7uCka0=",

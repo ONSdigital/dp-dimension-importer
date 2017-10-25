@@ -35,6 +35,7 @@ func TestConsumer_Listen(t *testing.T) {
 			IncomingFunc: func() chan kafka.Message {
 				return incoming
 			},
+			ReleaseFunc: func() {},
 		}
 
 		handleCalls := []kafka.Message{}
@@ -64,6 +65,9 @@ func TestConsumer_Listen(t *testing.T) {
 
 			Convey("Then messageReciever.OnMessage is called 1 time with the expected parameters", func() {
 				So(len(handleCalls), ShouldEqual, 1)
+				// IncomingCalls = completed_messages+1 (extra 1 is for getting chan + waiting for next message)
+				So(len(kafkaConsumer.IncomingCalls()), ShouldEqual, 2)
+				So(len(kafkaConsumer.ReleaseCalls()), ShouldEqual, 1)
 			})
 		})
 

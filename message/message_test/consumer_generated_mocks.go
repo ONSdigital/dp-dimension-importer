@@ -11,6 +11,7 @@ import (
 var (
 	lockKafkaMessageMockCommit  sync.RWMutex
 	lockKafkaMessageMockGetData sync.RWMutex
+	lockKafkaMessageMockOffset  sync.RWMutex
 )
 
 // KafkaMessageMock is a mock implementation of KafkaMessage.
@@ -25,6 +26,9 @@ var (
 //             GetDataFunc: func() []byte {
 // 	               panic("TODO: mock out the GetData method")
 //             },
+//             OffsetFunc: func() int64 {
+// 	               panic("TODO: mock out the Offset method")
+//             },
 //         }
 //
 //         // TODO: use mockedKafkaMessage in code that requires KafkaMessage
@@ -38,6 +42,9 @@ type KafkaMessageMock struct {
 	// GetDataFunc mocks the GetData method.
 	GetDataFunc func() []byte
 
+	// OffsetFunc mocks the Offset method.
+	OffsetFunc func() int64
+
 	// calls tracks calls to the methods.
 	calls struct {
 		// Commit holds details about calls to the Commit method.
@@ -45,6 +52,9 @@ type KafkaMessageMock struct {
 		}
 		// GetData holds details about calls to the GetData method.
 		GetData []struct {
+		}
+		// Offset holds details about calls to the Offset method.
+		Offset []struct {
 		}
 	}
 }
@@ -101,8 +111,35 @@ func (mock *KafkaMessageMock) GetDataCalls() []struct {
 	return calls
 }
 
+// Offset calls OffsetFunc.
+func (mock *KafkaMessageMock) Offset() int64 {
+	if mock.OffsetFunc == nil {
+		panic("moq: KafkaMessageMock.OffsetFunc is nil but KafkaMessage.Offset was just called")
+	}
+	callInfo := struct {
+	}{}
+	lockKafkaMessageMockOffset.Lock()
+	mock.calls.Offset = append(mock.calls.Offset, callInfo)
+	lockKafkaMessageMockOffset.Unlock()
+	return mock.OffsetFunc()
+}
+
+// OffsetCalls gets all the calls that were made to Offset.
+// Check the length with:
+//     len(mockedKafkaMessage.OffsetCalls())
+func (mock *KafkaMessageMock) OffsetCalls() []struct {
+} {
+	var calls []struct {
+	}
+	lockKafkaMessageMockOffset.RLock()
+	calls = mock.calls.Offset
+	lockKafkaMessageMockOffset.RUnlock()
+	return calls
+}
+
 var (
 	lockKafkaConsumerMockIncoming sync.RWMutex
+	lockKafkaConsumerMockRelease  sync.RWMutex
 )
 
 // KafkaConsumerMock is a mock implementation of KafkaConsumer.
@@ -114,6 +151,9 @@ var (
 //             IncomingFunc: func() chan kafka.Message {
 // 	               panic("TODO: mock out the Incoming method")
 //             },
+//             ReleaseFunc: func()  {
+// 	               panic("TODO: mock out the Release method")
+//             },
 //         }
 //
 //         // TODO: use mockedKafkaConsumer in code that requires KafkaConsumer
@@ -124,10 +164,16 @@ type KafkaConsumerMock struct {
 	// IncomingFunc mocks the Incoming method.
 	IncomingFunc func() chan kafka.Message
 
+	// ReleaseFunc mocks the Release method.
+	ReleaseFunc func()
+
 	// calls tracks calls to the methods.
 	calls struct {
 		// Incoming holds details about calls to the Incoming method.
 		Incoming []struct {
+		}
+		// Release holds details about calls to the Release method.
+		Release []struct {
 		}
 	}
 }
@@ -155,5 +201,31 @@ func (mock *KafkaConsumerMock) IncomingCalls() []struct {
 	lockKafkaConsumerMockIncoming.RLock()
 	calls = mock.calls.Incoming
 	lockKafkaConsumerMockIncoming.RUnlock()
+	return calls
+}
+
+// Release calls ReleaseFunc.
+func (mock *KafkaConsumerMock) Release() {
+	if mock.ReleaseFunc == nil {
+		panic("moq: KafkaConsumerMock.ReleaseFunc is nil but KafkaConsumer.Release was just called")
+	}
+	callInfo := struct {
+	}{}
+	lockKafkaConsumerMockRelease.Lock()
+	mock.calls.Release = append(mock.calls.Release, callInfo)
+	lockKafkaConsumerMockRelease.Unlock()
+	mock.ReleaseFunc()
+}
+
+// ReleaseCalls gets all the calls that were made to Release.
+// Check the length with:
+//     len(mockedKafkaConsumer.ReleaseCalls())
+func (mock *KafkaConsumerMock) ReleaseCalls() []struct {
+} {
+	var calls []struct {
+	}
+	lockKafkaConsumerMockRelease.RLock()
+	calls = mock.calls.Release
+	lockKafkaConsumerMockRelease.RUnlock()
 	return calls
 }
