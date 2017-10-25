@@ -127,6 +127,7 @@ func main() {
 
 	ctx, _ := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
 
+	instanceConsumer.StopListeningToConsumer(ctx)
 	consumer.Close(ctx)
 	instanceConsumer.Close(ctx)
 	instanceCompleteProducer.Close(ctx)
