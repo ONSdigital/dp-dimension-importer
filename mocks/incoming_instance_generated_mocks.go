@@ -501,6 +501,106 @@ func (mock *DimensionRepositoryMock) InsertCalls() []struct {
 }
 
 var (
+	lockObservationRepositoryMockClose            sync.RWMutex
+	lockObservationRepositoryMockCreateConstraint sync.RWMutex
+)
+
+// ObservationRepositoryMock is a mock implementation of ObservationRepository.
+//
+//     func TestSomethingThatUsesObservationRepository(t *testing.T) {
+//
+//         // make and configure a mocked ObservationRepository
+//         mockedObservationRepository := &ObservationRepositoryMock{
+//             CloseFunc: func()  {
+// 	               panic("TODO: mock out the Close method")
+//             },
+//             CreateConstraintFunc: func(instance *model.Instance) error {
+// 	               panic("TODO: mock out the CreateConstraint method")
+//             },
+//         }
+//
+//         // TODO: use mockedObservationRepository in code that requires ObservationRepository
+//         //       and then make assertions.
+//
+//     }
+type ObservationRepositoryMock struct {
+	// CloseFunc mocks the Close method.
+	CloseFunc func()
+
+	// CreateConstraintFunc mocks the CreateConstraint method.
+	CreateConstraintFunc func(instance *model.Instance) error
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// Close holds details about calls to the Close method.
+		Close []struct {
+		}
+		// CreateConstraint holds details about calls to the CreateConstraint method.
+		CreateConstraint []struct {
+			// Instance is the instance argument value.
+			Instance *model.Instance
+		}
+	}
+}
+
+// Close calls CloseFunc.
+func (mock *ObservationRepositoryMock) Close() {
+	if mock.CloseFunc == nil {
+		panic("moq: ObservationRepositoryMock.CloseFunc is nil but ObservationRepository.Close was just called")
+	}
+	callInfo := struct {
+	}{}
+	lockObservationRepositoryMockClose.Lock()
+	mock.calls.Close = append(mock.calls.Close, callInfo)
+	lockObservationRepositoryMockClose.Unlock()
+	mock.CloseFunc()
+}
+
+// CloseCalls gets all the calls that were made to Close.
+// Check the length with:
+//     len(mockedObservationRepository.CloseCalls())
+func (mock *ObservationRepositoryMock) CloseCalls() []struct {
+} {
+	var calls []struct {
+	}
+	lockObservationRepositoryMockClose.RLock()
+	calls = mock.calls.Close
+	lockObservationRepositoryMockClose.RUnlock()
+	return calls
+}
+
+// CreateConstraint calls CreateConstraintFunc.
+func (mock *ObservationRepositoryMock) CreateConstraint(instance *model.Instance) error {
+	if mock.CreateConstraintFunc == nil {
+		panic("moq: ObservationRepositoryMock.CreateConstraintFunc is nil but ObservationRepository.CreateConstraint was just called")
+	}
+	callInfo := struct {
+		Instance *model.Instance
+	}{
+		Instance: instance,
+	}
+	lockObservationRepositoryMockCreateConstraint.Lock()
+	mock.calls.CreateConstraint = append(mock.calls.CreateConstraint, callInfo)
+	lockObservationRepositoryMockCreateConstraint.Unlock()
+	return mock.CreateConstraintFunc(instance)
+}
+
+// CreateConstraintCalls gets all the calls that were made to CreateConstraint.
+// Check the length with:
+//     len(mockedObservationRepository.CreateConstraintCalls())
+func (mock *ObservationRepositoryMock) CreateConstraintCalls() []struct {
+	Instance *model.Instance
+} {
+	var calls []struct {
+		Instance *model.Instance
+	}
+	lockObservationRepositoryMockCreateConstraint.RLock()
+	calls = mock.calls.CreateConstraint
+	lockObservationRepositoryMockCreateConstraint.RUnlock()
+	return calls
+}
+
+var (
 	lockCompletedProducerMockCompleted sync.RWMutex
 )
 

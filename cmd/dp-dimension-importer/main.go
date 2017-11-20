@@ -70,6 +70,10 @@ func main() {
 		return repository.NewInstanceRepository(connectionPool, neo4jCli)
 	}
 
+	newObservationRepoFunc := func() (handler.ObservationRepository, error) {
+		return repository.NewObservationRepository(connectionPool, neo4jCli)
+	}
+
 	// MessageProducer for instanceComplete events.
 	instanceCompletedProducer := message.InstanceCompletedProducer{
 		Producer:   instanceCompleteProducer,
@@ -84,12 +88,13 @@ func main() {
 		ResponseBodyReader:  responseBodyReader{},
 	}
 
-	// Reciever for NewInstance events.
+	// Receiver for NewInstance events.
 	instanceEventHandler := &handler.InstanceEventHandler{
-		NewDimensionInserter:  newDimensionInserterFunc,
-		NewInstanceRepository: newInstanceRepoFunc,
-		DatasetAPICli:         datasetAPICli,
-		Producer:              instanceCompletedProducer,
+		NewDimensionInserter:     newDimensionInserterFunc,
+		NewInstanceRepository:    newInstanceRepoFunc,
+		NewObservationRepository: newObservationRepoFunc,
+		DatasetAPICli:            datasetAPICli,
+		Producer:                 instanceCompletedProducer,
 	}
 
 	// Errors handler

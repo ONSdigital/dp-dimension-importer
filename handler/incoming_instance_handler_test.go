@@ -49,7 +49,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 	Convey("Given the handler has been configured", t, func() {
 		// Set up mocks
-		instanceRepositoryMock, dimensionRepository, datasetAPIMock, completedProducer, handler := setUp()
+		instanceRepositoryMock, dimensionRepository, observationRepositoryMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		Convey("When given a valid event", func() {
 			handler.Handle(newInstance)
@@ -89,6 +89,10 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(len(calls), ShouldEqual, 1)
 
 				So(calls[0].Instance, ShouldResemble, instance)
+			})
+
+			Convey("And observationRepository is never called", func() {
+				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 1)
 			})
 
 			Convey("And Producer.Complete is called 1 time with the expected parameters", func() {
@@ -407,7 +411,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 	Convey("Given an instance with the event ID already exists", t, func() {
-		instanceRepositoryMock, dimensionRepository, datasetAPIMock, completedProducer, handler := setUp()
+		instanceRepositoryMock, dimensionRepository, observationRepositoryMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		// override default
 		instanceRepositoryMock.ExistsFunc = func(instance *model.Instance) (bool, error) {
@@ -459,6 +463,10 @@ func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
 
+			Convey("And observationRepository is never called", func() {
+				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 1)
+			})
+
 			Convey("And Producer.Completed is called 1 time with the expected parameters", func() {
 				calls := completedProducer.CompletedCalls()
 				So(len(calls), ShouldEqual, 1)
@@ -470,7 +478,7 @@ func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 
 func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 	Convey("Given handler has been configured correctly", t, func() {
-		instanceRepoMock, dimensionRepoMock, datasetAPIMock, completedProducer, handler := setUp()
+		instanceRepoMock, dimensionRepoMock, observationRepositoryMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		Convey("When instanceRepository.Exists returns an error", func() {
 			instanceRepoMock.ExistsFunc = func(instance *model.Instance) (bool, error) {
@@ -506,6 +514,10 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 				So(len(dimensionRepoMock.InsertCalls()), ShouldEqual, 0)
 			})
 
+			Convey("And observationRepository is never called", func() {
+				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 0)
+			})
+
 			Convey("And producer is never called", func() {
 				So(len(completedProducer.CompletedCalls()), ShouldEqual, 0)
 			})
@@ -516,7 +528,7 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 
 func TestInstanceEventHandler_Handle_DeleteInstanceErr(t *testing.T) {
 	Convey("Given handler has been configured correctly", t, func() {
-		instanceRepoMock, dimensionRepoMock, datasetAPIMock, completedProducer, handler := setUp()
+		instanceRepoMock, dimensionRepoMock, observationRepositoryMock, datasetAPIMock, completedProducer, handler := setUp()
 		instanceRepoMock.ExistsFunc = func(instance *model.Instance) (bool, error) {
 			return true, nil
 		}
@@ -556,6 +568,10 @@ func TestInstanceEventHandler_Handle_DeleteInstanceErr(t *testing.T) {
 				So(len(dimensionRepoMock.InsertCalls()), ShouldEqual, 0)
 			})
 
+			Convey("And observationRepository is never called", func() {
+				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 0)
+			})
+
 			Convey("And producer is never called", func() {
 				So(len(completedProducer.CompletedCalls()), ShouldEqual, 0)
 			})
@@ -564,7 +580,7 @@ func TestInstanceEventHandler_Handle_DeleteInstanceErr(t *testing.T) {
 }
 
 // Default set up for the mocks.
-func setUp() (*mocks.InstanceRepositoryMock, *mocks.DimensionRepositoryMock, *mocks.DatasetAPIClientMock, *mocks.CompletedProducerMock, InstanceEventHandler) {
+func setUp() (*mocks.InstanceRepositoryMock, *mocks.DimensionRepositoryMock, *mocks.ObservationRepositoryMock, *mocks.DatasetAPIClientMock, *mocks.CompletedProducerMock, InstanceEventHandler) {
 	instanceRepositoryMock := &mocks.InstanceRepositoryMock{
 		ExistsFunc: func(instance *model.Instance) (bool, error) {
 			return false, nil
@@ -586,6 +602,15 @@ func setUp() (*mocks.InstanceRepositoryMock, *mocks.DimensionRepositoryMock, *mo
 	dimensionRepository := &mocks.DimensionRepositoryMock{
 		InsertFunc: func(instance *model.Instance, d *model.Dimension) (*model.Dimension, error) {
 			return d, nil
+		},
+		CloseFunc: func() {
+			// Do nothing.
+		},
+	}
+
+	observationRepository := &mocks.ObservationRepositoryMock{
+		CreateConstraintFunc: func(instance *model.Instance) error {
+			return nil
 		},
 		CloseFunc: func() {
 			// Do nothing.
@@ -619,6 +644,9 @@ func setUp() (*mocks.InstanceRepositoryMock, *mocks.DimensionRepositoryMock, *mo
 		},
 		DatasetAPICli: datasetAPIMock,
 		Producer:      completedProducer,
+		NewObservationRepository: func() (ObservationRepository, error) {
+			return observationRepository, nil
+		},
 	}
-	return instanceRepositoryMock, dimensionRepository, datasetAPIMock, completedProducer, handler
+	return instanceRepositoryMock, dimensionRepository, observationRepository, datasetAPIMock, completedProducer, handler
 }

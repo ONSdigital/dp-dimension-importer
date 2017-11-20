@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate moq -out ../mocks/dimensions_extracted_generated_mocks.go -pkg mocks . DatasetAPIClient InstanceRepository DimensionRepository CompletedProducer
+//go:generate moq -out ../mocks/incoming_instance_generated_mocks.go -pkg mocks . DatasetAPIClient InstanceRepository DimensionRepository ObservationRepository CompletedProducer
 
 var (
 	errValidationFail = errors.New("[handler.InstanceEventHandler] validation error")
@@ -52,29 +52,11 @@ type CompletedProducer interface {
 
 // InstanceEventHandler provides functions for handling DimensionsExtractedEvents.
 type InstanceEventHandler struct {
-	NewDimensionInserter  func() (DimensionRepository, error)
-	NewInstanceRepository func() (InstanceRepository, error)
+	NewDimensionInserter     func() (DimensionRepository, error)
+	NewInstanceRepository    func() (InstanceRepository, error)
 	NewObservationRepository func() (ObservationRepository, error)
-	DatasetAPICli         DatasetAPIClient
-	Producer              CompletedProducer
-}
-
-func (hdlr *InstanceEventHandler) validate(newInstance event.NewInstance) error {
-
-	if hdlr.DatasetAPICli == nil {
-		return errors.New(" validation error dataset api client required but was nil")
-	}
-	if hdlr.NewInstanceRepository == nil {
-		return errors.New(" validation error new instance repository func required but was nil")
-	}
-	if hdlr.NewDimensionInserter == nil {
-		return errors.New(" validation error new dimension inserter func required but was nil")
-	}
-	if len(newInstance.InstanceID) == 0 {
-		return errors.New(" validation error instance_id required but was empty")
-	}
-
-	return nil
+	DatasetAPICli            DatasetAPIClient
+	Producer                 CompletedProducer
 }
 
 // Handle retrieves the dimensions for specified instanceID from the Import API, creates an MyInstance entity for
@@ -123,6 +105,11 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 		return err
 	}
 
+	err = hdlr.createObservationConstraint(instance)
+	if err != nil {
+		return err
+	}
+
 	instanceProcessed := event.InstanceCompleted{
 		FileURL:    newInstance.FileURL,
 		InstanceID: newInstance.InstanceID,
@@ -136,8 +123,25 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 	return nil
 }
 
+func (hdlr *InstanceEventHandler) validate(newInstance event.NewInstance) error {
 
-func (hdlr *InstanceEventHandler) insertDimensions(instance *model.Instance, instanceRepo InstanceRepository, dimensions []*model.Dimension) (error) {
+	if hdlr.DatasetAPICli == nil {
+		return errors.New(" validation error dataset api client required but was nil")
+	}
+	if hdlr.NewInstanceRepository == nil {
+		return errors.New(" validation error new instance repository func required but was nil")
+	}
+	if hdlr.NewDimensionInserter == nil {
+		return errors.New(" validation error new dimension inserter func required but was nil")
+	}
+	if len(newInstance.InstanceID) == 0 {
+		return errors.New(" validation error instance_id required but was empty")
+	}
+
+	return nil
+}
+
+func (hdlr *InstanceEventHandler) insertDimensions(instance *model.Instance, instanceRepo InstanceRepository, dimensions []*model.Dimension) error {
 
 	dimensionInserter, err := hdlr.NewDimensionInserter()
 	if err != nil {
@@ -186,3 +190,18 @@ func (hdlr *InstanceEventHandler) createInstanceNode(instance *model.Instance, i
 	return nil
 }
 
+func (hdlr *InstanceEventHandler) createObservationConstraint(instance *model.Instance) error {
+
+	observationRepository, err := hdlr.NewObservationRepository()
+	if err != nil {
+		return errors.Wrap(err, "observation repository constructor returned an error")
+	}
+	defer observationRepository.Close()
+
+	err = observationRepository.CreateConstraint(instance)
+	if err != nil {
+		return errors.Wrap(err, "error while attempting to add the unique observation constraint")
+	}
+
+	return nil
+}
