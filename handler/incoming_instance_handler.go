@@ -76,11 +76,11 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 
 	start := time.Now()
 
-	var dimensions []*model.Dimension
-
-	if dimensions, err = hdlr.DatasetAPICli.GetDimensions(newInstance.InstanceID); err != nil {
+	dimensions, err := hdlr.DatasetAPICli.GetDimensions(newInstance.InstanceID)
+	if err != nil {
 		return errors.Wrap(err, "DatasetAPICli.GetDimensions returned an error")
 	}
+
 	logData["dimensions_count"] = len(dimensions)
 
 	// retrieve the CSV header from the dataset API and attach it to the instance node allowing it to be used after import.
@@ -126,16 +126,16 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 func (hdlr *InstanceEventHandler) validate(newInstance event.NewInstance) error {
 
 	if hdlr.DatasetAPICli == nil {
-		return errors.New(" validation error dataset api client required but was nil")
+		return errors.New("validation error dataset api client required but was nil")
 	}
 	if hdlr.NewInstanceRepository == nil {
-		return errors.New(" validation error new instance repository func required but was nil")
+		return errors.New("validation error new instance repository func required but was nil")
 	}
 	if hdlr.NewDimensionInserter == nil {
-		return errors.New(" validation error new dimension inserter func required but was nil")
+		return errors.New("validation error new dimension inserter func required but was nil")
 	}
 	if len(newInstance.InstanceID) == 0 {
-		return errors.New(" validation error instance_id required but was empty")
+		return errors.New("validation error instance_id required but was empty")
 	}
 
 	return nil
@@ -150,7 +150,9 @@ func (hdlr *InstanceEventHandler) insertDimensions(instance *model.Instance, ins
 	defer dimensionInserter.Close()
 
 	for _, dimension := range dimensions {
-		if dimension, err = dimensionInserter.Insert(instance, dimension); err != nil {
+
+		dimension, err = dimensionInserter.Insert(instance, dimension)
+		if err != nil {
 			return errors.Wrap(err, "error while attempting to insert dimension")
 		}
 
@@ -168,10 +170,8 @@ func (hdlr *InstanceEventHandler) insertDimensions(instance *model.Instance, ins
 
 func (hdlr *InstanceEventHandler) createInstanceNode(instance *model.Instance, instanceRepo InstanceRepository) error {
 
-	var exists bool
-	var err error
-
-	if exists, err = instanceRepo.Exists(instance); err != nil {
+	exists, err := instanceRepo.Exists(instance)
+	if err != nil {
 		return errors.Wrap(err, "instance repository exists check returned an error")
 	}
 

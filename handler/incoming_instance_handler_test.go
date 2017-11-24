@@ -91,7 +91,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
 
-			Convey("And observationRepository is never called", func() {
+			Convey("And observationRepository is called once to create constraints", func() {
 				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 1)
 			})
 
@@ -106,7 +106,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			err := handler.Handle(event.NewInstance{})
 
 			Convey("Then the appropriate error is returned", func() {
-				So(err.Error(), ShouldResemble, errors.New(" validation error instance_id required but was empty").Error())
+				So(err.Error(), ShouldResemble, "validation error instance_id required but was empty")
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -344,7 +344,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			err := handler.Handle(event)
 
 			Convey("Then the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.New(" validation error dataset api client required but was nil").Error())
+				So(err.Error(), ShouldEqual, errors.New("validation error dataset api client required but was nil").Error())
 			})
 
 			Convey("And the event is not handled", func() {
@@ -371,7 +371,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			err := handler.Handle(event)
 
 			Convey("Then the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.New(" validation error new instance repository func required but was nil").Error())
+				So(err.Error(), ShouldEqual, errors.New("validation error new instance repository func required but was nil").Error())
 			})
 			Convey("And the event is not handled", func() {
 				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
@@ -397,7 +397,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			err := handler.Handle(event)
 
 			Convey("Then the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.New(" validation error new dimension inserter func required but was nil").Error())
+				So(err.Error(), ShouldEqual, errors.New("validation error new dimension inserter func required but was nil").Error())
 			})
 			Convey("And the event is not handled", func() {
 				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
@@ -463,7 +463,7 @@ func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
 
-			Convey("And observationRepository is never called", func() {
+			Convey("And observationRepository is called once to create a constraint", func() {
 				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 1)
 			})
 

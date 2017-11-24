@@ -84,7 +84,7 @@ func TestObservationRepository_CreateConstraint_NilInstance(t *testing.T) {
 			err := repo.CreateConstraint(instance)
 
 			Convey("Then the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.New("instance is required but was nil").Error())
+				So(err.Error(), ShouldEqual, "instance is required but was nil")
 			})
 		})
 	})
@@ -195,7 +195,7 @@ func TestObservationRepository_CreateConstraint_NoInstanceID(t *testing.T) {
 			err := repo.CreateConstraint(instance)
 
 			Convey("Then the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.New("instance id is required but was empty").Error())
+				So(err.Error(), ShouldEqual, "instance id is required but was empty")
 			})
 		})
 	})

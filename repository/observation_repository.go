@@ -16,8 +16,15 @@ const (
 	observationLabelFmt     = "_%s_observation"
 )
 
+// ObservationRepository provides observation related storage functionality.
+type ObservationRepository struct {
+	neo4j Neo4jClient
+	conn  bolt.Conn
+	log   logging.Logger
+}
+
 // NewObservationRepository returns a new ObservationRepository. A bolt.Conn will be obtained from the supplied connectionPool.
-// The obtained bolt.Conn will be used for the life time of the InstanceRepository struct
+// The obtained bolt.Conn will be used for the life time of the ObservationRepository struct
 // - it is the responsibility of the caller to call Close when they have finished.
 func NewObservationRepository(connPool common.NeoDriverPool, neo Neo4jClient) (*ObservationRepository, error) {
 	conn, err := connPool.OpenPool()
@@ -25,20 +32,13 @@ func NewObservationRepository(connPool common.NeoDriverPool, neo Neo4jClient) (*
 		return nil, errors.Wrap(err, "connPool.OpenPool returned an error")
 	}
 
-	logger := logging.Logger{Name:"repository.ObservationRepository"}
+	logger := logging.Logger{Name: "repository.ObservationRepository"}
 
 	return &ObservationRepository{
 		neo4j: neo,
 		conn:  conn,
 		log:   logger,
 	}, nil
-}
-
-// ObservationRepository provides observation related storage functionality.
-type ObservationRepository struct {
-	neo4j Neo4jClient
-	conn  bolt.Conn
-	log   logging.Logger
 }
 
 // Close - closes an open resources held by the ObservationRepository.
