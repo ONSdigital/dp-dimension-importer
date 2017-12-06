@@ -12,7 +12,7 @@ type DimensionNodeResults struct {
 
 // Dimension struct encapsulating Dimension details.
 type Dimension struct {
-	DimensionID string        `json:"dimension_id"`
+	DimensionID string        `json:"dimension"`
 	Option      string        `json:"option"`
 	NodeID      string        `json:"node_id,omitempty"`
 	Dimensions  []interface{} `json:"-"`
