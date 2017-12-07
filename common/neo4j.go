@@ -1,7 +1,7 @@
 package common
 
 import (
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
 )
 
 //go:generate moq -out ../mocks/neo4j_generated_mocks.go -pkg mocks . NeoConn NeoDriverPool NeoStmt NeoQueryRows NeoResult

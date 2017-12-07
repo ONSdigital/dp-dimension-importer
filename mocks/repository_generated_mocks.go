@@ -5,7 +5,7 @@ package mocks
 
 import (
 	"github.com/ONSdigital/dp-dimension-importer/common"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	"github.com/ONSdigital/golang-neo4j-bolt-driver"
 	"sync"
 )
 

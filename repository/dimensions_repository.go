@@ -10,7 +10,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/logging"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
 )
 
 //go:generate moq -out ../mocks/repository_generated_mocks.go -pkg mocks . Neo4jClient

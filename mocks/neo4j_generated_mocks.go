@@ -5,7 +5,7 @@ package mocks
 
 import (
 	"database/sql/driver"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	"github.com/ONSdigital/golang-neo4j-bolt-driver"
 	"sync"
 	"time"
 )
