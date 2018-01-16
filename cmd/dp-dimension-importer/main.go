@@ -43,7 +43,7 @@ func main() {
 	log.Debug("application configuration", log.Data{"config": cfg})
 
 	// Incoming kafka topic for instances to process
-	instanceConsumer := newConsumer(cfg.KafkaAddr, cfg.IncomingInstancesTopic, log.Namespace)
+	instanceConsumer := newConsumer(cfg.KafkaAddr, cfg.IncomingInstancesTopic, cfg.IncomingInstancesConsumerGroup)
 
 	// Outgoing topic for instances that have completed processing
 	instanceCompleteProducer := newProducer(cfg.KafkaAddr, cfg.OutgoingInstancesTopic)
