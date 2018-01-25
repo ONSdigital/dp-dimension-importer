@@ -169,7 +169,6 @@ var (
 	lockInstanceRepositoryMockAddDimensions sync.RWMutex
 	lockInstanceRepositoryMockClose         sync.RWMutex
 	lockInstanceRepositoryMockCreate        sync.RWMutex
-	lockInstanceRepositoryMockDelete        sync.RWMutex
 	lockInstanceRepositoryMockExists        sync.RWMutex
 )
 
@@ -187,9 +186,6 @@ var (
 //             },
 //             CreateFunc: func(instance *model.Instance) error {
 // 	               panic("TODO: mock out the Create method")
-//             },
-//             DeleteFunc: func(instance *model.Instance) error {
-// 	               panic("TODO: mock out the Delete method")
 //             },
 //             ExistsFunc: func(instance *model.Instance) (bool, error) {
 // 	               panic("TODO: mock out the Exists method")
@@ -210,9 +206,6 @@ type InstanceRepositoryMock struct {
 	// CreateFunc mocks the Create method.
 	CreateFunc func(instance *model.Instance) error
 
-	// DeleteFunc mocks the Delete method.
-	DeleteFunc func(instance *model.Instance) error
-
 	// ExistsFunc mocks the Exists method.
 	ExistsFunc func(instance *model.Instance) (bool, error)
 
@@ -228,11 +221,6 @@ type InstanceRepositoryMock struct {
 		}
 		// Create holds details about calls to the Create method.
 		Create []struct {
-			// Instance is the instance argument value.
-			Instance *model.Instance
-		}
-		// Delete holds details about calls to the Delete method.
-		Delete []struct {
 			// Instance is the instance argument value.
 			Instance *model.Instance
 		}
@@ -329,37 +317,6 @@ func (mock *InstanceRepositoryMock) CreateCalls() []struct {
 	lockInstanceRepositoryMockCreate.RLock()
 	calls = mock.calls.Create
 	lockInstanceRepositoryMockCreate.RUnlock()
-	return calls
-}
-
-// Delete calls DeleteFunc.
-func (mock *InstanceRepositoryMock) Delete(instance *model.Instance) error {
-	if mock.DeleteFunc == nil {
-		panic("moq: InstanceRepositoryMock.DeleteFunc is nil but InstanceRepository.Delete was just called")
-	}
-	callInfo := struct {
-		Instance *model.Instance
-	}{
-		Instance: instance,
-	}
-	lockInstanceRepositoryMockDelete.Lock()
-	mock.calls.Delete = append(mock.calls.Delete, callInfo)
-	lockInstanceRepositoryMockDelete.Unlock()
-	return mock.DeleteFunc(instance)
-}
-
-// DeleteCalls gets all the calls that were made to Delete.
-// Check the length with:
-//     len(mockedInstanceRepository.DeleteCalls())
-func (mock *InstanceRepositoryMock) DeleteCalls() []struct {
-	Instance *model.Instance
-} {
-	var calls []struct {
-		Instance *model.Instance
-	}
-	lockInstanceRepositoryMockDelete.RLock()
-	calls = mock.calls.Delete
-	lockInstanceRepositoryMockDelete.RUnlock()
 	return calls
 }
 

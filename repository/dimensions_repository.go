@@ -23,8 +23,6 @@ const (
 
 	// Create the dimension node and the HAS_DIMENSION relationship to the Instance it belongs to.
 	createDimensionAndInstanceRelStmt = "MATCH (i:`%s`) CREATE (d:`%s` {value: {value}}) CREATE (i)-[:HAS_DIMENSION]->(d) RETURN ID(d)"
-
-	instanceLabelFmt = "_%s_Instance"
 )
 
 // Neo4jClient defines a client for executing statements and queries against a neo4j graph database.

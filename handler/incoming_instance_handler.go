@@ -13,6 +13,7 @@ import (
 //go:generate moq -out ../mocks/incoming_instance_generated_mocks.go -pkg mocks . DatasetAPIClient InstanceRepository DimensionRepository ObservationRepository CompletedProducer
 
 var (
+	errInstanceExists = errors.New("[handler.InstanceEventHandler] instance already exists")
 	errValidationFail = errors.New("[handler.InstanceEventHandler] validation error")
 	logger            = logging.Logger{Name: "handler.InstanceEventHandler"}
 )
@@ -29,7 +30,6 @@ type InstanceRepository interface {
 	Create(instance *model.Instance) error
 	AddDimensions(instance *model.Instance) error
 	Exists(instance *model.Instance) (bool, error)
-	Delete(instance *model.Instance) error
 	Close()
 }
 
@@ -96,7 +96,12 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 	defer instanceRepo.Close()
 
 	err = hdlr.createInstanceNode(instance, instanceRepo)
+
 	if err != nil {
+		if err == errInstanceExists {
+			logger.Info("an instance with this id already exists, ignoring this event", logData)
+			return nil // ignoring
+		}
 		return err
 	}
 
@@ -176,11 +181,7 @@ func (hdlr *InstanceEventHandler) createInstanceNode(instance *model.Instance, i
 	}
 
 	if exists {
-		logData := log.Data{"instance_id": instance.InstanceID}
-		logger.Info("an instance with this ID already exists, removing before continuing", logData)
-		if err := instanceRepo.Delete(instance); err != nil {
-			return errors.Wrap(err, "instanceRepo.Delete returned an error")
-		}
+		return errInstanceExists
 	}
 
 	if err = instanceRepo.Create(instance); err != nil {
