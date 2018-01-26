@@ -43,7 +43,7 @@ func main() {
 	log.Debug("application configuration", log.Data{"config": cfg})
 
 	// Incoming kafka topic for instances to process
-	instanceConsumer := newConsumer(cfg.KafkaAddr, cfg.IncomingInstancesTopic, log.Namespace)
+	instanceConsumer := newConsumer(cfg.KafkaAddr, cfg.IncomingInstancesTopic, cfg.IncomingInstancesConsumerGroup)
 
 	// Outgoing topic for instances that have completed processing
 	instanceCompleteProducer := newProducer(cfg.KafkaAddr, cfg.OutgoingInstancesTopic)
@@ -144,7 +144,7 @@ func main() {
 }
 
 func newConsumer(kafkaAddr []string, topic string, namespace string) *kafka.ConsumerGroup {
-	consumer, err := kafka.NewSyncConsumer(kafkaAddr, topic, namespace, kafka.OffsetOldest)
+	consumer, err := kafka.NewSyncConsumer(kafkaAddr, topic, namespace, kafka.OffsetNewest)
 	if err != nil {
 		log.ErrorC("kafka.NewSyncConsumer returned an error", err, log.Data{
 			"brokers":        kafkaAddr,
