@@ -19,6 +19,15 @@ TODO
 | DIMENSIONS_INSERTED_TOPIC           | "dimensions-inserted"                  | The topic to write output messages when dimensions are inserted
 | EVENT_REPORTER_TOPIC                | "report-events"                        | The topic to write output messages when any errors occur during processing an instance
 | GRACEFUL_SHUTDOWN_TIMEOUT           | "5s"                                   | The graceful shutdown timeout in seconds
+| HEALTHCHECK_INTERVAL                | "60s"                                  | How often to run a health check
+
+### Healthcheck
+
+ The `/healthcheck` endpoint returns the current status of the service. Dependent services are health checked on an interval defined by the `HEALTHCHECK_INTERVAL` environment variable.
+
+ On a development machine a request to the health check endpoint can be made by:
+
+ `curl localhost:22500/healthcheck`
 
 ### Contributing
 
