@@ -33,10 +33,10 @@
 			"revisionTime": "2017-11-27T12:13:36Z"
 		},
 		{
-			"checksumSHA1": "J9OiPnhPHFPhQ+R+dq6LFj+dTxE=",
-			"path": "github.com/ONSdigital/go-ns/handlers/requestID",
-			"revision": "84ec91434eab3ba06a753895619f60ee0ccf6552",
-			"revisionTime": "2017-11-27T12:13:36Z"
+			"checksumSHA1": "jGCHzB5RgxWA+eb7MciHoYZGwg4=",
+			"path": "github.com/ONSdigital/go-ns/healthcheck",
+			"revision": "383d378220bdeaf66d6e6b1ee04c386fffbe283f",
+			"revisionTime": "2018-01-29T10:36:49Z"
 		},
 		{
 			"checksumSHA1": "qqaN4hllMTNueffB5bcz8xQnwX0=",
@@ -51,15 +51,15 @@
 			"revisionTime": "2017-11-27T12:13:36Z"
 		},
 		{
-			"checksumSHA1": "GQdzMpAMb42KQQ/GsJFSRU5dj1Y=",
-			"path": "github.com/ONSdigital/go-ns/server",
-			"revision": "84ec91434eab3ba06a753895619f60ee0ccf6552",
-			"revisionTime": "2017-11-27T12:13:36Z"
+			"checksumSHA1": "rFpFke/Hl7rcH3ND5b4M0idiL0c=",
+			"path": "github.com/ONSdigital/go-ns/neo4j",
+			"revision": "383d378220bdeaf66d6e6b1ee04c386fffbe283f",
+			"revisionTime": "2018-01-29T10:36:49Z"
 		},
 		{
-			"checksumSHA1": "WjSWGeNopWuQ0sPZUtw2NmnlHLo=",
+			"checksumSHA1": "8a5dX7Vl5C7iN6BfTcydX+yAbJ8=",
 			"path": "github.com/ONSdigital/golang-neo4j-bolt-driver",
-			"revision": "16dcd650308e45b9bd31802951900c8093f0191c",
+			"revision": "a537e9707f7251071beea84e9746c12163d78990",
 			"revisionTime": "2017-12-08T11:48:37Z"
 		},
 		{
@@ -161,29 +161,10 @@
 			"revisionTime": "2017-11-02T03:40:23Z"
 		},
 		{
-			"checksumSHA1": "g/V4qrXjUGG9B+e3hB+4NAYJ5Gs=",
-			"path": "github.com/gorilla/context",
-			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
-			"revisionTime": "2016-08-17T18:46:32Z"
-		},
-		{
-			"checksumSHA1": "F0N5V10ap7J7/rAVRGa7QdmKqlU=",
-			"path": "github.com/gorilla/mux",
-			"revision": "7904d2e42e7ebbdb4a6eb3e57eb201b11df25c57",
-			"revisionTime": "2017-12-04T16:11:14Z"
-		},
-		{
 			"checksumSHA1": "Js/yx9fZ3+wH1wZpHNIxSTMIaCg=",
 			"path": "github.com/jtolds/gls",
 			"revision": "77f18212c9c7edc9bd6a33d383a7b545ce62f064",
 			"revisionTime": "2017-05-03T22:40:06Z"
-		},
-		{
-			"checksumSHA1": "OBvAHqWjdI4NQVAqTkcQAdTuCFY=",
-			"origin": "github.com/ONSdigital/go-ns/vendor/github.com/justinas/alice",
-			"path": "github.com/justinas/alice",
-			"revision": "84ec91434eab3ba06a753895619f60ee0ccf6552",
-			"revisionTime": "2017-11-27T12:13:36Z"
 		},
 		{
 			"checksumSHA1": "Jrjxy16tD9mUgr/jbhXwbHVeSa0=",
