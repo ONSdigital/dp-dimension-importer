@@ -87,9 +87,9 @@
 			"revisionTime": "2018-01-29T10:36:49Z"
 		},
 		{
-			"checksumSHA1": "8a5dX7Vl5C7iN6BfTcydX+yAbJ8=",
+			"checksumSHA1": "WjSWGeNopWuQ0sPZUtw2NmnlHLo=",
 			"path": "github.com/ONSdigital/golang-neo4j-bolt-driver",
-			"revision": "a537e9707f7251071beea84e9746c12163d78990",
+			"revision": "16dcd650308e45b9bd31802951900c8093f0191c",
 			"revisionTime": "2017-12-08T11:48:37Z"
 		},
 		{
@@ -195,6 +195,36 @@
 			"path": "github.com/gorilla/mux",
 			"revision": "7904d2e42e7ebbdb4a6eb3e57eb201b11df25c57",
 			"revisionTime": "2017-12-04T16:11:14Z"
+		},
+		{
+			"checksumSHA1": "ZD+c/CrHF12yYhu5wHszbIq3Aww=",
+			"path": "github.com/johnnadratowski/golang-neo4j-bolt-driver/encoding",
+			"revision": "36fcd3ac5714ace77ef09fdabd79260b474d831f",
+			"revisionTime": "2017-12-07T14:08:56Z"
+		},
+		{
+			"checksumSHA1": "9lgMFoaIFZe75vv7ln+IbPKHasE=",
+			"path": "github.com/johnnadratowski/golang-neo4j-bolt-driver/errors",
+			"revision": "36fcd3ac5714ace77ef09fdabd79260b474d831f",
+			"revisionTime": "2017-12-07T14:08:56Z"
+		},
+		{
+			"checksumSHA1": "MeB74aEJl/Vif3wfI/yyskLXgQ8=",
+			"path": "github.com/johnnadratowski/golang-neo4j-bolt-driver/log",
+			"revision": "36fcd3ac5714ace77ef09fdabd79260b474d831f",
+			"revisionTime": "2017-12-07T14:08:56Z"
+		},
+		{
+			"checksumSHA1": "vLBWZ/5wRQ4PIyIOW3dbXlKbd3s=",
+			"path": "github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/graph",
+			"revision": "36fcd3ac5714ace77ef09fdabd79260b474d831f",
+			"revisionTime": "2017-12-07T14:08:56Z"
+		},
+		{
+			"checksumSHA1": "WSdNJOxRdPV0gCzq7mX6cqIf3/c=",
+			"path": "github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/messages",
+			"revision": "36fcd3ac5714ace77ef09fdabd79260b474d831f",
+			"revisionTime": "2017-12-07T14:08:56Z"
 		},
 		{
 			"checksumSHA1": "Js/yx9fZ3+wH1wZpHNIxSTMIaCg=",
