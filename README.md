@@ -8,7 +8,7 @@ TODO
 
 | Environment variable                | Default                                | Description
 | ----------------------------------- | -------------------------------------- | -----------
-| BIND_ADDR                           | ":21000"                               | The host and port to bind to
+| BIND_ADDR                           | ":23000"                               | The host and port to bind to
 | KAFKA_ADDR                          | "localhost:9092"                       | The list of kafka hosts
 | DATASET_API_ADDR                    | "http://localhost:21800"               | The address of the dataset API
 | DATASET_API_AUTH_TOKEN              | "FD0108EA-825D-411C-9B1D-41EF7727F465" | The authentication token for the dataset API
@@ -27,7 +27,7 @@ TODO
 
  On a development machine a request to the health check endpoint can be made by:
 
- `curl localhost:22500/healthcheck`
+ `curl localhost:23000/healthcheck`
 
 ### Contributing
 
