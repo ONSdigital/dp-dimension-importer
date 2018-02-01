@@ -22,6 +22,7 @@ type Config struct {
 	DatabaseURL                    string        `envconfig:"DB_URL"`
 	PoolSize                       int           `envconfig:"DB_POOL_SIZE"`
 	GracefulShutdownTimeout        time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
+	HealthCheckInterval            time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 }
 
 func (c *Config) String() string {
@@ -51,6 +52,7 @@ func Load() (*Config, error) {
 		OutgoingInstancesTopic:         "dimensions-inserted",
 		EventReporterTopic:             "report-events",
 		GracefulShutdownTimeout:        time.Second * 5,
+		HealthCheckInterval:            time.Minute,
 	}
 
 	err := envconfig.Process("", &cfg)
