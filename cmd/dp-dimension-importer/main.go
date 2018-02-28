@@ -13,13 +13,15 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/client"
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/handler"
-	"github.com/ONSdigital/dp-dimension-importer/healthcheck"
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	"github.com/ONSdigital/dp-dimension-importer/repository"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
+	datasetHealthCheck "github.com/ONSdigital/go-ns/clients/dataset"
+	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/go-ns/neo4j"
 )
 
 type responseBodyReader struct{}
@@ -105,9 +107,10 @@ func main() {
 	}
 
 	healthCheckErrors := make(chan error)
-
+	neo4jClient := neo4j.NewHealthCheckClient(connectionPool)
+	datasetclient := datasetHealthCheck.New(cfg.DatasetAPIAddr)
 	// HTTP Health check endpoint.
-	healthcheck.NewHandler(cfg.BindAddr, healthCheckErrors)
+	healthcheckServer := healthcheck.NewServer(cfg.BindAddr, cfg.HealthCheckInterval, healthCheckErrors, neo4jClient, datasetclient)
 
 	messageReciever := message.KafkaMessageReciever{
 		InstanceHandler: instanceEventHandler,
@@ -137,7 +140,7 @@ func main() {
 	instanceConsumer.Close(ctx)
 	instanceCompleteProducer.Close(ctx)
 	errorReporterProducer.Close(ctx)
-	healthcheck.Close(ctx)
+	healthcheckServer.Close(ctx)
 
 	log.Info("gracecful shutdown comeplete", nil)
 	os.Exit(1)

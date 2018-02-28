@@ -23,11 +23,11 @@ const (
 	// Count the instances with this ID.
 	countInstanceStmt = "MATCH (i: `%s`) RETURN COUNT(*)"
 
-	// Delete an intsance node & all of the dimensions relating to it.
-	removeInstanceDimensionsAndRelationships = "MATCH (n)<-[:HAS_DIMENSION]-(i:`%s`) DETACH DELETE n, i"
-
 	// Update the Instance node with the list of dimension types it contains.
 	addInstanceDimensionsStmt = "MATCH (i:`%s`) SET i.dimensions = {dimensions_list}"
+
+	// The type format of a single instance node
+	instanceLabelFmt = "_%s_Instance"
 )
 
 // NewInstanceRepository creates a new InstanceRepository. A bolt.Conn will be obtained from the supplied connectionPool.
@@ -129,27 +129,4 @@ func (repo *InstanceRepository) Exists(i *model.Instance) (bool, error) {
 	}
 
 	return instanceCount >= 1, nil
-}
-
-// Delete - delete an instance and all dimensions and relationships it has.
-func (repo *InstanceRepository) Delete(i *model.Instance) error {
-	logData := log.Data{"instance_id": i.InstanceID}
-	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
-
-	stmt := fmt.Sprintf(removeInstanceDimensionsAndRelationships, instanceLabel)
-	logData["statement"] = stmt
-	loggerI.Info("executing delete instance statement", logData)
-
-	results, err := repo.neo4j.ExecStmt(repo.conn, stmt, nil)
-
-	if err != nil {
-		return errors.Wrap(err, "neo4j.ExecStmt returned an error")
-	}
-
-	stats := results.Metadata()["stats"]
-	if stats != nil {
-		logData["stats"] = stats.(map[string]interface{})
-	}
-	loggerI.Info("instance deleted successfully", logData)
-	return nil
 }

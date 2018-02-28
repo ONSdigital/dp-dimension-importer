@@ -427,50 +427,28 @@ func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
 
-			Convey("And InstanceRepository.Delete is called 1 time with the expected parameters", func() {
-				calls := instanceRepositoryMock.DeleteCalls()
-				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance)
+			Convey("And InstanceRepository.Create is not called", func() {
+				So(len(instanceRepositoryMock.CreateCalls()), ShouldEqual, 0)
 			})
 
-			Convey("And InstanceRepository.Create is called 1 time with expected parameters", func() {
-				calls := instanceRepositoryMock.CreateCalls()
-				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance)
+			Convey("And dimensionInserter.Insert is not called", func() {
+				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
 			})
 
-			Convey("And imensionInserter.Insert is called 1 time with the expected parameters", func() {
-				calls := dimensionRepository.InsertCalls()
-				So(len(calls), ShouldEqual, 2)
-				So(calls[0].Instance, ShouldResemble, instance)
-				So(calls[0].Dimension, ShouldResemble, d1)
-				So(calls[1].Instance, ShouldResemble, instance)
-				So(calls[1].Dimension, ShouldResemble, d2)
+			Convey("And DatasetAPICli.PutDimensionNodeID not called", func() {
+				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
 			})
 
-			Convey("And DatasetAPICli.PutDimensionNodeID is called 2 times with the expected parameters", func() {
-				calls := datasetAPIMock.PutDimensionNodeIDCalls()
-				So(len(calls), ShouldEqual, 2)
-				So(calls[0].InstanceID, ShouldEqual, instance.InstanceID)
-				So(calls[0].Dimension, ShouldEqual, d1)
-				So(calls[1].InstanceID, ShouldEqual, instance.InstanceID)
-				So(calls[1].Dimension, ShouldEqual, d2)
+			Convey("and InstanceRepository.AddDimensions is not called", func() {
+				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 
-			Convey("and InstanceRepository.AddDimensions is called 1 time with the expected parameters", func() {
-				calls := instanceRepositoryMock.AddDimensionsCalls()
-				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance)
+			Convey("And observationRepository is not called", func() {
+				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 0)
 			})
 
-			Convey("And observationRepository is called once to create a constraint", func() {
-				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 1)
-			})
-
-			Convey("And Producer.Completed is called 1 time with the expected parameters", func() {
-				calls := completedProducer.CompletedCalls()
-				So(len(calls), ShouldEqual, 1)
-				So(calls[0].E, ShouldResemble, instanceCompleted)
+			Convey("And Producer.Completed is not called", func() {
+				So(len(completedProducer.CompletedCalls()), ShouldEqual, 0)
 			})
 		})
 	})
@@ -505,7 +483,6 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 				So(len(instanceRepoMock.ExistsCalls()), ShouldEqual, 1)
 				So(instanceRepoMock.ExistsCalls()[0].Instance, ShouldEqual, instance)
 
-				So(len(instanceRepoMock.DeleteCalls()), ShouldEqual, 0)
 				So(len(instanceRepoMock.CreateCalls()), ShouldEqual, 0)
 				So(len(instanceRepoMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
@@ -523,59 +500,6 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 			})
 		})
 
-	})
-}
-
-func TestInstanceEventHandler_Handle_DeleteInstanceErr(t *testing.T) {
-	Convey("Given handler has been configured correctly", t, func() {
-		instanceRepoMock, dimensionRepoMock, observationRepositoryMock, datasetAPIMock, completedProducer, handler := setUp()
-		instanceRepoMock.ExistsFunc = func(instance *model.Instance) (bool, error) {
-			return true, nil
-		}
-		instanceRepoMock.DeleteFunc = func(instance *model.Instance) error {
-			return errorMock
-		}
-
-		Convey("When instanceRepository.Delete returns an error", func() {
-			err := handler.Handle(newInstance)
-
-			Convey("Then handler returns the expected error", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "instanceRepo.Delete returned an error").Error())
-			})
-
-			Convey("And datasetAPICli make the expected calls with the expected parameters", func() {
-				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
-				So(datasetAPIMock.GetDimensionsCalls()[0].InstanceID, ShouldEqual, testInstanceID)
-
-				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
-				So(datasetAPIMock.GetInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
-
-				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
-			})
-
-			Convey("And instanceRepository makes the expected called with the expected parameters", func() {
-				So(len(instanceRepoMock.ExistsCalls()), ShouldEqual, 1)
-				So(instanceRepoMock.ExistsCalls()[0].Instance, ShouldEqual, instance)
-
-				So(len(instanceRepoMock.DeleteCalls()), ShouldEqual, 1)
-				So(instanceRepoMock.DeleteCalls()[0].Instance, ShouldEqual, instance)
-
-				So(len(instanceRepoMock.CreateCalls()), ShouldEqual, 0)
-				So(len(instanceRepoMock.AddDimensionsCalls()), ShouldEqual, 0)
-			})
-
-			Convey("And dimensionRepository is never called", func() {
-				So(len(dimensionRepoMock.InsertCalls()), ShouldEqual, 0)
-			})
-
-			Convey("And observationRepository is never called", func() {
-				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 0)
-			})
-
-			Convey("And producer is never called", func() {
-				So(len(completedProducer.CompletedCalls()), ShouldEqual, 0)
-			})
-		})
 	})
 }
 
@@ -584,9 +508,6 @@ func setUp() (*mocks.InstanceRepositoryMock, *mocks.DimensionRepositoryMock, *mo
 	instanceRepositoryMock := &mocks.InstanceRepositoryMock{
 		ExistsFunc: func(instance *model.Instance) (bool, error) {
 			return false, nil
-		},
-		DeleteFunc: func(instance *model.Instance) error {
-			return nil
 		},
 		AddDimensionsFunc: func(instance *model.Instance) error {
 			return nil
