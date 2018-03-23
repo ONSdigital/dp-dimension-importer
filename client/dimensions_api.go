@@ -22,6 +22,7 @@ const (
 	getDimensionsURIFMT   = "%s/instances/%s/dimensions"
 	putDimensionNodeIDURI = "%s/instances/%s/dimensions/%s/options/%s/node_id/%s"
 	authTokenHeader       = "Internal-Token"
+	authorizationHeader   = "Authorization"
 )
 
 var (
@@ -42,6 +43,7 @@ type HTTPClient interface {
 
 // DatasetAPI provides methods for getting dimensions for a given instanceID and updating the node_id of a specific dimension.
 type DatasetAPI struct {
+	AuthToken           string
 	DatasetAPIHost      string
 	DatasetAPIAuthToken string
 	ResponseBodyReader  ResponseBodyReader
@@ -142,7 +144,9 @@ func (api DatasetAPI) doRequest(method string, url string, expectedStatus int) (
 		return nil, errors.Wrap(err, fmt.Sprintf("unexpected error while attempting to create new http request: method: %s, url: %s", method, url))
 	}
 
+	// TODO Remove authTokenHeader header, now uses "Authorization" header
 	req.Header.Set(authTokenHeader, api.DatasetAPIAuthToken)
+	req.Header.Set(authorizationHeader, api.AuthToken)
 
 	logger.Info("HTTPClient.Do sending HTTP Request", log.Data{"method": req.Method, "url": url})
 	resp, err := api.HTTPClient.Do(req)
