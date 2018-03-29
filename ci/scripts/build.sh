@@ -6,4 +6,5 @@ export GOPATH=$cwd/go
 
 pushd $GOPATH/src/github.com/ONSdigital/dp-dimension-importer
   make build && mv build/$(go env GOOS)-$(go env GOARCH)/* $cwd/build
+  cp Dockerfile.concourse $cwd/build
 popd
