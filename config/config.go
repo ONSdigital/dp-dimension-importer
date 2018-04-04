@@ -58,9 +58,13 @@ func Get() (*Config, error) {
 		return nil, err
 	}
 
+	if err := envconfig.Process("", cfg); err != nil {
+		return cfg, err
+	}
+
 	cfg.ServiceAuthToken = "Bearer " + cfg.ServiceAuthToken
 
-	return cfg, envconfig.Process("", cfg)
+	return cfg, nil
 }
 
 // String is implemented to prevent sensitive fields being logged.
