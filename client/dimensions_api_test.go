@@ -653,9 +653,9 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 		httpCliMock := &mocks.HTTPClientMock{}
 
 		datasetAPI := DatasetAPI{
-			DatasetAPIHost:      host,
-			HTTPClient:          httpCliMock,
-			DatasetAPIAuthToken: authToken,
+			AuthToken:      authToken,
+			DatasetAPIHost: host,
+			HTTPClient:     httpCliMock,
 		}
 		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
 			return nil, errMock
@@ -677,7 +677,7 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 
 			Convey("And the auth token is set as a request header", func() {
 				req := httpCliMock.DoCalls()[0].Req
-				actual := req.Header[authTokenHeader]
+				actual := req.Header[authorizationHeader]
 				So(actual[0], ShouldEqual, authToken)
 			})
 		})
@@ -687,9 +687,9 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 		httpCliMock := &mocks.HTTPClientMock{}
 
 		datasetAPI := DatasetAPI{
-			DatasetAPIHost:      host,
-			HTTPClient:          httpCliMock,
-			DatasetAPIAuthToken: authToken,
+			AuthToken:      authToken,
+			DatasetAPIHost: host,
+			HTTPClient:     httpCliMock,
 		}
 		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
 			return Response([]byte{}, 401, nil)
@@ -715,9 +715,9 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 		httpCliMock := &mocks.HTTPClientMock{}
 
 		datasetAPI := DatasetAPI{
-			DatasetAPIHost:      host,
-			HTTPClient:          httpCliMock,
-			DatasetAPIAuthToken: authToken,
+			AuthToken:      authToken,
+			DatasetAPIHost: host,
+			HTTPClient:     httpCliMock,
 		}
 		httpCliMock.DoFunc = func(req *http.Request) (*http.Response, error) {
 			return Response([]byte{}, 200, nil)

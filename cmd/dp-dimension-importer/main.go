@@ -36,7 +36,7 @@ func main() {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	cfg, err := config.Load()
+	cfg, err := config.Get()
 	if err != nil {
 		log.ErrorC("config.Load returned an error", err, nil)
 		os.Exit(1)
@@ -84,6 +84,7 @@ func main() {
 
 	// ImportAPI HTTP client.
 	datasetAPICli := client.DatasetAPI{
+		AuthToken:           cfg.ServiceAuthToken,
 		DatasetAPIHost:      cfg.DatasetAPIAddr,
 		DatasetAPIAuthToken: cfg.DatasetAPIAuthToken,
 		HTTPClient:          &http.Client{},
@@ -133,7 +134,7 @@ func main() {
 		log.Info("os signal receieved, attempting graceful shutdown", log.Data{"signal": signal.String()})
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
 
 	instanceConsumer.StopListeningToConsumer(ctx)
 	consumer.Close(ctx)
@@ -142,6 +143,7 @@ func main() {
 	errorReporterProducer.Close(ctx)
 	healthcheckServer.Close(ctx)
 
+	cancel() // stop timer
 	log.Info("gracecful shutdown comeplete", nil)
 	os.Exit(1)
 }
