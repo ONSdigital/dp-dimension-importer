@@ -270,6 +270,246 @@ func TestInstanceRepository_Create(t *testing.T) {
 	})
 }
 
+func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
+
+	code := "123"
+	instance := &model.Instance{
+		InstanceID: instanceID,
+	}
+
+	Convey("Given no instanceID is provided", t, func() {
+		instance := &model.Instance{}
+
+		neo4jMock := &mocks.Neo4jClientMock{}
+		connMock := &mocks.NeoConnMock{}
+
+		repo := InstanceRepository{
+			neo4j: neo4jMock,
+			conn:  connMock,
+		}
+
+		Convey("When CreateCodeRelationship is invoked", func() {
+			err := repo.CreateCodeRelationship(instance, code)
+
+			Convey("Then the expected error is returned", func() {
+				So(err.Error(), ShouldEqual, errors.New("instance id is required but was empty").Error())
+			})
+
+			Convey("And Neo4j.ExecStmt is never called", func() {
+				calls := neo4jMock.ExecStmtCalls()
+				So(len(calls), ShouldEqual, 0)
+			})
+		})
+	})
+
+	Convey("Given a nil instance is provided", t, func() {
+		neo4jMock := &mocks.Neo4jClientMock{}
+		connMock := &mocks.NeoConnMock{}
+
+		repo := InstanceRepository{
+			neo4j: neo4jMock,
+			conn:  connMock,
+		}
+
+		Convey("When CreateCodeRelationship is invoked", func() {
+			err := repo.CreateCodeRelationship(nil, code)
+
+			Convey("Then the expected error is returned", func() {
+				So(err.Error(), ShouldEqual, errors.New("instance is required but was nil").Error())
+			})
+
+			Convey("And Neo4j.ExecStmt is never called", func() {
+				calls := neo4jMock.ExecStmtCalls()
+				So(len(calls), ShouldEqual, 0)
+			})
+		})
+	})
+
+	Convey("Given an empty code", t, func() {
+
+		code := ""
+
+		neo4jMock := &mocks.Neo4jClientMock{}
+		connMock := &mocks.NeoConnMock{}
+
+		repo := InstanceRepository{
+			neo4j: neo4jMock,
+			conn:  connMock,
+		}
+
+		Convey("When CreateCodeRelationship is invoked", func() {
+			err := repo.CreateCodeRelationship(instance, code)
+
+			Convey("Then the expected error is returned", func() {
+				So(err.Error(), ShouldEqual, errors.New("code is required but was empty").Error())
+			})
+
+			Convey("And Neo4j.ExecStmt is never called", func() {
+				calls := neo4jMock.ExecStmtCalls()
+				So(len(calls), ShouldEqual, 0)
+			})
+		})
+	})
+
+	Convey("Given a Neo4j.ExecStmt returns an error", t, func() {
+
+		neo4jMock := &mocks.Neo4jClientMock{
+			ExecStmtFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error) {
+				return nil, errorMock
+			},
+		}
+
+		connMock := &mocks.NeoConnMock{}
+
+		repo := InstanceRepository{
+			neo4j: neo4jMock,
+			conn:  connMock,
+		}
+
+		Convey("When CreateCodeRelationship is invoked", func() {
+			err := repo.CreateCodeRelationship(instance, code)
+
+			Convey("Then the expected error is returned", func() {
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "neo4j.ExecStmt returned an error").Error())
+			})
+
+			Convey("And Neo4j.ExecStmt is called 1 time with the expected parameters", func() {
+				calls := neo4jMock.ExecStmtCalls()
+				So(len(calls), ShouldEqual, 1)
+
+				expectedQuery := fmt.Sprintf(createInstanceToCodeRelStmt, "_"+instanceID+"_Instance")
+				So(calls[0].Query, ShouldEqual, expectedQuery)
+				So(calls[0].Params, ShouldResemble, map[string]interface{}{
+					"code": code,
+				})
+			})
+		})
+	})
+
+	Convey("Given that result.RowsAffected returns an error", t, func() {
+
+		resultMock := &mocks.NeoResultMock{
+			RowsAffectedFunc: func() (int64, error) {
+				return -1, errorMock
+			},
+		}
+
+		neo4jMock := &mocks.Neo4jClientMock{
+			ExecStmtFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error) {
+				return resultMock, nil
+			},
+		}
+
+		connMock := &mocks.NeoConnMock{}
+
+		repo := InstanceRepository{
+			neo4j: neo4jMock,
+			conn:  connMock,
+		}
+
+		Convey("When CreateCodeRelationship is invoked", func() {
+			err := repo.CreateCodeRelationship(instance, code)
+
+			Convey("Then the expected error is returned", func() {
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "result.RowsAffected() returned an error").Error())
+			})
+
+			Convey("And Neo4j.ExecStmt is called 1 time with the expected parameters", func() {
+				calls := neo4jMock.ExecStmtCalls()
+				So(len(calls), ShouldEqual, 1)
+
+				expectedQuery := fmt.Sprintf(createInstanceToCodeRelStmt, "_"+instanceID+"_Instance")
+				So(calls[0].Query, ShouldEqual, expectedQuery)
+				So(calls[0].Params, ShouldResemble, map[string]interface{}{
+					"code": code,
+				})
+			})
+		})
+	})
+
+	Convey("Given that result.RowsAffected is not 1", t, func() {
+
+		resultMock := &mocks.NeoResultMock{
+			RowsAffectedFunc: func() (int64, error) {
+				return 0, nil
+			},
+		}
+
+		neo4jMock := &mocks.Neo4jClientMock{
+			ExecStmtFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error) {
+				return resultMock, nil
+			},
+		}
+
+		connMock := &mocks.NeoConnMock{}
+
+		repo := InstanceRepository{
+			neo4j: neo4jMock,
+			conn:  connMock,
+		}
+
+		Convey("When CreateCodeRelationship is invoked", func() {
+			err := repo.CreateCodeRelationship(instance, code)
+
+			Convey("Then the expected error is returned", func() {
+				So(err.Error(), ShouldEqual, "failed to find the code node to link to the instance node")
+			})
+
+			Convey("And Neo4j.ExecStmt is called 1 time with the expected parameters", func() {
+				calls := neo4jMock.ExecStmtCalls()
+				So(len(calls), ShouldEqual, 1)
+
+				expectedQuery := fmt.Sprintf(createInstanceToCodeRelStmt, "_"+instanceID+"_Instance")
+				So(calls[0].Query, ShouldEqual, expectedQuery)
+				So(calls[0].Params, ShouldResemble, map[string]interface{}{
+					"code": code,
+				})
+			})
+		})
+	})
+
+	Convey("Given a Neo4j.ExecStmt returns no error", t, func() {
+
+		resultMock := &mocks.NeoResultMock{
+			RowsAffectedFunc: func() (int64, error) {
+				return 1, nil
+			},
+		}
+
+		neo4jMock := &mocks.Neo4jClientMock{
+			ExecStmtFunc: func(conn bolt.Conn, query string, params map[string]interface{}) (bolt.Result, error) {
+				return resultMock, nil
+			},
+		}
+
+		connMock := &mocks.NeoConnMock{}
+
+		repo := InstanceRepository{
+			neo4j: neo4jMock,
+			conn:  connMock,
+		}
+
+		Convey("When CreateCodeRelationship is invoked", func() {
+			err := repo.CreateCodeRelationship(instance, code)
+
+			Convey("Then no error is returned", func() {
+				So(err, ShouldResemble, nil)
+			})
+
+			Convey("And Neo4j.ExecStmt is called 1 time with the expected parameters", func() {
+				calls := neo4jMock.ExecStmtCalls()
+				So(len(calls), ShouldEqual, 1)
+
+				expectedQuery := fmt.Sprintf(createInstanceToCodeRelStmt, "_"+instanceID+"_Instance")
+				So(calls[0].Query, ShouldEqual, expectedQuery)
+				So(calls[0].Params, ShouldResemble, map[string]interface{}{
+					"code": code,
+				})
+			})
+		})
+	})
+}
+
 func TestInstanceRepository_Exists(t *testing.T) {
 	Convey("Given the repository has been configured correctly", t, func() {
 		var count int64 = 1
