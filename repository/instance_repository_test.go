@@ -452,7 +452,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 			err := repo.CreateCodeRelationship(instance, code)
 
 			Convey("Then the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, "failed to find the code node to link to the instance node")
+				So(err.Error(), ShouldEqual, "unexpected number of rows affected. expected 1 but was 0")
 			})
 
 			Convey("And Neo4j.ExecStmt is called 1 time with the expected parameters", func() {

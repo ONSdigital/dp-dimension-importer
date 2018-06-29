@@ -12,6 +12,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
+	"strconv"
 )
 
 var loggerI = logging.Logger{"repository.InstanceRepository"}
@@ -29,7 +30,7 @@ const (
 	// The type format of a single instance node
 	instanceLabelFmt = "_%s_Instance"
 
-	createInstanceToCodeRelStmt = "MATCH (c:_code {code:{code}}), (i:`%s`) CREATE (c)-[:USED_BY]->(i)"
+	createInstanceToCodeRelStmt = "MATCH (c:_code {value:{code}}), (i:`%s`) CREATE (c)-[:USED_BY]->(i)"
 )
 
 // NewInstanceRepository creates a new InstanceRepository. A bolt.Conn will be obtained from the supplied connectionPool.
@@ -151,7 +152,7 @@ func (repo *InstanceRepository) CreateCodeRelationship(i *model.Instance, code s
 
 	logDebug["rows_affected"] = rowsAffected
 	if rowsAffected != 1 {
-		return errors.New("failed to find the code node to link to the instance node")
+		return errors.New("unexpected number of rows affected. expected 1 but was " + strconv.FormatInt(rowsAffected, 10))
 	}
 
 	loggerI.Info("create code relationship success", logDebug)
