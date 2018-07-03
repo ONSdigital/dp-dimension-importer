@@ -12,6 +12,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
+	"strconv"
 )
 
 var loggerI = logging.Logger{"repository.InstanceRepository"}
@@ -28,6 +29,8 @@ const (
 
 	// The type format of a single instance node
 	instanceLabelFmt = "_%s_Instance"
+
+	createInstanceToCodeRelStmt = "MATCH (c:_code {value:{code}}), (i:`%s`) CREATE (c)-[:USED_BY]->(i)"
 )
 
 // NewInstanceRepository creates a new InstanceRepository. A bolt.Conn will be obtained from the supplied connectionPool.
@@ -109,6 +112,50 @@ func (repo *InstanceRepository) AddDimensions(i *model.Instance) error {
 	}
 
 	loggerI.Info("add instance dimensions success", logDebug)
+	return nil
+}
+
+// CreateCodeRelationship links an instance to a code for the given dimension option
+func (repo *InstanceRepository) CreateCodeRelationship(i *model.Instance, code string) error {
+
+	if i == nil {
+		return errors.New("instance is required but was nil")
+	}
+	if len(i.InstanceID) == 0 {
+		return errors.New("instance id is required but was empty")
+	}
+	if len(code) == 0 {
+		return errors.New("code is required but was empty")
+	}
+
+	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
+	stmt := fmt.Sprintf(createInstanceToCodeRelStmt, instanceLabel)
+	params := map[string]interface{}{"code": code}
+
+	logDebug := map[string]interface{}{
+		"statement":   stmt,
+		"params":      params,
+		"instance_id": i.InstanceID,
+		"code":        code,
+	}
+	loggerI.Info("executing create code relationship statement", logDebug)
+
+	result, err := repo.neo4j.ExecStmt(repo.conn, stmt, params)
+	if err != nil {
+		return errors.Wrap(err, "neo4j.ExecStmt returned an error")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "result.RowsAffected() returned an error")
+	}
+
+	logDebug["rows_affected"] = rowsAffected
+	if rowsAffected != 1 {
+		return errors.New("unexpected number of rows affected. expected 1 but was " + strconv.FormatInt(rowsAffected, 10))
+	}
+
+	loggerI.Info("create code relationship success", logDebug)
 	return nil
 }
 
