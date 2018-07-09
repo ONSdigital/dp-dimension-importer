@@ -181,6 +181,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 		})
 
+
 		Convey("When DimensionRepository.Insert returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
@@ -513,6 +514,9 @@ func setUp() (*mocks.InstanceRepositoryMock, *mocks.DimensionRepositoryMock, *mo
 			return nil
 		},
 		CreateFunc: func(instance *model.Instance) error {
+			return nil
+		},
+		CreateCodeRelationshipFunc: func(i *model.Instance, code string) error {
 			return nil
 		},
 		CloseFunc: func() {

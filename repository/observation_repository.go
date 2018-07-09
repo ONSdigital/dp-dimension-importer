@@ -71,7 +71,7 @@ func (repo ObservationRepository) CreateConstraint(i *model.Instance) error {
 		"instance_id": i.InstanceID,
 		"statement":   createStmt,
 	}
-	repo.log.Info("executing create instance statement", logDebug)
+	repo.log.Info("executing create observation constraint statement", logDebug)
 
 	if _, err = repo.neo4j.ExecStmt(repo.conn, createStmt, nil); err != nil {
 		return errors.Wrap(err, "neo4j.ExecStmt returned an error when creating observation constraint")

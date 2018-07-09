@@ -29,6 +29,7 @@ type DatasetAPIClient interface {
 type InstanceRepository interface {
 	Create(instance *model.Instance) error
 	AddDimensions(instance *model.Instance) error
+	CreateCodeRelationship(i *model.Instance, code string) error
 	Exists(instance *model.Instance) (bool, error)
 	Close()
 }
