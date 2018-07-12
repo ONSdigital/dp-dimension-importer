@@ -65,8 +65,10 @@
 		{
 			"checksumSHA1": "qqaN4hllMTNueffB5bcz8xQnwX0=",
 			"path": "github.com/ONSdigital/go-ns/kafka",
-			"revision": "b7a9d79bc028131d34399e7ef420b73007786202",
-			"revisionTime": "2018-01-23T16:28:19Z"
+			"revision": "2e7eb0046de1cdbab73cfeacf2eeec2ec81b7f25",
+			"revisionTime": "2018-07-11T09:46:46Z",
+			"version": "feature/vendor-sarama-v1.17.0",
+			"versionExact": "feature/vendor-sarama-v1.17.0"
 		},
 		{
 			"checksumSHA1": "g9flYl+PBs6cYflFY3EpG6IcJGM=",
@@ -135,11 +137,10 @@
 			"revisionTime": "2017-12-08T11:48:37Z"
 		},
 		{
-			"checksumSHA1": "+Jp0tVXfQ1TM8T+oun82oJtME5U=",
-			"origin": "github.com/ONSdigital/go-ns/vendor/github.com/Shopify/sarama",
+			"checksumSHA1": "uyhebEZG6G5Rs/HciMR8ult+oPE=",
 			"path": "github.com/Shopify/sarama",
-			"revision": "84ec91434eab3ba06a753895619f60ee0ccf6552",
-			"revisionTime": "2017-11-27T12:13:36Z"
+			"revision": "f7df95cff1bc4d14a4194a5be4c88a86253afb98",
+			"revisionTime": "2018-07-04T12:31:12Z"
 		},
 		{
 			"checksumSHA1": "88PtOr8dvh0n877kqDsDVZ73MmY=",

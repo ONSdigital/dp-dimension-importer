@@ -12,6 +12,13 @@ job "dp-dimension-importer" {
   group "publishing" {
     count = "{{PUBLISHING_TASK_COUNT}}"
 
+    restart {
+      attempts = 3
+      delay    = "15s"
+      interval = "1m"
+      mode     = "delay"
+    }
+
     task "dp-dimension-importer" {
       driver = "exec"
 
