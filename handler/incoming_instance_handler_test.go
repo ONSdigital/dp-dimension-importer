@@ -195,7 +195,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When InstanceRepository.CreateCodeRelationship returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			instanceRepositoryMock.CreateCodeRelationshipFunc = func(i *model.Instance, code string) error {
+			instanceRepositoryMock.CreateCodeRelationshipFunc = func(i *model.Instance, codeListID, code string) error {
 				return errorMock
 			}
 
@@ -574,7 +574,7 @@ func setUp() (*mocks.InstanceRepositoryMock, *mocks.DimensionRepositoryMock, *mo
 		CreateFunc: func(instance *model.Instance) error {
 			return nil
 		},
-		CreateCodeRelationshipFunc: func(i *model.Instance, code string) error {
+		CreateCodeRelationshipFunc: func(i *model.Instance, codeListID, code string) error {
 			return nil
 		},
 		CloseFunc: func() {

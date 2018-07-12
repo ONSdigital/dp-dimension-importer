@@ -188,7 +188,7 @@ var (
 //             CreateFunc: func(instance *model.Instance) error {
 // 	               panic("TODO: mock out the Create method")
 //             },
-//             CreateCodeRelationshipFunc: func(i *model.Instance, code string) error {
+//             CreateCodeRelationshipFunc: func(i *model.Instance, codeListId string, code string) error {
 // 	               panic("TODO: mock out the CreateCodeRelationship method")
 //             },
 //             ExistsFunc: func(instance *model.Instance) (bool, error) {
@@ -211,7 +211,7 @@ type InstanceRepositoryMock struct {
 	CreateFunc func(instance *model.Instance) error
 
 	// CreateCodeRelationshipFunc mocks the CreateCodeRelationship method.
-	CreateCodeRelationshipFunc func(i *model.Instance, code string) error
+	CreateCodeRelationshipFunc func(i *model.Instance, codeListId string, code string) error
 
 	// ExistsFunc mocks the Exists method.
 	ExistsFunc func(instance *model.Instance) (bool, error)
@@ -235,6 +235,8 @@ type InstanceRepositoryMock struct {
 		CreateCodeRelationship []struct {
 			// I is the i argument value.
 			I *model.Instance
+			// CodeListId is the codeListId argument value.
+			CodeListId string
 			// Code is the code argument value.
 			Code string
 		}
@@ -335,33 +337,37 @@ func (mock *InstanceRepositoryMock) CreateCalls() []struct {
 }
 
 // CreateCodeRelationship calls CreateCodeRelationshipFunc.
-func (mock *InstanceRepositoryMock) CreateCodeRelationship(i *model.Instance, code string) error {
+func (mock *InstanceRepositoryMock) CreateCodeRelationship(i *model.Instance, codeListId string, code string) error {
 	if mock.CreateCodeRelationshipFunc == nil {
 		panic("InstanceRepositoryMock.CreateCodeRelationshipFunc: method is nil but InstanceRepository.CreateCodeRelationship was just called")
 	}
 	callInfo := struct {
-		I    *model.Instance
-		Code string
+		I          *model.Instance
+		CodeListId string
+		Code       string
 	}{
-		I:    i,
-		Code: code,
+		I:          i,
+		CodeListId: codeListId,
+		Code:       code,
 	}
 	lockInstanceRepositoryMockCreateCodeRelationship.Lock()
 	mock.calls.CreateCodeRelationship = append(mock.calls.CreateCodeRelationship, callInfo)
 	lockInstanceRepositoryMockCreateCodeRelationship.Unlock()
-	return mock.CreateCodeRelationshipFunc(i, code)
+	return mock.CreateCodeRelationshipFunc(i, codeListId, code)
 }
 
 // CreateCodeRelationshipCalls gets all the calls that were made to CreateCodeRelationship.
 // Check the length with:
 //     len(mockedInstanceRepository.CreateCodeRelationshipCalls())
 func (mock *InstanceRepositoryMock) CreateCodeRelationshipCalls() []struct {
-	I    *model.Instance
-	Code string
+	I          *model.Instance
+	CodeListId string
+	Code       string
 } {
 	var calls []struct {
-		I    *model.Instance
-		Code string
+		I          *model.Instance
+		CodeListId string
+		Code       string
 	}
 	lockInstanceRepositoryMockCreateCodeRelationship.RLock()
 	calls = mock.calls.CreateCodeRelationship

@@ -30,7 +30,10 @@ const (
 	// The type format of a single instance node
 	instanceLabelFmt = "_%s_Instance"
 
-	createInstanceToCodeRelStmt = "MATCH (c:_code {value:{code}}), (i:`%s`) CREATE (c)-[:USED_BY]->(i)"
+	// The type format of a single code list node
+	codeListLabelFmt = "_code_list_%s"
+
+	createInstanceToCodeRelStmt = "MATCH (i:`%s`), (c:_code {value:{code}})-[:usedBy]->(cl:`%s`) CREATE (c)-[:inDataset]->(i)"
 )
 
 // NewInstanceRepository creates a new InstanceRepository. A bolt.Conn will be obtained from the supplied connectionPool.
@@ -116,7 +119,7 @@ func (repo *InstanceRepository) AddDimensions(i *model.Instance) error {
 }
 
 // CreateCodeRelationship links an instance to a code for the given dimension option
-func (repo *InstanceRepository) CreateCodeRelationship(i *model.Instance, code string) error {
+func (repo *InstanceRepository) CreateCodeRelationship(i *model.Instance, codeListId, code string) error {
 
 	if i == nil {
 		return errors.New("instance is required but was nil")
@@ -129,7 +132,8 @@ func (repo *InstanceRepository) CreateCodeRelationship(i *model.Instance, code s
 	}
 
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
-	stmt := fmt.Sprintf(createInstanceToCodeRelStmt, instanceLabel)
+	codeListLabel := fmt.Sprintf(codeListLabelFmt, codeListId)
+	stmt := fmt.Sprintf(createInstanceToCodeRelStmt, instanceLabel, codeListLabel)
 	params := map[string]interface{}{"code": code}
 
 	logDebug := map[string]interface{}{
