@@ -166,8 +166,11 @@ func (hdlr *InstanceEventHandler) insertDimensions(instance *model.Instance, ins
 			return errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
 		}
 
-		if err = instanceRepo.CreateCodeRelationship(instance, dimension.DimensionID, dimension.Option); err != nil {
-			return errors.Wrap(err, "error attempting to create relationship to code")
+		// todo: remove this temp hack once the time codelist / input data has been fixed.
+		if dimension.DimensionID != "time" {
+			if err = instanceRepo.CreateCodeRelationship(instance, dimension.Links.CodeList.ID, dimension.Option); err != nil {
+				return errors.Wrap(err, "error attempting to create relationship to code")
+			}
 		}
 	}
 
