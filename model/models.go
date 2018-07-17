@@ -26,8 +26,8 @@ type Links struct {
 
 // Link represents a single link within a dataset model
 type Link struct {
-	URL string `json:"href"`
-	ID  string `json:"id,omitempty"`
+	HRef string `json:"href"`
+	ID   string `json:"id,omitempty"`
 }
 
 // GetName return the name or type of Dimension e.g. sex, geography time etc.

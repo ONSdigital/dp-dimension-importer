@@ -119,7 +119,7 @@ func (repo *InstanceRepository) AddDimensions(i *model.Instance) error {
 }
 
 // CreateCodeRelationship links an instance to a code for the given dimension option
-func (repo *InstanceRepository) CreateCodeRelationship(i *model.Instance, codeListId, code string) error {
+func (repo *InstanceRepository) CreateCodeRelationship(i *model.Instance, codeListID, code string) error {
 
 	if i == nil {
 		return errors.New("instance is required but was nil")
@@ -132,7 +132,7 @@ func (repo *InstanceRepository) CreateCodeRelationship(i *model.Instance, codeLi
 	}
 
 	instanceLabel := fmt.Sprintf(instanceLabelFmt, i.GetID())
-	codeListLabel := fmt.Sprintf(codeListLabelFmt, codeListId)
+	codeListLabel := fmt.Sprintf(codeListLabelFmt, codeListID)
 	stmt := fmt.Sprintf(createInstanceToCodeRelStmt, instanceLabel, codeListLabel)
 	params := map[string]interface{}{"code": code}
 
