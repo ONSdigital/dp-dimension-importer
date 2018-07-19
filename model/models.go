@@ -15,7 +15,19 @@ type Dimension struct {
 	DimensionID string        `json:"dimension"`
 	Option      string        `json:"option"`
 	NodeID      string        `json:"node_id,omitempty"`
+	Links       Links         `json:"links"`
 	Dimensions  []interface{} `json:"-"`
+}
+
+type Links struct {
+	CodeList Link `json:"code_list,omitempty"`
+	Code     Link `json:"code,omitempty"`
+}
+
+// Link represents a single link within a dataset model
+type Link struct {
+	HRef string `json:"href"`
+	ID   string `json:"id,omitempty"`
 }
 
 // GetName return the name or type of Dimension e.g. sex, geography time etc.

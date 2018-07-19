@@ -29,7 +29,7 @@ type DatasetAPIClient interface {
 type InstanceRepository interface {
 	Create(instance *model.Instance) error
 	AddDimensions(instance *model.Instance) error
-	CreateCodeRelationship(i *model.Instance, code string) error
+	CreateCodeRelationship(i *model.Instance, codeListId, code string) error
 	Exists(instance *model.Instance) (bool, error)
 	Close()
 }
@@ -164,6 +164,13 @@ func (hdlr *InstanceEventHandler) insertDimensions(instance *model.Instance, ins
 
 		if err = hdlr.DatasetAPICli.PutDimensionNodeID(instance.InstanceID, dimension); err != nil {
 			return errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
+		}
+
+		// todo: remove this temp hack once the time codelist / input data has been fixed.
+		if dimension.DimensionID != "time" {
+			if err = instanceRepo.CreateCodeRelationship(instance, dimension.Links.CodeList.ID, dimension.Option); err != nil {
+				return errors.Wrap(err, "error attempting to create relationship to code")
+			}
 		}
 	}
 

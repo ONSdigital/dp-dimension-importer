@@ -272,10 +272,13 @@ func TestInstanceRepository_Create(t *testing.T) {
 
 func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 
+	codeListID := "432"
 	code := "123"
 	instance := &model.Instance{
 		InstanceID: instanceID,
 	}
+	expectedInstanceLabel := "_" + instanceID + "_Instance"
+	expectedCodeListLabel := "_code_list_" + codeListID
 
 	Convey("Given no instanceID is provided", t, func() {
 		instance := &model.Instance{}
@@ -289,7 +292,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 		}
 
 		Convey("When CreateCodeRelationship is invoked", func() {
-			err := repo.CreateCodeRelationship(instance, code)
+			err := repo.CreateCodeRelationship(instance, codeListID, code)
 
 			Convey("Then the expected error is returned", func() {
 				So(err.Error(), ShouldEqual, errors.New("instance id is required but was empty").Error())
@@ -312,7 +315,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 		}
 
 		Convey("When CreateCodeRelationship is invoked", func() {
-			err := repo.CreateCodeRelationship(nil, code)
+			err := repo.CreateCodeRelationship(nil, codeListID, code)
 
 			Convey("Then the expected error is returned", func() {
 				So(err.Error(), ShouldEqual, errors.New("instance is required but was nil").Error())
@@ -338,7 +341,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 		}
 
 		Convey("When CreateCodeRelationship is invoked", func() {
-			err := repo.CreateCodeRelationship(instance, code)
+			err := repo.CreateCodeRelationship(instance, codeListID, code)
 
 			Convey("Then the expected error is returned", func() {
 				So(err.Error(), ShouldEqual, errors.New("code is required but was empty").Error())
@@ -367,7 +370,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 		}
 
 		Convey("When CreateCodeRelationship is invoked", func() {
-			err := repo.CreateCodeRelationship(instance, code)
+			err := repo.CreateCodeRelationship(instance, codeListID, code)
 
 			Convey("Then the expected error is returned", func() {
 				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "neo4j.ExecStmt returned an error").Error())
@@ -377,7 +380,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 				calls := neo4jMock.ExecStmtCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				expectedQuery := fmt.Sprintf(createInstanceToCodeRelStmt, "_"+instanceID+"_Instance")
+				expectedQuery := fmt.Sprintf(createInstanceToCodeRelStmt, expectedInstanceLabel, expectedCodeListLabel)
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 				So(calls[0].Params, ShouldResemble, map[string]interface{}{
 					"code": code,
@@ -408,7 +411,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 		}
 
 		Convey("When CreateCodeRelationship is invoked", func() {
-			err := repo.CreateCodeRelationship(instance, code)
+			err := repo.CreateCodeRelationship(instance, codeListID, code)
 
 			Convey("Then the expected error is returned", func() {
 				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "result.RowsAffected() returned an error").Error())
@@ -418,7 +421,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 				calls := neo4jMock.ExecStmtCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				expectedQuery := fmt.Sprintf(createInstanceToCodeRelStmt, "_"+instanceID+"_Instance")
+				expectedQuery := fmt.Sprintf(createInstanceToCodeRelStmt, expectedInstanceLabel, expectedCodeListLabel)
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 				So(calls[0].Params, ShouldResemble, map[string]interface{}{
 					"code": code,
@@ -449,7 +452,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 		}
 
 		Convey("When CreateCodeRelationship is invoked", func() {
-			err := repo.CreateCodeRelationship(instance, code)
+			err := repo.CreateCodeRelationship(instance, codeListID, code)
 
 			Convey("Then the expected error is returned", func() {
 				So(err.Error(), ShouldEqual, "unexpected number of rows affected. expected 1 but was 0")
@@ -459,7 +462,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 				calls := neo4jMock.ExecStmtCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				expectedQuery := fmt.Sprintf(createInstanceToCodeRelStmt, "_"+instanceID+"_Instance")
+				expectedQuery := fmt.Sprintf(createInstanceToCodeRelStmt, expectedInstanceLabel, expectedCodeListLabel)
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 				So(calls[0].Params, ShouldResemble, map[string]interface{}{
 					"code": code,
@@ -490,7 +493,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 		}
 
 		Convey("When CreateCodeRelationship is invoked", func() {
-			err := repo.CreateCodeRelationship(instance, code)
+			err := repo.CreateCodeRelationship(instance, codeListID, code)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldResemble, nil)
@@ -500,7 +503,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 				calls := neo4jMock.ExecStmtCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				expectedQuery := fmt.Sprintf(createInstanceToCodeRelStmt, "_"+instanceID+"_Instance")
+				expectedQuery := fmt.Sprintf(createInstanceToCodeRelStmt, expectedInstanceLabel, expectedCodeListLabel)
 				So(calls[0].Query, ShouldEqual, expectedQuery)
 				So(calls[0].Params, ShouldResemble, map[string]interface{}{
 					"code": code,
@@ -513,7 +516,7 @@ func TestInstanceRepository_CreateCodeRelationship(t *testing.T) {
 func TestInstanceRepository_Exists(t *testing.T) {
 	Convey("Given the repository has been configured correctly", t, func() {
 		var count int64 = 1
-		data := [][]interface{}{[]interface{}{count}}
+		data := [][]interface{}{{count}}
 		rows := &common.NeoRows{Data: data}
 
 		neoMock := &mocks.Neo4jClientMock{
