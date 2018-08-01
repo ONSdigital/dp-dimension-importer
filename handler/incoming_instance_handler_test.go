@@ -91,6 +91,17 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
 
+			Convey("And InstanceRepository.CreateCodeRelationshipCalls is called once with the expected parameters", func() {
+				calls := instanceRepositoryMock.CreateCodeRelationshipCalls()
+				So(len(calls), ShouldEqual, 2)
+
+				So(calls[0].I, ShouldResemble, instance)
+				So(calls[0].Code, ShouldResemble, d1.Option)
+
+				So(calls[1].I, ShouldResemble, instance)
+				So(calls[1].Code, ShouldResemble, d2.Option)
+			})
+
 			Convey("And observationRepository is called once to create constraints", func() {
 				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 1)
 			})
@@ -181,6 +192,53 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 		})
 
+		Convey("When InstanceRepository.CreateCodeRelationship returns an error", func() {
+			event := event.NewInstance{InstanceID: testInstanceID}
+
+			instanceRepositoryMock.CreateCodeRelationshipFunc = func(i *model.Instance, codeListID, code string) error {
+				return errorMock
+			}
+
+			err := handler.Handle(event)
+
+			Convey("Then the DatasetAPICli.GetDimensions is called 1 time", func() {
+				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+			})
+
+			Convey("Then DatasetAPICli.GetInstance is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
+			})
+
+			Convey("And InstanceRepository.Create is called 1 time with the expected parameters", func() {
+				calls := instanceRepositoryMock.CreateCalls()
+				So(len(calls), ShouldEqual, 1)
+				So(calls[0].Instance, ShouldResemble, instance)
+			})
+
+			Convey("And DimensionRepository.Insert is called 2 times with the expected parameters", func() {
+				calls := dimensionRepository.InsertCalls()
+				So(len(calls), ShouldEqual, 1)
+
+				So(calls[0].Instance, ShouldResemble, instance)
+				So(calls[0].Dimension, ShouldResemble, d1)
+			})
+
+			Convey("And DatasetAPICli.PutDimensionNodeID is called 2 times with the expected parameters", func() {
+				calls := datasetAPIMock.PutDimensionNodeIDCalls()
+				So(len(calls), ShouldEqual, 1)
+
+				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
+				So(calls[0].Dimension, ShouldEqual, d1)
+			})
+
+			Convey("And no further processing of the event takes place.", func() {
+				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
+			})
+
+			Convey("And the expected error is returned", func() {
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "error attempting to create relationship to code").Error())
+			})
+		})
 
 		Convey("When DimensionRepository.Insert returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
@@ -516,7 +574,7 @@ func setUp() (*mocks.InstanceRepositoryMock, *mocks.DimensionRepositoryMock, *mo
 		CreateFunc: func(instance *model.Instance) error {
 			return nil
 		},
-		CreateCodeRelationshipFunc: func(i *model.Instance, code string) error {
+		CreateCodeRelationshipFunc: func(i *model.Instance, codeListID, code string) error {
 			return nil
 		},
 		CloseFunc: func() {
