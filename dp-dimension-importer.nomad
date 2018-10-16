@@ -3,14 +3,29 @@ job "dp-dimension-importer" {
   region      = "eu"
   type        = "service"
 
-  // Make sure that this API is only ran on the publishing nodes
+  // Make sure that this API is only run on the publishing nodes
   constraint {
     attribute = "${node.class}"
     value     = "publishing"
   }
 
+  update {
+    stagger          = "60s"
+    min_healthy_time = "30s"
+    healthy_deadline = "2m"
+    max_parallel     = 1
+    auto_revert      = true
+  }
+
   group "publishing" {
     count = "{{PUBLISHING_TASK_COUNT}}"
+
+    restart {
+      attempts = 3
+      delay    = "15s"
+      interval = "1m"
+      mode     = "delay"
+    }
 
     task "dp-dimension-importer" {
       driver = "exec"
