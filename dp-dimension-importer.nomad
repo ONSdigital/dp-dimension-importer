@@ -28,11 +28,7 @@ job "dp-dimension-importer" {
     }
 
     task "dp-dimension-importer" {
-      driver = "exec"
-
-      artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/{{BUILD_BUCKET}}/dp-dimension-importer/{{REVISION}}.tar.gz"
-      }
+      driver = "docker"
 
       artifact {
         source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-dimension-importer/{{REVISION}}.tar.gz"
@@ -41,9 +37,13 @@ job "dp-dimension-importer" {
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
 
-        args    = [
-          "${NOMAD_TASK_DIR}/dp-dimension-importer"
-        ]
+        args = [“./dp-dimension-importer”]
+
+        image = “{{ECR_URL}}:concourse-{{REVISION}}”
+
+        port_map {
+          http = “${NOMAD_PORT_http}”
+        }
       }
 
       service {
