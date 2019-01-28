@@ -37,12 +37,12 @@ job "dp-dimension-importer" {
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
 
-        args = [“./dp-dimension-importer”]
+        args = ["./dp-dimension-importer"]
 
-        image = “{{ECR_URL}}:concourse-{{REVISION}}”
+        image = "{{ECR_URL}}:concourse-{{REVISION}}"
 
         port_map {
-          http = “${NOMAD_PORT_http}”
+          http = "${NOMAD_PORT_http}"
         }
       }
 
