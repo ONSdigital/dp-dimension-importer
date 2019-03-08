@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -8,6 +9,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/mocks"
 	"github.com/ONSdigital/dp-dimension-importer/model"
+	"github.com/ONSdigital/dp-dimension-importer/store/storertest"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -49,7 +51,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 	Convey("Given the handler has been configured", t, func() {
 		// Set up mocks
-		instanceRepositoryMock, dimensionRepository, observationRepositoryMock, datasetAPIMock, completedProducer, handler := setUp()
+		storerMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		Convey("When given a valid event", func() {
 			handler.Handle(newInstance)
@@ -63,8 +65,8 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 			})
 
-			Convey("And DimensionRepository.Insert is called 2 times with the expected parameters", func() {
-				calls := dimensionRepository.InsertCalls()
+			Convey("And storerMock.InserDimension is called 2 times with the expected parameters", func() {
+				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 2)
 
 				So(calls[0].Instance, ShouldResemble, instance)
@@ -84,26 +86,26 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(calls[1].Dimension, ShouldEqual, d2)
 			})
 
-			Convey("And InstanceRepository.AddDimensions is called 1 time with the expected parameters", func() {
-				calls := instanceRepositoryMock.AddDimensionsCalls()
+			Convey("And storer.AddDimensions is called 1 time with the expected parameters", func() {
+				calls := storerMock.AddDimensionsCalls()
 				So(len(calls), ShouldEqual, 1)
 
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
 
-			Convey("And InstanceRepository.CreateCodeRelationshipCalls is called once with the expected parameters", func() {
-				calls := instanceRepositoryMock.CreateCodeRelationshipCalls()
+			Convey("And storer.CreateCodeRelationshipCalls is called once with the expected parameters", func() {
+				calls := storerMock.CreateCodeRelationshipCalls()
 				So(len(calls), ShouldEqual, 2)
 
-				So(calls[0].I, ShouldResemble, instance)
+				So(calls[0].Instance, ShouldResemble, instance)
 				So(calls[0].Code, ShouldResemble, d1.Option)
 
-				So(calls[1].I, ShouldResemble, instance)
+				So(calls[1].Instance, ShouldResemble, instance)
 				So(calls[1].Code, ShouldResemble, d2.Option)
 			})
 
-			Convey("And observationRepository is called once to create constraints", func() {
-				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 1)
+			Convey("And storer is called once to create constraints", func() {
+				So(len(storerMock.CreateInstanceConstraintCalls()), ShouldEqual, 1)
 			})
 
 			Convey("And Producer.Complete is called 1 time with the expected parameters", func() {
@@ -121,11 +123,11 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
-				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
+				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
 				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
 				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
-				So(len(instanceRepositoryMock.CreateCalls()), ShouldEqual, 0)
-				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
+				So(len(storerMock.CreateInstanceCalls()), ShouldEqual, 0)
+				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 		})
 
@@ -151,17 +153,17 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
-				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
+				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
 				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
-				So(len(instanceRepositoryMock.CreateCalls()), ShouldEqual, 0)
-				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
+				So(len(storerMock.CreateInstanceCalls()), ShouldEqual, 0)
+				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 		})
 
-		Convey("When InstanceRepository.Create returns an error", func() {
+		Convey("When storer.CreateInstance returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			instanceRepositoryMock.CreateFunc = func(instance *model.Instance) error {
+			storerMock.CreateInstanceFunc = func(ctx context.Context, instance *model.Instance) error {
 				return errorMock
 			}
 
@@ -175,27 +177,27 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 			})
 
-			Convey("And InstanceRepository.Create is called 1 time with the expected parameters", func() {
-				calls := instanceRepositoryMock.CreateCalls()
+			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
+				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
-				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
+				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
 				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
-				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
+				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "instanceRepo.Create returned an error").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "create instance returned an error").Error())
 			})
 		})
 
-		Convey("When InstanceRepository.CreateCodeRelationship returns an error", func() {
+		Convey("When storer.CreateCodeRelationship returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			instanceRepositoryMock.CreateCodeRelationshipFunc = func(i *model.Instance, codeListID, code string) error {
+			storerMock.CreateCodeRelationshipFunc = func(ctx context.Context, i *model.Instance, codeListID, code string) error {
 				return errorMock
 			}
 
@@ -209,14 +211,14 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 			})
 
-			Convey("And InstanceRepository.Create is called 1 time with the expected parameters", func() {
-				calls := instanceRepositoryMock.CreateCalls()
+			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
+				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
 
-			Convey("And DimensionRepository.Insert is called 2 times with the expected parameters", func() {
-				calls := dimensionRepository.InsertCalls()
+			Convey("And storer.InsertDimension is called 2 times with the expected parameters", func() {
+				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 1)
 
 				So(calls[0].Instance, ShouldResemble, instance)
@@ -232,7 +234,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
-				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
+				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 
 			Convey("And the expected error is returned", func() {
@@ -240,10 +242,10 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 		})
 
-		Convey("When DimensionRepository.Insert returns an error", func() {
+		Convey("When storer.InsertDimension returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
+			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, errorMock
 			}
 			err := handler.Handle(event)
@@ -256,14 +258,14 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 			})
 
-			Convey("And InstanceRepository.Create is called 1 time with the expected parameters", func() {
-				calls := instanceRepositoryMock.CreateCalls()
+			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
+				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
 
-			Convey("And DimensionRepository.Insert is called 1 time with the expected parameters", func() {
-				calls := dimensionRepository.InsertCalls()
+			Convey("And storer.InsertDimension is called 1 time with the expected parameters", func() {
+				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 1)
 				So(calls[0].Instance, ShouldResemble, instance)
 				So(calls[0].Dimension, ShouldResemble, d1)
@@ -275,14 +277,14 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 			Convey("And no further processing of the event takes place.", func() {
 				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
-				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
+				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 		})
 
 		Convey("When DatasetAPICli.PutDimensionNodeID returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
+			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, nil
 			}
 			datasetAPIMock.PutDimensionNodeIDFunc = func(instanceID string, dimension *model.Dimension) error {
@@ -299,14 +301,14 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 			})
 
-			Convey("And InstanceRepository.Create is called 1 time with the expected parameters", func() {
-				calls := instanceRepositoryMock.CreateCalls()
+			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
+				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
 
-			Convey("And DimensionRepository.Insert is called 2 time with the expected parameters", func() {
-				calls := dimensionRepository.InsertCalls()
+			Convey("And storer.InsertDimension is called 2 time with the expected parameters", func() {
+				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 1)
 				So(calls[0].Instance, ShouldResemble, instance)
 				So(calls[0].Dimension, ShouldResemble, d1)
@@ -325,20 +327,20 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
-				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
+				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 		})
 
-		Convey("When InstanceRepository.AddDimensions returns an error", func() {
+		Convey("When storer.AddDimensions returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			dimensionRepository.InsertFunc = func(instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
+			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
 				return dimension, nil
 			}
 			datasetAPIMock.PutDimensionNodeIDFunc = func(instanceID string, dimension *model.Dimension) error {
 				return nil
 			}
-			instanceRepositoryMock.AddDimensionsFunc = func(instance *model.Instance) error {
+			storerMock.AddDimensionsFunc = func(ctx context.Context, instance *model.Instance) error {
 				return errorMock
 			}
 
@@ -352,14 +354,14 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 			})
 
-			Convey("And InstanceRepository.Create is called 1 time with the expected parameters", func() {
-				calls := instanceRepositoryMock.CreateCalls()
+			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
+				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
 
-			Convey("And DimensionRepository.Insert is called 2 time with the expected parameters", func() {
-				calls := dimensionRepository.InsertCalls()
+			Convey("And storer.InsertDimension is called 2 time with the expected parameters", func() {
+				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 2)
 				So(calls[0].Instance, ShouldResemble, instance)
 				So(calls[0].Dimension, ShouldResemble, d1)
@@ -380,24 +382,19 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "instanceRepo.AddDimensions returned an error").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "AddDimensions returned an error").Error())
 			})
 		})
 	})
 
 	Convey("Given handler.DatasetAPICli has not been configured", t, func() {
-		instanceRepositoryMock := &mocks.InstanceRepositoryMock{}
-		dimensionRepository := &mocks.DimensionRepositoryMock{}
+		db := &storertest.StorerMock{}
 
 		handler := InstanceEventHandler{
 			DatasetAPICli: nil,
-			NewDimensionInserter: func() (DimensionRepository, error) {
-				return dimensionRepository, nil
-			},
-			NewInstanceRepository: func() (InstanceRepository, error) {
-				return instanceRepositoryMock, nil
-			},
+			Store:         db,
 		}
+
 		Convey("When Handle is called", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 			err := handler.Handle(event)
@@ -407,62 +404,30 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the event is not handled", func() {
-				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
-				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
-				So(len(instanceRepositoryMock.CreateCalls()), ShouldEqual, 0)
+				So(len(db.InsertDimensionCalls()), ShouldEqual, 0)
+				So(len(db.AddDimensionsCalls()), ShouldEqual, 0)
+				So(len(db.CreateInstanceCalls()), ShouldEqual, 0)
 			})
 		})
 	})
 
-	Convey("Given handler.InstanceRepository has not been configured", t, func() {
-		dimensionRepository := &mocks.DimensionRepositoryMock{}
+	Convey("Given handler.Store has not been configured", t, func() {
 		datasetAPIMock := &mocks.DatasetAPIClientMock{}
-
-		handler := InstanceEventHandler{
-			DatasetAPICli:         datasetAPIMock,
-			NewInstanceRepository: nil,
-			NewDimensionInserter: func() (DimensionRepository, error) {
-				return dimensionRepository, nil
-			},
-		}
-		Convey("When Handle is called", func() {
-			event := event.NewInstance{InstanceID: testInstanceID}
-			err := handler.Handle(event)
-
-			Convey("Then the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.New("validation error new instance repository func required but was nil").Error())
-			})
-			Convey("And the event is not handled", func() {
-				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
-				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
-				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
-			})
-		})
-	})
-
-	Convey("Given handler.NewDimensionInserter has not been configured", t, func() {
-		datasetAPIMock := &mocks.DatasetAPIClientMock{}
-		instanceRepositoryMock := &mocks.InstanceRepositoryMock{}
 
 		handler := InstanceEventHandler{
 			DatasetAPICli: datasetAPIMock,
-			NewInstanceRepository: func() (InstanceRepository, error) {
-				return instanceRepositoryMock, nil
-			},
-			NewDimensionInserter: nil,
+			Store:         nil,
 		}
 		Convey("When Handle is called", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 			err := handler.Handle(event)
 
 			Convey("Then the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.New("validation error new dimension inserter func required but was nil").Error())
+				So(err.Error(), ShouldEqual, errors.New("validation error datastore required but was nil").Error())
 			})
 			Convey("And the event is not handled", func() {
 				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
 				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
-				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
-				So(len(instanceRepositoryMock.CreateCalls()), ShouldEqual, 0)
 			})
 		})
 	})
@@ -470,40 +435,40 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 	Convey("Given an instance with the event ID already exists", t, func() {
-		instanceRepositoryMock, dimensionRepository, observationRepositoryMock, datasetAPIMock, completedProducer, handler := setUp()
+		storerMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		// override default
-		instanceRepositoryMock.ExistsFunc = func(instance *model.Instance) (bool, error) {
+		storerMock.InstanceExistsFunc = func(ctx context.Context, instance *model.Instance) (bool, error) {
 			return true, nil
 		}
 
 		Convey("When Handle is given a NewInstance event with the same instanceID", func() {
 			handler.Handle(newInstance)
 
-			Convey("Then InstanceRepository.Exists is called 1 time with expected parameters ", func() {
-				calls := instanceRepositoryMock.ExistsCalls()
+			Convey("Then storer.InstanceExists is called 1 time with expected parameters ", func() {
+				calls := storerMock.InstanceExistsCalls()
 				So(len(calls), ShouldEqual, 1)
 				So(calls[0].Instance, ShouldResemble, instance)
 			})
 
-			Convey("And InstanceRepository.Create is not called", func() {
-				So(len(instanceRepositoryMock.CreateCalls()), ShouldEqual, 0)
+			Convey("And storer.CreateInstance is not called", func() {
+				So(len(storerMock.CreateInstanceCalls()), ShouldEqual, 0)
 			})
 
-			Convey("And dimensionInserter.Insert is not called", func() {
-				So(len(dimensionRepository.InsertCalls()), ShouldEqual, 0)
+			Convey("And storer.InsertDimension is not called", func() {
+				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
 			})
 
 			Convey("And DatasetAPICli.PutDimensionNodeID not called", func() {
 				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
 			})
 
-			Convey("and InstanceRepository.AddDimensions is not called", func() {
-				So(len(instanceRepositoryMock.AddDimensionsCalls()), ShouldEqual, 0)
+			Convey("and storer.AddDimensions is not called", func() {
+				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 
-			Convey("And observationRepository is not called", func() {
-				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 0)
+			Convey("And storer is not called to create constraints", func() {
+				So(len(storerMock.CreateInstanceConstraintCalls()), ShouldEqual, 0)
 			})
 
 			Convey("And Producer.Completed is not called", func() {
@@ -515,17 +480,17 @@ func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 
 func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 	Convey("Given handler has been configured correctly", t, func() {
-		instanceRepoMock, dimensionRepoMock, observationRepositoryMock, datasetAPIMock, completedProducer, handler := setUp()
+		storerMock, datasetAPIMock, completedProducer, handler := setUp()
 
-		Convey("When instanceRepository.Exists returns an error", func() {
-			instanceRepoMock.ExistsFunc = func(instance *model.Instance) (bool, error) {
+		Convey("When storer.InstanceExists returns an error", func() {
+			storerMock.InstanceExistsFunc = func(ctx context.Context, instance *model.Instance) (bool, error) {
 				return false, errorMock
 			}
 
 			err := handler.Handle(newInstance)
 
 			Convey("Then handler returns the expected error", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "instance repository exists check returned an error").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "instance exists check returned an error").Error())
 			})
 
 			Convey("And datasetAPICli make the expected calls with the expected parameters", func() {
@@ -538,20 +503,13 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
 			})
 
-			Convey("And instanceRepository makes the expected called with the expected parameters", func() {
-				So(len(instanceRepoMock.ExistsCalls()), ShouldEqual, 1)
-				So(instanceRepoMock.ExistsCalls()[0].Instance, ShouldEqual, instance)
-
-				So(len(instanceRepoMock.CreateCalls()), ShouldEqual, 0)
-				So(len(instanceRepoMock.AddDimensionsCalls()), ShouldEqual, 0)
-			})
-
-			Convey("And dimensionRepository is never called", func() {
-				So(len(dimensionRepoMock.InsertCalls()), ShouldEqual, 0)
-			})
-
-			Convey("And observationRepository is never called", func() {
-				So(len(observationRepositoryMock.CreateConstraintCalls()), ShouldEqual, 0)
+			Convey("And storer makes the expected called with the expected parameters", func() {
+				So(len(storerMock.InstanceExistsCalls()), ShouldEqual, 1)
+				So(storerMock.InstanceExistsCalls()[0].Instance, ShouldEqual, instance)
+				So(len(storerMock.CreateInstanceCalls()), ShouldEqual, 0)
+				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
+				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
+				So(len(storerMock.CreateInstanceConstraintCalls()), ShouldEqual, 0)
 			})
 
 			Convey("And producer is never called", func() {
@@ -563,40 +521,29 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 }
 
 // Default set up for the mocks.
-func setUp() (*mocks.InstanceRepositoryMock, *mocks.DimensionRepositoryMock, *mocks.ObservationRepositoryMock, *mocks.DatasetAPIClientMock, *mocks.CompletedProducerMock, InstanceEventHandler) {
-	instanceRepositoryMock := &mocks.InstanceRepositoryMock{
-		ExistsFunc: func(instance *model.Instance) (bool, error) {
+func setUp() (*storertest.StorerMock, *mocks.DatasetAPIClientMock, *mocks.CompletedProducerMock, InstanceEventHandler) {
+	storeMock := &storertest.StorerMock{
+		InstanceExistsFunc: func(ctx context.Context, instance *model.Instance) (bool, error) {
 			return false, nil
 		},
-		AddDimensionsFunc: func(instance *model.Instance) error {
+		AddDimensionsFunc: func(ctx context.Context, instance *model.Instance) error {
 			return nil
 		},
-		CreateFunc: func(instance *model.Instance) error {
+		CreateInstanceFunc: func(ctx context.Context, instance *model.Instance) error {
 			return nil
 		},
-		CreateCodeRelationshipFunc: func(i *model.Instance, codeListID, code string) error {
+		CreateCodeRelationshipFunc: func(ctx context.Context, i *model.Instance, codeListID, code string) error {
 			return nil
 		},
-		CloseFunc: func() {
-			// Do nothing.
-		},
-	}
-
-	dimensionRepository := &mocks.DimensionRepositoryMock{
-		InsertFunc: func(instance *model.Instance, d *model.Dimension) (*model.Dimension, error) {
+		InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instance *model.Instance, d *model.Dimension) (*model.Dimension, error) {
 			return d, nil
 		},
-		CloseFunc: func() {
-			// Do nothing.
-		},
-	}
-
-	observationRepository := &mocks.ObservationRepositoryMock{
-		CreateConstraintFunc: func(instance *model.Instance) error {
+		CreateInstanceConstraintFunc: func(ctx context.Context, instance *model.Instance) error {
 			return nil
 		},
-		CloseFunc: func() {
+		CloseFunc: func(ctx context.Context) error {
 			// Do nothing.
+			return nil
 		},
 	}
 
@@ -619,17 +566,9 @@ func setUp() (*mocks.InstanceRepositoryMock, *mocks.DimensionRepositoryMock, *mo
 	}
 
 	handler := InstanceEventHandler{
-		NewDimensionInserter: func() (DimensionRepository, error) {
-			return dimensionRepository, nil
-		},
-		NewInstanceRepository: func() (InstanceRepository, error) {
-			return instanceRepositoryMock, nil
-		},
+		Store:         storeMock,
 		DatasetAPICli: datasetAPIMock,
 		Producer:      completedProducer,
-		NewObservationRepository: func() (ObservationRepository, error) {
-			return observationRepository, nil
-		},
 	}
-	return instanceRepositoryMock, dimensionRepository, observationRepository, datasetAPIMock, completedProducer, handler
+	return storeMock, datasetAPIMock, completedProducer, handler
 }
