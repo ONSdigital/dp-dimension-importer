@@ -60,6 +60,9 @@ type Conn interface {
 	// SetTimeout sets the read/write timeouts for the
 	// connection to Neo4j
 	SetTimeout(time.Duration)
+	// GetTimeout returns the read/write timeouts for the
+	// connection to Neo4j
+	GetTimeout() time.Duration
 }
 
 type boltConn struct {
@@ -271,12 +274,20 @@ func (c *boltConn) initialize() error {
 	} else if c.driver != nil && c.driver.recorder != nil {
 		c.driver.recorder.Conn, err = c.createConn()
 		if err != nil {
+			// Return the connection back into the pool
+			if e := c.Close(); e != nil {
+				log.Errorf("An error occurred closing connection: %s", e)
+			}
 			return err
 		}
 		c.conn = c.driver.recorder
 	} else {
 		c.conn, err = c.createConn()
 		if err != nil {
+			// Return the connection back into the pool
+			if e := c.Close(); e != nil {
+				log.Errorf("An error occurred closing connection: %s", e)
+			}
 			return err
 		}
 	}
@@ -354,12 +365,6 @@ func (c *boltConn) Close() error {
 
 	if c.closed {
 		return nil
-	}
-
-	if c.transaction != nil {
-		if err := c.transaction.Rollback(); err != nil {
-			return err
-		}
 	}
 
 	if c.statement != nil {
@@ -544,6 +549,11 @@ func (c *boltConn) SetTimeout(timeout time.Duration) {
 	c.timeout = timeout
 }
 
+// Gets the timeout for reading and writing to the stream
+func (c *boltConn) GetTimeout() time.Duration {
+	return c.timeout
+}
+
 func (c *boltConn) consume() (interface{}, error) {
 	log.Info("Consuming response from bolt stream")
 
@@ -588,7 +598,7 @@ func (c *boltConn) consumeAll() ([]interface{}, interface{}, error) {
 }
 
 func (c *boltConn) consumeAllMultiple(mult int) ([][]interface{}, []interface{}, error) {
-	log.Info("Consuming all responses %d times until success/failure", mult)
+	log.Infof("Consuming all responses %d times until success/failure", mult)
 
 	responses := make([][]interface{}, mult)
 	successes := make([]interface{}, mult)
@@ -607,7 +617,7 @@ func (c *boltConn) consumeAllMultiple(mult int) ([][]interface{}, []interface{},
 }
 
 func (c *boltConn) sendInit() (interface{}, error) {
-	log.Infof("Sending INIT Message. ClientID: %s User: %s Password: %s", ClientID, c.user, c.password)
+	log.Infof("Sending INIT Message. ClientID: %s User: %s", ClientID, c.user)
 
 	initMessage := messages.NewInitMessage(ClientID, c.user, c.password)
 	if err := encoding.NewEncoder(c, c.chunkSize).Encode(initMessage); err != nil {
@@ -778,10 +788,12 @@ func (c *boltConn) queryNeo(query string, params map[string]interface{}) (*boltR
 	// Pipeline the run + pull all for this
 	successResp, err := c.sendRunPullAllConsumeRun(c.statement.query, params)
 	if err != nil {
+		c.statement.Close()
 		return nil, err
 	}
 	success, ok := successResp.(messages.SuccessMessage)
 	if !ok {
+		c.statement.Close()
 		return nil, errors.New("Unexpected response querying neo from connection: %#v", successResp)
 	}
 
