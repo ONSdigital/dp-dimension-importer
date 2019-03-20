@@ -46,10 +46,6 @@ func (n *Neo4j) GetHierarchyElement(ctx context.Context, instanceID, dimension, 
 		return
 	}
 
-	if res.Children, err = n.getChildren(instanceID, dimension, code); err != nil {
-		return
-	}
-
 	if res.Breadcrumbs, err = n.getAncestry(instanceID, dimension, code); err != nil {
 		return
 	}
@@ -65,6 +61,10 @@ func (n *Neo4j) queryResponse(instanceID, dimension string, neoStmt string, neoA
 	res = &models.Response{}
 	if err = n.ReadWithParams(neoStmt, neoArgs, mapper.Hierarchy(res), false); err != nil {
 		return nil, err
+	}
+
+	if res.Children, err = n.getChildren(instanceID, dimension, res.ID); err != nil {
+		return
 	}
 
 	return
@@ -87,7 +87,7 @@ func (n *Neo4j) getAncestry(instanceID, dimension, code string) ([]*models.Eleme
 
 // queryElements returns a list of models.Elements from the database
 func (n *Neo4j) queryElements(instanceID, dimension, neoStmt string, neoArgs neoArgMap) ([]*models.Element, error) {
-	logData := log.Data{"db_statement": neoStmt, "row_count": 0, "db_args": neoArgs}
+	logData := log.Data{"db_statement": neoStmt, "db_args": neoArgs}
 	log.Trace("QueryElements: executing get query", logData)
 
 	res := &mapper.HierarchyElements{}

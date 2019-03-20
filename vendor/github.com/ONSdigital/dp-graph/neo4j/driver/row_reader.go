@@ -9,23 +9,28 @@ import (
 )
 
 //go:generate moq -out ../internal/bolt_rows.go -pkg internal . BoltRows
+//go:generate moq -out ../internal/bolt_conn.go -pkg internal . BoltConn
 
 type BoltRows bolt.Rows
+type BoltConn bolt.Conn
 
 // BoltRowReader translates Neo4j rows to CSV rows.
 type BoltRowReader struct {
-	rows     bolt.Rows
-	rowsRead int
+	rows       bolt.Rows
+	connection bolt.Conn
+	rowsRead   int
 }
 
 // NewBoltRowReader returns a new reader instace for the given bolt rows.
-func NewBoltRowReader(rows bolt.Rows) *BoltRowReader {
+func NewBoltRowReader(rows bolt.Rows, conn bolt.Conn) *BoltRowReader {
 	return &BoltRowReader{
-		rows: rows,
+		rows:       rows,
+		connection: conn,
 	}
 }
 
 func (reader *BoltRowReader) Close(ctx context.Context) error {
+	defer reader.connection.Close()
 	return reader.rows.Close()
 }
 

@@ -5,7 +5,6 @@ import (
 
 	"github.com/ONSdigital/dp-hierarchy-api/models"
 	"github.com/ONSdigital/golang-neo4j-bolt-driver/structures/graph"
-	"github.com/davecgh/go-spew/spew"
 )
 
 //HierarchyElements encases a list so a pointer to the list can more easily
@@ -80,7 +79,6 @@ func HierarchyElement(list *HierarchyElements) ResultMapper {
 }
 
 func createElement(node graph.Node) (*models.Element, error) {
-	spew.Dump(node)
 	id, err := getStringProperty("code", node.Properties)
 	if err != nil {
 		return nil, errors.New("code property not found")

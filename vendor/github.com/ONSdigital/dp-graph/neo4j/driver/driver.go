@@ -109,7 +109,7 @@ func (n *NeoDriver) StreamRows(query string) (*BoltRowReader, error) {
 
 	// The connection can only be closed once the results have been read, so the caller is responsible for
 	// calling .CLose() which will ultimately release the connection back into the pool
-	return NewBoltRowReader(rows), nil
+	return NewBoltRowReader(rows, conn), nil
 }
 
 func (n *NeoDriver) Count(query string) (count int64, err error) {
