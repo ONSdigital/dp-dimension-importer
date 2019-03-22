@@ -1,11 +1,11 @@
 package main
 
 import (
+	"io"
+	"io/ioutil"
 	"os"
 
 	"context"
-	"io"
-	"io/ioutil"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -14,14 +14,13 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/handler"
 	"github.com/ONSdigital/dp-dimension-importer/message"
-	"github.com/ONSdigital/dp-dimension-importer/repository"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
+	"github.com/ONSdigital/dp-graph/graph"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	datasetHealthCheck "github.com/ONSdigital/go-ns/clients/dataset"
 	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"github.com/ONSdigital/go-ns/neo4j"
 )
 
 type responseBodyReader struct{}
@@ -53,27 +52,10 @@ func main() {
 	// Outgoing topic for any errors while processing an instance
 	errorReporterProducer := newProducer(cfg.KafkaAddr, cfg.EventReporterTopic)
 
-	neo4jCli := client.Neo4j{}
-
-	connectionPool, err := repository.NewConnectionPool(cfg.DatabaseURL, cfg.PoolSize)
+	graphDB, err := graph.New(context.Background(), graph.Subsets{Instance: true, Dimension: true})
 	if err != nil {
-		log.ErrorC("repository.NewConnectionPool returned an error", err, log.Data{
-			"url":       cfg.DatabaseURL,
-			"pool_size": cfg.PoolSize,
-		})
+		log.ErrorC("graph.New returned an error", err, nil)
 		os.Exit(1)
-	}
-
-	newDimensionInserterFunc := func() (handler.DimensionRepository, error) {
-		return repository.NewDimensionRepository(connectionPool, neo4jCli)
-	}
-
-	newInstanceRepoFunc := func() (handler.InstanceRepository, error) {
-		return repository.NewInstanceRepository(connectionPool, neo4jCli)
-	}
-
-	newObservationRepoFunc := func() (handler.ObservationRepository, error) {
-		return repository.NewObservationRepository(connectionPool, neo4jCli)
 	}
 
 	// MessageProducer for instanceComplete events.
@@ -93,11 +75,9 @@ func main() {
 
 	// Receiver for NewInstance events.
 	instanceEventHandler := &handler.InstanceEventHandler{
-		NewDimensionInserter:     newDimensionInserterFunc,
-		NewInstanceRepository:    newInstanceRepoFunc,
-		NewObservationRepository: newObservationRepoFunc,
-		DatasetAPICli:            datasetAPICli,
-		Producer:                 instanceCompletedProducer,
+		Store:         graphDB,
+		DatasetAPICli: datasetAPICli,
+		Producer:      instanceCompletedProducer,
 	}
 
 	// Errors handler
@@ -108,10 +88,15 @@ func main() {
 	}
 
 	healthCheckErrors := make(chan error)
-	neo4jClient := neo4j.NewHealthCheckClient(connectionPool)
-	datasetclient := datasetHealthCheck.New(cfg.DatasetAPIAddr)
+
 	// HTTP Health check endpoint.
-	healthcheckServer := healthcheck.NewServer(cfg.BindAddr, cfg.HealthCheckInterval, healthCheckErrors, neo4jClient, datasetclient)
+	healthcheckServer := healthcheck.NewServer(
+		cfg.BindAddr,
+		cfg.HealthCheckInterval,
+		healthCheckErrors,
+		graphDB,
+		datasetHealthCheck.New(cfg.DatasetAPIAddr),
+	)
 
 	messageReciever := message.KafkaMessageReciever{
 		InstanceHandler: instanceEventHandler,
@@ -140,6 +125,7 @@ func main() {
 	consumer.Close(ctx)
 	instanceConsumer.Close(ctx)
 	instanceCompleteProducer.Close(ctx)
+	graphDB.Close(ctx)
 	errorReporterProducer.Close(ctx)
 	healthcheckServer.Close(ctx)
 

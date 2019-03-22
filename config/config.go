@@ -21,8 +21,6 @@ type Config struct {
 	DatasetAPIAddr                 string        `envconfig:"DATASET_API_ADDR"`
 	DatasetAPIAuthToken            string        `envconfig:"DATASET_API_AUTH_TOKEN"                 json:"-"`
 	ZebedeeURL                     string        `envconfig:"ZEBEDEE_URL"`
-	DatabaseURL                    string        `envconfig:"DB_URL"                                 json:"-"`
-	PoolSize                       int           `envconfig:"DB_POOL_SIZE"`
 	GracefulShutdownTimeout        time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval            time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 }
@@ -40,9 +38,7 @@ func Get() (*Config, error) {
 		ServiceAuthToken:               "4424A9F2-B903-40F4-85F1-240107D1AFAF",
 		DatasetAPIAddr:                 "http://localhost:22000",
 		DatasetAPIAuthToken:            "FD0108EA-825D-411C-9B1D-41EF7727F465",
-		DatabaseURL:                    "bolt://localhost:7687",
 		ZebedeeURL:                     "http://localhost:8082",
-		PoolSize:                       20,
 		KafkaAddr:                      []string{"localhost:9092"},
 		IncomingInstancesTopic:         "dimensions-extracted",
 		IncomingInstancesConsumerGroup: "dp-dimension-importer",
