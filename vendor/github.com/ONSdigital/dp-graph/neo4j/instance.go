@@ -29,7 +29,7 @@ func (n *Neo4j) CreateInstanceConstraint(ctx context.Context, i *model.Instance)
 	return nil
 }
 
-// Create creates an Instance node in a neo4j graph database
+// CreateInstance node in a neo4j graph database
 func (n *Neo4j) CreateInstance(ctx context.Context, i *model.Instance) error {
 	if err := i.Validate(); err != nil {
 		return err
@@ -45,7 +45,7 @@ func (n *Neo4j) CreateInstance(ctx context.Context, i *model.Instance) error {
 	return nil
 }
 
-// AddDimensions list of the specified Instance node.
+// AddDimensions list to the specified instance node.
 func (n *Neo4j) AddDimensions(ctx context.Context, i *model.Instance) error {
 	if err := i.Validate(); err != nil {
 		return err
@@ -106,7 +106,7 @@ func (n *Neo4j) CreateCodeRelationship(ctx context.Context, i *model.Instance, c
 	return nil
 }
 
-// InstanceExists returns true if an instance already exists with the provided instanceID.
+// InstanceExists returns true if an instance already exists with the provided id.
 func (n *Neo4j) InstanceExists(ctx context.Context, i *model.Instance) (bool, error) {
 	c, err := n.Count(fmt.Sprintf(query.CountInstance, i.InstanceID))
 	if err != nil {
@@ -116,10 +116,13 @@ func (n *Neo4j) InstanceExists(ctx context.Context, i *model.Instance) (bool, er
 	return c >= 1, nil
 }
 
+// CountInsertedObservations returns the current number of observations relating to a given instance
 func (n *Neo4j) CountInsertedObservations(ctx context.Context, instanceID string) (count int64, err error) {
 	return n.Count(fmt.Sprintf(query.CountObservations, instanceID))
 }
 
+// AddVersionDetailsToInstance updated an instance node to contain details of which
+// dataset, edition and version the instance will also be known by
 func (n *Neo4j) AddVersionDetailsToInstance(ctx context.Context, instanceID string, datasetID string, edition string, version int) error {
 	data := log.Data{
 		"instance_id": instanceID,
@@ -150,6 +153,7 @@ func (n *Neo4j) AddVersionDetailsToInstance(ctx context.Context, instanceID stri
 	return nil
 }
 
+// SetInstanceIsPublished sets a flag on an instance node to indicate the published state
 func (n *Neo4j) SetInstanceIsPublished(ctx context.Context, instanceID string) error {
 	data := log.Data{
 		"instance_id": instanceID,

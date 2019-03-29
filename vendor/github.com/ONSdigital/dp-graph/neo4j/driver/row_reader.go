@@ -29,6 +29,7 @@ func NewBoltRowReader(rows bolt.Rows, conn bolt.Conn) *BoltRowReader {
 	}
 }
 
+// Close the contained rows and database connection
 func (reader *BoltRowReader) Close(ctx context.Context) error {
 	defer reader.connection.Close()
 	return reader.rows.Close()
