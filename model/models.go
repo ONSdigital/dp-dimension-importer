@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -38,6 +39,22 @@ func (d *Dimension) GetName(instanceID string) string {
 	return result
 }
 
+func (d *Dimension) Validate() error {
+	if d == nil {
+		return errors.New("dimension is required but was nil")
+	}
+	if len(d.DimensionID) == 0 && len(d.Option) == 0 {
+		return errors.New("dimension invalid: both dimension.dimension_id and dimension.value are required but were both empty")
+	}
+	if len(d.DimensionID) == 0 {
+		return errors.New("dimension id is required but was empty")
+	}
+	if len(d.Option) == 0 {
+		return errors.New("dimension value is required but was empty")
+	}
+	return nil
+}
+
 // Instance struct to hold instance information.
 type Instance struct {
 	InstanceID string        `json:"id,omitempty"`
@@ -45,17 +62,17 @@ type Instance struct {
 	Dimensions []interface{} `json:"-"`
 }
 
-// GetID return the InstanceID
-func (i *Instance) GetID() string {
-	return i.InstanceID
-}
-
 // AddDimension add a dimension distinct type/name to the instance.
 func (i *Instance) AddDimension(d *Dimension) {
 	i.Dimensions = append(i.Dimensions, string(d.DimensionID))
 }
 
-// GetDimensions returns a slice of distinct dimensions name/types for this instance.
-func (i *Instance) GetDimensions() []interface{} {
-	return i.Dimensions
+func (i *Instance) Validate() error {
+	if i == nil {
+		return errors.New("instance is required but was nil")
+	}
+	if len(i.InstanceID) == 0 {
+		return errors.New("instance id is required but was empty")
+	}
+	return nil
 }
