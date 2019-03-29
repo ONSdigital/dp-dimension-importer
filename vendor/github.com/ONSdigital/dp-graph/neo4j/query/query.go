@@ -1,7 +1,7 @@
 package query
 
 const (
-	//codelists
+	// codelists
 	GetCodeLists       = "MATCH (i) WHERE i:_code_list%s RETURN distinct labels(i) as labels"
 	GetCodeList        = "MATCH (i:_code_list:`_code_list_%s`) RETURN i"
 	CodeListExists     = "MATCH (cl:_code_list:`_code_list_%s`) RETURN count(*)"
@@ -11,7 +11,7 @@ const (
 	GetCode            = "MATCH (c:_code) -[r:usedBy]->(cl:_code_list: `_code_list_%s`) WHERE cl.edition = %q AND c.value = %q RETURN c, r"
 	GetCodeDatasets    = "MATCH (d)<-[inDataset]-(c:_code)-[r:usedBy]->(cl:_code_list:`_code_list_%s`) WHERE (cl.edition=" + `"%s"` + ") AND (c.value=" + `"%s"` + ") AND (d.is_published=true) RETURN d,r"
 
-	//hierarchy write
+	// hierarchy write
 	CreateHierarchyConstraint    = "CREATE CONSTRAINT ON (n:`_hierarchy_node_%s_%s`) ASSERT n.code IS UNIQUE;"
 	CloneHierarchyNodes          = "MATCH (n:`_generic_hierarchy_node_%s`) WITH n MERGE (:`_hierarchy_node_%s_%s` { code:n.code,label:n.label,code_list:{code_list}, hasData:false });"
 	CountHierarchyNodes          = "MATCH (n:`_hierarchy_node_%s_%s`) RETURN COUNT(n);"
@@ -22,14 +22,14 @@ const (
 	RemoveNodesNotMarkedToRemain = "MATCH (node:`_hierarchy_node_%s_%s`) WHERE NOT EXISTS(node.remain) DETACH DELETE node"
 	RemoveRemainMarker           = "MATCH (node:`_hierarchy_node_%s_%s`) REMOVE node.remain"
 
-	//hierarchy read
+	// hierarchy read
 	HierarchyExists     = "MATCH (i:`_hierarchy_node_%s_%s`) RETURN i LIMIT 1"
 	GetHierarchyRoot    = "MATCH (i:`_hierarchy_node_%s_%s`) WHERE NOT (i)-[:hasParent]->() RETURN i LIMIT 1"
 	GetHierarchyElement = "MATCH (i:`_hierarchy_node_%s_%s` {code:{code}}) RETURN i"
 	GetChildren         = "MATCH (i:`_hierarchy_node_%s_%s` {code:{code}})<-[r:hasParent]-(child) RETURN child ORDER BY child.label"
 	GetAncestry         = "MATCH (i:`_hierarchy_node_%s_%s` {code:{code}})-[r:hasParent *]->(parent) RETURN parent"
 
-	//instance
+	// instance - import process
 	CreateInstanceObservationConstraint = "CREATE CONSTRAINT ON (o:`_%s_observation`) ASSERT o.rowIndex IS UNIQUE"
 	CreateInstance                      = "CREATE (i:`_%s_Instance` { header:'%s'}) RETURN i"
 	CountInstance                       = "MATCH (i: `_%s_Instance`) RETURN COUNT(*)"
@@ -39,7 +39,7 @@ const (
 	SetInstanceIsPublished              = "MATCH (i:`_%s_Instance`) SET i.is_published = true"
 	CountObservations                   = "MATCH (o:`_%s_observation`) RETURN COUNT(o)"
 
-	//dimension
+	// dimension
 	CreateDimensionConstraint             = "CREATE CONSTRAINT ON (d:`_%s_%s`) ASSERT d.value IS UNIQUE" //dimensionLabel "_%s_%s" = i.InstanceID, d.DimensionID
 	CreateDimensionToInstanceRelationship = "MATCH (i:`_%s_Instance`) CREATE (d:`_%s_%s` {value: {value}}) CREATE (i)-[:HAS_DIMENSION]->(d) RETURN ID(d)"
 )
