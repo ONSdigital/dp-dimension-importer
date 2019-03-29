@@ -11,7 +11,7 @@ build:
 	@mkdir -p $(BUILD_ARCH)/$(BIN_DIR)
 	go build -o $(BUILD_ARCH)/$(BIN_DIR)/dp-dimension-importer cmd/dp-dimension-importer/main.go
 debug: build
-	HUMAN_LOG=1 go run cmd/dp-dimension-importer/main.go
+	GRAPH_DRIVER_TYPE="neo4j" GRAPH_ADDR="bolt://localhost:7687" HUMAN_LOG=1 go run cmd/dp-dimension-importer/main.go
 clean:
 	rm
 test:
