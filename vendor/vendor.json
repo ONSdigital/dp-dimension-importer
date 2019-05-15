@@ -143,6 +143,12 @@
 			"revisionTime": "2019-03-01T13:55:03Z"
 		},
 		{
+			"checksumSHA1": "L4B1AA6AKWscHCZc02qk2SQU65k=",
+			"path": "github.com/ONSdigital/go-ns/rchttp",
+			"revision": "68aed3815467567f5bcbcceeffd5792151d83a1a",
+			"revisionTime": "2019-05-15T12:18:17Z"
+		},
+		{
 			"checksumSHA1": "Ohl8JaJRUL+/Y+NTL8y97PZlFfs=",
 			"path": "github.com/ONSdigital/go-ns/rhttp",
 			"revision": "383d378220bdeaf66d6e6b1ee04c386fffbe283f",
