@@ -117,10 +117,18 @@
 			"revisionTime": "2019-05-15T12:18:17Z"
 		},
 		{
-			"checksumSHA1": "WIzknz1rbQWUgVG7KwwElO7DajY=",
+			"checksumSHA1": "bM4DRHwEBe64fraPWoPZO1qmfGA=",
 			"path": "github.com/ONSdigital/go-ns/common",
-			"revision": "81b393bfc6e80674df603b7fde2f31a35e81b9dd",
-			"revisionTime": "2019-03-01T13:55:03Z"
+			"revision": "68aed3815467567f5bcbcceeffd5792151d83a1a",
+			"revisionTime": "2019-05-15T12:18:17Z"
+		},
+		{
+			"path": "github.com/ONSdigital/go-ns/common/collection",
+			"revision": ""
+		},
+		{
+			"path": "github.com/ONSdigital/go-ns/common/collection.go",
+			"revision": ""
 		},
 		{
 			"path": "github.com/ONSdigital/go-ns/common/collectionID",
