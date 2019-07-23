@@ -2,7 +2,6 @@ package graphson
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -15,7 +14,7 @@ var (
 
 // GetID returns the string ID for the given vertex
 func (v Vertex) GetID() string {
-	return fmt.Sprintf("%g", v.Value.ID.Value.(float64))
+	return v.Value.ID
 }
 
 // GetLabels returns the []string labels for the given vertex
@@ -132,10 +131,12 @@ func (v Vertex) GetMultiPropertyAs(key, wantType string) (vals []interface{}, er
 			}
 			vals = append(vals, int32(val))
 		case "int64":
-			var typeIf, valIf interface{}
-			if typeIf, ok = prop.Value.Value.(map[string]interface{})["@type"]; !ok || typeIf != "g:Int64" {
+			typedPropValue := prop.Value.Value.(map[string]interface{})
+			typeAsString, ok := typedPropValue["@type"]
+			if !ok || (typeAsString != "g:Int64" && typeAsString != "g:Int32") {
 				return vals, ErrorUnexpectedPropertyType
 			}
+			var valIf interface{}
 			if valIf, ok = prop.Value.Value.(map[string]interface{})["@value"]; !ok {
 				return vals, ErrorUnexpectedPropertyType
 			}

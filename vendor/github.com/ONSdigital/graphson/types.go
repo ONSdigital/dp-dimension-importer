@@ -35,7 +35,7 @@ type Vertex struct {
 }
 
 type VertexValue struct {
-	ID         GenericValue                `json:"id"`
+	ID         string                      `json:"id"`
 	Label      string                      `json:"label"`
 	Properties map[string][]VertexProperty `json:"properties"`
 }

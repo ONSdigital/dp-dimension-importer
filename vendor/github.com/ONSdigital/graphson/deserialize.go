@@ -230,7 +230,7 @@ func ConvertToCleanVertices(vertices []Vertex) []CleanVertex {
 	var responseVertices []CleanVertex
 	for _, vertex := range vertices {
 		responseVertices = append(responseVertices, CleanVertex{
-			Id:    vertex.Value.ID.Value.(string),
+			Id:    vertex.Value.ID,
 			Label: vertex.Value.Label,
 		})
 	}
