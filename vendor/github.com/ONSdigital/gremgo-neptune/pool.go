@@ -401,6 +401,17 @@ func (p *Pool) GetCtx(ctx context.Context, query string, bindings, rebindings ma
 	return pc.Client.GetCtx(ctx, query, bindings, rebindings)
 }
 
+// OpenStreamCursor initiates a query on the database, returning a stream to iterate over the results
+func (p *Pool) OpenStreamCursor(ctx context.Context, query string, bindings, rebindings map[string]string) (stream *Stream, err error) {
+	var pc *conn
+	if pc, err = p.connCtx(ctx); err != nil {
+		err = errors.Wrap(err, "OpenStreamCursor: Failed p.connCtx")
+		return
+	}
+	defer p.putConn(pc, err)
+	return pc.Client.OpenStreamCursor(ctx, query, bindings, rebindings)
+}
+
 // OpenCursorCtx initiates a query on the database, returning a cursor to iterate over the results
 func (p *Pool) OpenCursorCtx(ctx context.Context, query string, bindings, rebindings map[string]string) (cursor *Cursor, err error) {
 	var pc *conn

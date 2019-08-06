@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/ONSdigital/dp-dimension-importer/event"
@@ -37,6 +38,7 @@ type InstanceEventHandler struct {
 	Store         store.Storer
 	DatasetAPICli DatasetAPIClient
 	Producer      CompletedProducer
+	BatchSize     int
 }
 
 // Handle retrieves the dimensions for specified instanceID from the Import API, creates an MyInstance entity for
@@ -115,26 +117,52 @@ func (hdlr *InstanceEventHandler) insertDimensions(instance *model.Instance, dim
 
 	cache := make(map[string]string)
 
+	var wg sync.WaitGroup
+	problem := make(chan error, len(dimensions))
+	count := 0
+
 	for _, dimension := range dimensions {
+		wg.Add(1)
+		count++
+		go func(d *model.Dimension) {
+			defer wg.Done()
 
-		dimension, err := hdlr.Store.InsertDimension(context.Background(), cache, instance, dimension)
-		if err != nil {
-			return errors.Wrap(err, "error while attempting to insert dimension")
-		}
-
-		if err = hdlr.DatasetAPICli.PutDimensionNodeID(instance.InstanceID, dimension); err != nil {
-			return errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
-		}
-
-		// todo: remove this temp hack once the time codelist / input data has been fixed.
-		if dimension.DimensionID != "time" {
-			if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance, dimension.Links.CodeList.ID, dimension.Option); err != nil {
-				return errors.Wrap(err, "error attempting to create relationship to code")
+			d, err := hdlr.Store.InsertDimension(context.Background(), cache, instance, d)
+			if err != nil {
+				problem <- errors.Wrap(err, "error while attempting to insert dimension")
+				return
 			}
+
+			if err = hdlr.DatasetAPICli.PutDimensionNodeID(instance.InstanceID, d); err != nil {
+				problem <- errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
+				return
+			}
+
+			// todo: remove this temp hack once the time codelist / input data has been fixed.
+			if d.DimensionID != "time" {
+				if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance, d.Links.CodeList.ID, d.Option); err != nil {
+					problem <- errors.Wrap(err, "error attempting to create relationship to code")
+					return
+				}
+			}
+		}(dimension)
+
+		if count >= hdlr.BatchSize {
+			wg.Wait()
+			if len(problem) > 0 {
+				return <-problem
+			}
+			count = 0
 		}
 	}
 
+	wg.Wait()
+	if len(problem) > 0 {
+		return <-problem
+	}
+
 	if err := hdlr.Store.AddDimensions(context.Background(), instance); err != nil {
+
 		return errors.Wrap(err, "AddDimensions returned an error")
 	}
 

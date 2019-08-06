@@ -78,6 +78,7 @@ func main() {
 		Store:         graphDB,
 		DatasetAPICli: datasetAPICli,
 		Producer:      instanceCompletedProducer,
+		BatchSize:     cfg.BatchSize,
 	}
 
 	// Errors handler

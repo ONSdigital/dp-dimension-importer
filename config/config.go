@@ -23,6 +23,7 @@ type Config struct {
 	ZebedeeURL                     string        `envconfig:"ZEBEDEE_URL"`
 	GracefulShutdownTimeout        time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval            time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
+	BatchSize                      int           `envconfig:"BATCH_SIZE"`
 }
 
 var cfg *Config
@@ -46,6 +47,7 @@ func Get() (*Config, error) {
 		EventReporterTopic:             "report-events",
 		GracefulShutdownTimeout:        time.Second * 5,
 		HealthCheckInterval:            time.Minute,
+		BatchSize:                      1, //not all implementations will allow for batching, so set to a safe default
 	}
 
 	if len(cfg.ServiceAuthToken) == 0 {

@@ -56,7 +56,7 @@ func (n *NeptuneDB) SetInstanceIsPublished(ctx context.Context, instanceID strin
 // CreateInstanceConstraint is not needed for the neptune implementation, as constraints are
 // not a neptune construct
 func (n *NeptuneDB) CreateInstanceConstraint(ctx context.Context, i *model.Instance) error {
-	return nil
+	return errors.New("method not supported: CreateInstanceConstraint")
 }
 
 // CreateInstance will check if an instance node already exists and create one from
@@ -76,6 +76,7 @@ func (n *NeptuneDB) CreateInstance(ctx context.Context, i *model.Instance) error
 	}
 
 	if exists {
+		log.Info("instance already exists in neptune", data)
 		return nil
 	}
 
@@ -117,7 +118,7 @@ func (n *NeptuneDB) CreateCodeRelationship(ctx context.Context, i *model.Instanc
 	}
 
 	if len(code) == 0 {
-		return errors.New("code is required but was empty")
+		return errors.New("error creating relationship from instance to code: code is required but was empty")
 	}
 
 	data := log.Data{
@@ -131,7 +132,7 @@ func (n *NeptuneDB) CreateCodeRelationship(ctx context.Context, i *model.Instanc
 		if len(res) > 0 && res[0].Status.Code == gremgo.StatusScriptEvaluationError &&
 			strings.Contains(res[0].Status.Message, fmt.Sprintf(codeListNotFoundFmt, codeListID)) {
 
-			return errors.Wrapf(err, "code or code list not found", data)
+			return errors.Wrapf(err, "error creating relationship from instance to code: code or code list not found", data)
 		}
 		log.ErrorC("neptune exec failed on CreateCodeRelationship", err, data)
 		return err

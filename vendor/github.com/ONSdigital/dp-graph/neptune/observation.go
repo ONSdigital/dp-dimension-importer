@@ -4,24 +4,30 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 
 	"github.com/ONSdigital/dp-graph/neptune/query"
 	"github.com/ONSdigital/dp-graph/observation"
 	"github.com/ONSdigital/dp-observation-importer/models"
+	"github.com/ONSdigital/go-ns/log"
 )
 
-// ErrEmptyFilter is returned if the provided filter is empty.
-var ErrEmptyFilter = errors.New("filter is empty")
+// ErrInvalidFilter is returned if the provided filter is nil.
+var ErrInvalidFilter = errors.New("nil filter cannot be processed")
+
+// TODO: this global state is only used for metrics in InsertObservationBatch,
+// not used in actual code flow, but should be revisited before production use
+var batchCount = 0
+var totalTime time.Time
 
 func (n *NeptuneDB) StreamCSVRows(ctx context.Context, filter *observation.Filter, limit *int) (observation.StreamRowReader, error) {
 	if filter == nil {
-		return nil, ErrEmptyFilter
+		return nil, ErrInvalidFilter
 	}
 
-	q := fmt.Sprintf(query.GetInstanceHeader, filter.InstanceID)
+	q := fmt.Sprintf(query.GetInstanceHeaderPart, filter.InstanceID)
 
 	q += buildObservationsQuery(filter)
 	q += query.GetObservationSelectRowPart
@@ -30,7 +36,7 @@ func (n *NeptuneDB) StreamCSVRows(ctx context.Context, filter *observation.Filte
 		q += fmt.Sprintf(query.LimitPart, *limit)
 	}
 
-	return n.Pool.OpenCursorCtx(ctx, q, nil, nil)
+	return n.Pool.OpenStreamCursor(ctx, q, nil, nil)
 }
 
 func buildObservationsQuery(f *observation.Filter) string {
@@ -39,6 +45,7 @@ func buildObservationsQuery(f *observation.Filter) string {
 	}
 
 	q := fmt.Sprintf(query.GetObservationsPart, f.InstanceID)
+	var selectOpts []string
 
 	for _, dim := range f.DimensionFilters {
 		if len(dim.Options) == 0 {
@@ -49,61 +56,56 @@ func buildObservationsQuery(f *observation.Filter) string {
 			dim.Options[i] = fmt.Sprintf("'%s'", opt)
 		}
 
-		q += fmt.Sprintf(query.GetObservationDimensionPart, f.InstanceID, dim.Name, strings.Join(dim.Options, ",")) + ","
+		selectOpts = append(selectOpts, fmt.Sprintf(query.GetObservationDimensionPart, f.InstanceID, dim.Name, strings.Join(dim.Options, ",")))
 	}
 
-	//remove trailing comma and close match statement
-	q = strings.Trim(q, ",")
+	//comma separate dimension option selections and close match statement
+	q += strings.Join(selectOpts, ",")
 	q += ")"
 
 	return q
 }
 
-func (n *NeptuneDB) InsertObservationBatch(ctx context.Context, attempt int, instanceID string, observations []*models.Observation, dimensionIDs map[string]string) error {
+func (n *NeptuneDB) InsertObservationBatch(ctx context.Context, attempt int, instanceID string, observations []*models.Observation, dimensionNodeIDs map[string]string) error {
 	if len(observations) == 0 {
-		fmt.Println("range should be empty")
+		log.Info("no observations in batch", log.Data{"instance_ID": instanceID})
 		return nil
 	}
 
-	//fan out go routines to manage independent requests for each observation in this batch
-	//if any report errors, they'll be passed through the problem channel, and handled at the end of processing
-	var wg sync.WaitGroup
-	problem := make(chan error, len(observations))
-
-	for _, obs := range observations {
-		wg.Add(1)
-		go func(o models.Observation) {
-			defer wg.Done()
-			create := fmt.Sprintf(query.CreateObservationPart, instanceID, o.Row, o.RowIndex)
-			for _, d := range o.DimensionOptions {
-				dimensionName := strings.ToLower(d.DimensionName)
-				dimensionLookup := instanceID + "_" + dimensionName + "_" + d.Name
-
-				nodeID, ok := dimensionIDs[dimensionLookup]
-				if !ok {
-					problem <- fmt.Errorf("no nodeID [%s] found in dimension map", dimensionLookup)
-					return
-				}
-
-				create += fmt.Sprintf(query.AddObservationRelationshipPart, nodeID, instanceID, d.DimensionName, d.Name)
-			}
-
-			create = strings.TrimSuffix(create, ".outV()")
-
-			fmt.Println("query : " + create)
-			if _, err := n.exec(create); err != nil {
-				problem <- err
-				return
-			}
-		}(*obs)
+	bID := batchCount
+	batchCount++
+	batchStart := time.Now()
+	if totalTime.IsZero() {
+		totalTime = batchStart
+	} else {
+		log.Info("opening batch", log.Data{"size": len(observations), "batchID": bID})
 	}
 
-	wg.Wait()
-	numOfErrors := len(problem)
-	if numOfErrors > 0 {
-		firstError := <-problem
-		return errors.Wrapf(errors.New("errors found inserting observation batch"), fmt.Sprintf("[%d] errors found, propagating first", numOfErrors), firstError)
+	var create string
+	for _, o := range observations {
+		create += fmt.Sprintf(query.DropObservationRelationships, instanceID, o.Row)
+		create += fmt.Sprintf(query.DropObservation, instanceID, o.Row)
+		create += fmt.Sprintf(query.CreateObservationPart, instanceID, o.Row, o.RowIndex)
+		for _, d := range o.DimensionOptions {
+			dimensionName := strings.ToLower(d.DimensionName)
+			dimensionLookup := instanceID + "_" + dimensionName + "_" + d.Name
+
+			nodeID, ok := dimensionNodeIDs[dimensionLookup]
+			if !ok {
+				return fmt.Errorf("no nodeID [%s] found in dimension map", dimensionLookup)
+			}
+
+			create += fmt.Sprintf(query.AddObservationRelationshipPart, nodeID, instanceID, d.DimensionName, d.Name)
+		}
+
+		create = strings.TrimSuffix(create, ".outV()")
+		create += ".iterate() "
 	}
 
+	if _, err := n.exec(create); err != nil {
+		return err
+	}
+
+	log.Info("batch complete", log.Data{"batchID": bID, "elapsed": time.Since(totalTime), "batchTime": time.Since(batchStart)})
 	return nil
 }

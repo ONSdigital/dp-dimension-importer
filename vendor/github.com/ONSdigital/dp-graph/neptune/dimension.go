@@ -6,12 +6,11 @@ import (
 
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/dp-graph/neptune/query"
-	"github.com/ONSdigital/go-ns/log"
 )
 
 // InsertDimension node to neptune and create relationships to the instance node.
 // Where nodes and relationships already exist, ensure they are upserted.
-func (n *NeptuneDB) InsertDimension(ctx context.Context, cache map[string]string, i *model.Instance, d *model.Dimension) (*model.Dimension, error) {
+func (n *NeptuneDB) InsertDimension(ctx context.Context, uniqueDimensions map[string]string, i *model.Instance, d *model.Dimension) (*model.Dimension, error) {
 	if err := i.Validate(); err != nil {
 		return nil, err
 	}
@@ -26,19 +25,10 @@ func (n *NeptuneDB) InsertDimension(ctx context.Context, cache map[string]string
 		return nil, err
 	}
 
-	// if len(res) == 0 {
-	// 	return nil, errors.New("invalid response from neptune exec during dimension insert")
-	// }
-	//res.GetID()
-
-	//log.Info("inserted dimension", log.Data{"node_id": id})
-
 	d.NodeID = res.GetID()
 
-	log.Info("inserted dimension", log.Data{"node_id": d.NodeID})
-
-	if _, ok := cache[dimensionLabel]; !ok {
-		cache[dimensionLabel] = dimensionLabel
+	if _, ok := uniqueDimensions[dimensionLabel]; !ok {
+		uniqueDimensions[dimensionLabel] = dimensionLabel
 		i.AddDimension(d)
 	}
 	return d, nil
