@@ -324,10 +324,10 @@
 			"revisionTime": "2019-04-27T04:03:06Z"
 		},
 		{
-			"checksumSHA1": "Js/yx9fZ3+wH1wZpHNIxSTMIaCg=",
+			"checksumSHA1": "cIiyvAduLLFvu+tg1Qr5Jw3jeWo=",
 			"path": "github.com/jtolds/gls",
-			"revision": "77f18212c9c7edc9bd6a33d383a7b545ce62f064",
-			"revisionTime": "2017-05-03T22:40:06Z"
+			"revision": "b4936e06046bbecbb94cae9c18127ebe510a2cb9",
+			"revisionTime": "2018-11-10T20:28:10Z"
 		},
 		{
 			"checksumSHA1": "OBvAHqWjdI4NQVAqTkcQAdTuCFY=",
@@ -376,46 +376,46 @@
 			"revisionTime": "2017-11-27T12:13:36Z"
 		},
 		{
-			"checksumSHA1": "1fb7nsAYXNlr/tE7At08oT2ao8I=",
+			"checksumSHA1": "AE3KrY+HDFH2rHWhIwV96bJIlHw=",
 			"path": "github.com/smartystreets/assertions",
-			"revision": "d380eccd517d419eb73a0a90cc3ffc405f1e029e",
-			"revisionTime": "2019-05-31T22:13:23Z"
+			"revision": "8df9578143a50c65c2675d8e3207386ca9375d31",
+			"revisionTime": "2019-08-01T02:41:32Z"
 		},
 		{
 			"checksumSHA1": "a0CRqejGZH1LxO4G/DZsux7ULWA=",
 			"path": "github.com/smartystreets/assertions/internal/go-diff/diffmatchpatch",
-			"revision": "d380eccd517d419eb73a0a90cc3ffc405f1e029e",
-			"revisionTime": "2019-05-31T22:13:23Z"
+			"revision": "8df9578143a50c65c2675d8e3207386ca9375d31",
+			"revisionTime": "2019-08-01T02:41:32Z"
 		},
 		{
 			"checksumSHA1": "v6W3GIQMzr3QSXB2NtBa9X7SwiI=",
 			"path": "github.com/smartystreets/assertions/internal/go-render/render",
-			"revision": "d380eccd517d419eb73a0a90cc3ffc405f1e029e",
-			"revisionTime": "2019-05-31T22:13:23Z"
+			"revision": "8df9578143a50c65c2675d8e3207386ca9375d31",
+			"revisionTime": "2019-08-01T02:41:32Z"
 		},
 		{
 			"checksumSHA1": "r6FauVdOTFnwYQgrKGFuWUbIAJE=",
 			"path": "github.com/smartystreets/assertions/internal/oglematchers",
-			"revision": "d380eccd517d419eb73a0a90cc3ffc405f1e029e",
-			"revisionTime": "2019-05-31T22:13:23Z"
+			"revision": "8df9578143a50c65c2675d8e3207386ca9375d31",
+			"revisionTime": "2019-08-01T02:41:32Z"
 		},
 		{
-			"checksumSHA1": "fzTuiT5s2hzKZ/EYS9zMx8ztsXE=",
+			"checksumSHA1": "tzcUwQrH1EMR+RPvTE1Ico6kqT4=",
 			"path": "github.com/smartystreets/goconvey/convey",
-			"revision": "68dc04aab96ae4326137d6b77330c224063a927e",
-			"revisionTime": "2019-03-30T03:26:15Z"
+			"revision": "505e419363375c0dc132d3ac02632a4ee32199ca",
+			"revisionTime": "2019-07-31T23:36:26Z"
 		},
 		{
 			"checksumSHA1": "6Mgn4H/4vpqYGlaIKZ0UwOmJN0E=",
 			"path": "github.com/smartystreets/goconvey/convey/gotest",
-			"revision": "68dc04aab96ae4326137d6b77330c224063a927e",
-			"revisionTime": "2019-03-30T03:26:15Z"
+			"revision": "505e419363375c0dc132d3ac02632a4ee32199ca",
+			"revisionTime": "2019-07-31T23:36:26Z"
 		},
 		{
-			"checksumSHA1": "/8sed9aZQ9B7D0cBhH3OhvS2fAk=",
+			"checksumSHA1": "zUFddnpn7/A+gjwhShq642PM40I=",
 			"path": "github.com/smartystreets/goconvey/convey/reporting",
-			"revision": "68dc04aab96ae4326137d6b77330c224063a927e",
-			"revisionTime": "2019-03-30T03:26:15Z"
+			"revision": "505e419363375c0dc132d3ac02632a4ee32199ca",
+			"revisionTime": "2019-07-31T23:36:26Z"
 		},
 		{
 			"checksumSHA1": "GtamqiJoL7PGHsN454AoffBFMa8=",
