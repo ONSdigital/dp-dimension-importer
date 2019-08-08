@@ -129,19 +129,25 @@ func (hdlr *InstanceEventHandler) insertDimensions(instance *model.Instance, dim
 
 			d, err := hdlr.Store.InsertDimension(context.Background(), cache, instance, d)
 			if err != nil {
-				problem <- errors.Wrap(err, "error while attempting to insert dimension")
+				err = errors.Wrap(err, "error while attempting to insert dimension")
+				log.Error(err, log.Data{"instance_id": instance.InstanceID, "dimension_id": d.DimensionID})
+				problem <- err
 				return
 			}
 
 			if err = hdlr.DatasetAPICli.PutDimensionNodeID(instance.InstanceID, d); err != nil {
-				problem <- errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
+				err = errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
+				log.Error(err, log.Data{"instance_id": instance.InstanceID, "dimension_id": d.DimensionID})
+				problem <- err
 				return
 			}
 
 			// todo: remove this temp hack once the time codelist / input data has been fixed.
 			if d.DimensionID != "time" {
 				if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance, d.Links.CodeList.ID, d.Option); err != nil {
-					problem <- errors.Wrap(err, "error attempting to create relationship to code")
+					err = errors.Wrap(err, "error attempting to create relationship to code")
+					log.Error(err, log.Data{"instance_id": instance.InstanceID, "dimension_id": d.DimensionID})
+					problem <- err
 					return
 				}
 			}

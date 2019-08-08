@@ -95,7 +95,7 @@ func main() {
 		cfg.BindAddr,
 		cfg.HealthCheckInterval,
 		healthCheckErrors,
-		//graphDB,
+		graphDB,
 		datasetHealthCheck.New(cfg.DatasetAPIAddr),
 	)
 
