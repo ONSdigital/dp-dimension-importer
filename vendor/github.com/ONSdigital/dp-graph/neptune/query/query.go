@@ -87,7 +87,7 @@ const (
 
 	//instance - parts
 	AddInstanceDimensionsPart         = "g.V().hasLabel('_%s_Instance')"
-	AddInstanceDimensionsPropertyPart = ".property(list, 'dimensions', '%s')"
+	AddInstanceDimensionsPropertyPart = ".property('dimensions', '%s')"
 
 	// dimension
 	CreateDimensionToInstanceRelationship = "g.V().hasLabel('_%s_%s').has('value', '%s').fold().coalesce(unfold(), " +

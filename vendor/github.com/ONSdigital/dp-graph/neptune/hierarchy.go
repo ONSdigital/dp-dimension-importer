@@ -9,11 +9,10 @@ import (
 	"github.com/ONSdigital/dp-hierarchy-api/models"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/graphson"
-	"github.com/pkg/errors"
 )
 
 func (n *NeptuneDB) CreateInstanceHierarchyConstraints(ctx context.Context, attempt int, instanceID, dimensionName string) error {
-	return errors.New("method not supported: CreateInstanceHierarchyConstraints")
+	return nil
 }
 
 func (n *NeptuneDB) CloneNodes(ctx context.Context, attempt int, instanceID, codeListID, dimensionName string) (err error) {

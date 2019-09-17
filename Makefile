@@ -14,7 +14,7 @@ build:
 	@mkdir -p $(BUILD_ARCH)/$(BIN_DIR)
 	go build -o $(BUILD_ARCH)/$(BIN_DIR)/dp-dimension-importer cmd/dp-dimension-importer/main.go
 debug: build
-	HUMAN_LOG=1 go run cmd/dp-dimension-importer/main.go
+	GRAPH_ADDR=$(GRAPH_ADDR) GRAPH_DRIVER_TYPE=$(GRAPH_DRIVER_TYPE) HUMAN_LOG=1 go run cmd/dp-dimension-importer/main.go
 clean:
 	rm
 test:

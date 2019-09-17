@@ -56,7 +56,7 @@ func (n *NeptuneDB) SetInstanceIsPublished(ctx context.Context, instanceID strin
 // CreateInstanceConstraint is not needed for the neptune implementation, as constraints are
 // not a neptune construct
 func (n *NeptuneDB) CreateInstanceConstraint(ctx context.Context, i *model.Instance) error {
-	return errors.New("method not supported: CreateInstanceConstraint")
+	return nil
 }
 
 // CreateInstance will check if an instance node already exists and create one from
