@@ -1,5 +1,10 @@
 package query
 
+// Neptune implements a slight variance of Gremlin, so queries must be written with both specs in mind
+// (https://docs.aws.amazon.com/neptune/latest/userguide/access-graph-gremlin-differences.html)
+// Important practices:
+// 1) .property() function must contain 'single' where not a list, as the Neptune default is 'set'
+
 const (
 	// codelists
 	GetCodeLists          = "g.V().hasLabel('_code_list')"
@@ -44,25 +49,25 @@ const (
 	`
 
 	// hierarchy write
-	CloneHierarchyNodes = "g.V().hasLabel('_generic_hierarchy_node_%s').as('old')" +
+	CloneHierarchyNodes = "g.V().hasLabel('_generic_hierarchy_node_%s').as('old').addE('clone_of')" +
 		".addV('_hierarchy_node_%s_%s')" +
-		".property('code',select('old').values('code'))" +
-		".property('label',select('old').values('label'))" +
-		".property(single, 'hasData', false)" +
+		".property(single,'code',select('old').values('code'))" +
+		".property(single,'label',select('old').values('label'))" +
+		".property(single,'hasData', false)" +
 		".property('code_list','%s').as('new')" +
-		".addE('clone_of').to('old').select('new')"
+		".select('new')"
 	CountHierarchyNodes         = "g.V().hasLabel('_hierarchy_node_%s_%s').count()"
 	CloneHierarchyRelationships = "g.V().hasLabel('_generic_hierarchy_node_%s').as('oc')" +
 		".out('hasParent')" +
 		".in('clone_of').hasLabel('_hierarchy_node_%s_%s')" +
-		".addE('hasParent').from(select('oc').in('clone_of').hasLabel('_hierarchy_node_%s_%s'))"
+		".addE('hasParent').select('oc').in('clone_of').hasLabel('_hierarchy_node_%s_%s')"
 	RemoveCloneMarkers  = "g.V().hasLabel('_hierarchy_node_%s_%s').outE('clone_of').drop()"
 	SetNumberOfChildren = "g.V().hasLabel('_hierarchy_node_%s_%s').property(single,'numberOfChildren',__.in('hasParent').count())"
 	SetHasData          = "g.V().hasLabel('_hierarchy_node_%s_%s').as('v')" +
 		`.V().hasLabel('_%s_%s').as('c').where('v',eq('c')).by('code').by('value').` +
-		`select('v').property('hasData',true)`
-	MarkNodesToRemain = "g.V().hasLabel('_hierarchy_node_%s_%s').has('hasData').property('remain',true)" +
-		".repeat(out('hasParent')).emit().property('remain',true)"
+		`select('v').property(single,'hasData',true)`
+	MarkNodesToRemain = "g.V().hasLabel('_hierarchy_node_%s_%s').has('hasData').property(single,'remain',true)" +
+		".repeat(out('hasParent')).emit().property(single,'remain',true)"
 	RemoveNodesNotMarkedToRemain = "g.V().hasLabel('_hierarchy_node_%s_%s').not(has('remain',true)).drop()"
 	RemoveRemainMarker           = "g.V().hasLabel('_hierarchy_node_%s_%s').has('remain').properties('remain').drop()"
 
@@ -96,7 +101,7 @@ const (
 	DropObservationRelationships   = "g.V().hasLabel('_%s_observation').has('value', '%s').bothE().drop().iterate()"
 	DropObservation                = "g.V().hasLabel('_%s_observation').has('value', '%s').drop().iterate()"
 	CreateObservationPart          = "g.addV('_%s_observation').property(single, 'value', '%s').property(single, 'rowIndex', '%d')"
-	AddObservationRelationshipPart = ".addE('isValueOf').to(V().hasId('%s').hasLabel('_%s_%s').where(values('value').is('%s'))).outV()"
+	AddObservationRelationshipPart = ".addE('isValueOf').V().hasId('%s').hasLabel('_%s_%s').where(values('value').is('%s')).outV()"
 
 	GetInstanceHeaderPart  = "g.V().hasLabel('_%s_Instance').as('instance')"
 	GetAllObservationsPart = ".V().hasLabel('_%s_observation').values('row')"
