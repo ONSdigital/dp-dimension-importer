@@ -77,8 +77,8 @@ const (
 	// instance - import process
 	CreateInstance                   = "g.addV('_%s_Instance').property(single,'header','%s')"
 	CheckInstance                    = "g.V().hasLabel('_%s_Instance').count()"
-	CreateInstanceToCodeRelationship = "g.V().hasLabel('_%s_Instance').as('i').addE('inDataset').from(" +
-		"V().hasLabel('_code').has('value','%s').where(out('usedBy').hasLabel('_code_list').has('listID','%s'))" +
+	CreateInstanceToCodeRelationship = "g.V().hasLabel('_%s_Instance').as('i').addInE('inDataset', " +
+		"g.V().hasLabel('_code').has('value','%s').where(out('usedBy').hasLabel('_code_list').has('listID','%s'))" +
 		")"
 	AddVersionDetailsToInstance = "g.V().hasLabel('_%s_Instance').property(single,'dataset_id','%s')." +
 		"property(single,'edition','%s').property(single,'version','%s')"
@@ -91,13 +91,13 @@ const (
 
 	// dimension
 	CreateDimensionToInstanceRelationship = "g.V().hasLabel('_%s_%s').has('value', '%s').fold().coalesce(unfold(), " +
-		"addV('_%s_%s').as('d').property('value','%s').addE('HAS_DIMENSION').from(V().hasLabel('_%s_Instance')).select('d'))"
+		"addV('_%s_%s').as('d').property('value','%s').addInE('HAS_DIMENSION', g.V().hasLabel('_%s_Instance')).select('d'))"
 
 	// observation
 	DropObservationRelationships   = "g.V().hasLabel('_%s_observation').has('value', '%s').bothE().drop().iterate()"
 	DropObservation                = "g.V().hasLabel('_%s_observation').has('value', '%s').drop().iterate()"
 	CreateObservationPart          = "g.addV('_%s_observation').property(single, 'value', '%s').property(single, 'rowIndex', '%d')"
-	AddObservationRelationshipPart = ".addE('isValueOf').to(V().hasId('%s').hasLabel('_%s_%s').where(values('value').is('%s'))).outV()"
+	AddObservationRelationshipPart = ".addOutE('isValueOf', g.V().hasId('%s').hasLabel('_%s_%s').where(values('value').is('%s'))).outV()"
 
 	GetInstanceHeaderPart  = "g.V().hasLabel('_%s_Instance').as('instance')"
 	GetAllObservationsPart = ".V().hasLabel('_%s_observation').values('row')"
