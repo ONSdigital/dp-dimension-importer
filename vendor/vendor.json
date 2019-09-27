@@ -57,10 +57,10 @@
 			"revisionTime": "2019-08-06T12:38:18Z"
 		},
 		{
-			"checksumSHA1": "yPTdUhSVGpHHXhX3AowC7bTVsEU=",
+			"checksumSHA1": "wLGgY+q3FJgeNdHTe3b4iZ1Xo6g=",
 			"path": "github.com/ONSdigital/dp-graph/neptune",
-			"revision": "53e1e35d9d015fb5b40ad908f080163771c5a55e",
-			"revisionTime": "2019-09-25T14:32:43Z"
+			"revision": "e12096ecd253ee0f79f17e1b15f3300ff7d58caf",
+			"revisionTime": "2019-09-27T08:40:52Z"
 		},
 		{
 			"checksumSHA1": "c8Q5ZPmuDWCGuJWUYMEj3gWNx2c=",
@@ -75,10 +75,10 @@
 			"revisionTime": "2019-08-06T12:38:18Z"
 		},
 		{
-			"checksumSHA1": "pg7bWEQD7K2tkJQYmizUjIyUnZI=",
+			"checksumSHA1": "Iqg5wBuSOs9iX26D6nYYlNjbe/g=",
 			"path": "github.com/ONSdigital/dp-graph/neptune/query",
-			"revision": "53e1e35d9d015fb5b40ad908f080163771c5a55e",
-			"revisionTime": "2019-09-25T14:32:43Z"
+			"revision": "e12096ecd253ee0f79f17e1b15f3300ff7d58caf",
+			"revisionTime": "2019-09-27T08:40:52Z"
 		},
 		{
 			"checksumSHA1": "DRohWZAkyrLLQ5B5yq/bngMZbgM=",

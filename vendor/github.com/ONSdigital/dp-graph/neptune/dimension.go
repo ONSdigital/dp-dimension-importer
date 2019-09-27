@@ -18,14 +18,17 @@ func (n *NeptuneDB) InsertDimension(ctx context.Context, uniqueDimensions map[st
 		return nil, err
 	}
 
-	dimensionLabel := fmt.Sprintf("_%s_%s", i.InstanceID, d.DimensionID)
+	createDimension := fmt.Sprintf(query.DropDimensionRelationships, i.InstanceID, d.DimensionID, d.Option)
+	createDimension += fmt.Sprintf(query.DropDimension, i.InstanceID, d.DimensionID, d.Option)
+	createDimension += fmt.Sprintf(query.CreateDimensionToInstanceRelationship, i.InstanceID, d.DimensionID, d.Option, i.InstanceID)
 
-	res, err := n.getVertex(fmt.Sprintf(query.CreateDimensionToInstanceRelationship, i.InstanceID, d.DimensionID, d.Option, i.InstanceID, d.DimensionID, d.Option, i.InstanceID))
+	res, err := n.getVertex(createDimension)
 	if err != nil {
 		return nil, err
 	}
 
 	d.NodeID = res.GetID()
+	dimensionLabel := fmt.Sprintf("_%s_%s", i.InstanceID, d.DimensionID)
 
 	if _, ok := uniqueDimensions[dimensionLabel]; !ok {
 		uniqueDimensions[dimensionLabel] = dimensionLabel
