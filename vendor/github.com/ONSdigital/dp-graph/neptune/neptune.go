@@ -170,9 +170,7 @@ func (n *NeptuneDB) exec(gremStmt string) (res []gremgo.Response, err error) {
 			if res == nil {
 				err = errors.New("res returned nil")
 				log.ErrorC("bad res", err, logData)
-				return
 			}
-			log.Info("exec ok", logData)
 			return
 		}
 		// XXX check err more thoroughly (isTransientError?) (non-err failures?)

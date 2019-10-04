@@ -3,7 +3,6 @@ package neptune
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -83,8 +82,8 @@ func (n *NeptuneDB) InsertObservationBatch(ctx context.Context, attempt int, ins
 	}
 
 	var create string
-	count := 0
 	for _, o := range observations {
+		o.Row = escapeSingleQuotes(o.Row)
 		create += fmt.Sprintf(query.DropObservationRelationships, instanceID, o.Row)
 		create += fmt.Sprintf(query.DropObservation, instanceID, o.Row)
 		create += fmt.Sprintf(query.CreateObservationPart, instanceID, o.Row, o.RowIndex)
@@ -97,12 +96,11 @@ func (n *NeptuneDB) InsertObservationBatch(ctx context.Context, attempt int, ins
 				return fmt.Errorf("no nodeID [%s] found in dimension map", dimensionLookup)
 			}
 
-			create += fmt.Sprintf(query.AddObservationRelationshipPart, strconv.Itoa(count), nodeID, instanceID, d.DimensionName, d.Name, strconv.Itoa(count))
+			create += fmt.Sprintf(query.AddObservationRelationshipPart, nodeID, instanceID, d.DimensionName, d.Name)
 		}
 
 		create = strings.TrimSuffix(create, ".outV()")
 		create += ".iterate();"
-		count++
 	}
 
 	create = strings.TrimSuffix(create, ".iterate();")
@@ -112,4 +110,13 @@ func (n *NeptuneDB) InsertObservationBatch(ctx context.Context, attempt int, ins
 
 	log.Info("batch complete", log.Data{"batchID": bID, "elapsed": time.Since(totalTime), "batchTime": time.Since(batchStart)})
 	return nil
+}
+
+func escapeSingleQuotes(input string) string {
+	for i, c := range input {
+		if string(c) == "'" {
+			input = input[:i] + "\\" + input[i:]
+		}
+	}
+	return input
 }

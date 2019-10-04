@@ -31,7 +31,7 @@ func (n *NeptuneDB) CloneNodes(ctx context.Context, attempt int, instanceID, cod
 	}
 	log.Debug("cloning nodes from the generic hierarchy", logData)
 
-	if _, err = n.getVertices(gremStmt); err != nil {
+	if _, err = n.exec(gremStmt); err != nil {
 		log.ErrorC("cannot get vertices during cloning", err, logData)
 		return
 	}
@@ -65,6 +65,7 @@ func (n *NeptuneDB) CloneRelationships(ctx context.Context, attempt int, instanc
 		instanceID,
 		dimensionName,
 	)
+
 	logData := log.Data{
 		"fn":             "CloneRelationships",
 		"instance_id":    instanceID,
@@ -119,7 +120,7 @@ func (n *NeptuneDB) SetNumberOfChildren(ctx context.Context, attempt int, instan
 
 	log.Debug("setting number-of-children property value on the instance hierarchy nodes", logData)
 
-	if _, err = n.getVertices(gremStmt); err != nil {
+	if _, err = n.exec(gremStmt); err != nil {
 		log.ErrorC("cannot find vertices while settting nChildren on hierarchy nodes", err, logData)
 		return
 	}
@@ -144,7 +145,7 @@ func (n *NeptuneDB) SetHasData(ctx context.Context, attempt int, instanceID, dim
 
 	log.Debug("setting has-data property on the instance hierarchy", logData)
 
-	if _, err = n.getVertices(gremStmt); err != nil {
+	if _, err = n.exec(gremStmt); err != nil {
 		log.ErrorC("cannot find vertices while setting hasData on hierarchy nodes", err, logData)
 		return
 	}
@@ -168,7 +169,7 @@ func (n *NeptuneDB) MarkNodesToRemain(ctx context.Context, attempt int, instance
 
 	log.Debug("marking nodes to remain after trimming sparse branches", logData)
 
-	if _, err = n.getVertices(gremStmt); err != nil {
+	if _, err = n.exec(gremStmt); err != nil {
 		log.ErrorC("cannot find vertices while marking hierarchy nodes to keep", err, logData)
 		return
 	}

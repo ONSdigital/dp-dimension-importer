@@ -49,18 +49,20 @@ const (
 	`
 
 	// hierarchy write
-	CloneHierarchyNodes = `g.V().hasLabel('_generic_hierarchy_node_%s').as('old').addE('clone_of')` +
+	CloneHierarchyNodes = `g.V().hasLabel('_generic_hierarchy_node_%s').as('old')` +
 		`.addV('_hierarchy_node_%s_%s')` +
 		`.property(single,'code',select('old').values('code'))` +
 		`.property(single,'label',select('old').values('label'))` +
 		`.property(single,'hasData', false)` +
 		`.property('code_list','%s').as('new')` +
+		`.addE('clone_of').to('old')` +
 		`.select('new')`
 	CountHierarchyNodes         = `g.V().hasLabel('_hierarchy_node_%s_%s').count()`
 	CloneHierarchyRelationships = `g.V().hasLabel('_generic_hierarchy_node_%s').as('oc')` +
 		`.out('hasParent')` +
-		`.in('clone_of').hasLabel('_hierarchy_node_%s_%s')` +
-		`.addE('hasParent').select('oc').in('clone_of').hasLabel('_hierarchy_node_%s_%s')`
+		`.in('clone_of').hasLabel('_hierarchy_node_%s_%s').as('p')` +
+		`.select('oc').in('clone_of').hasLabel('_hierarchy_node_%s_%s')` +
+		`.addE('hasParent').to('p')`
 	RemoveCloneMarkers  = `g.V().hasLabel('_hierarchy_node_%s_%s').outE('clone_of').drop()`
 	SetNumberOfChildren = `g.V().hasLabel('_hierarchy_node_%s_%s').property(single,'numberOfChildren',__.in('hasParent').count())`
 	SetHasData          = `g.V().hasLabel('_hierarchy_node_%s_%s').as('v')` +
@@ -82,8 +84,9 @@ const (
 	// instance - import process
 	CreateInstance                   = `g.addV('_%s_Instance').property(single,'header',"%s")`
 	CheckInstance                    = `g.V().hasLabel('_%s_Instance').count()`
-	CreateInstanceToCodeRelationship = `g.V().hasLabel('_%s_Instance').as('i').addE('inDataset').` +
-		`V().hasLabel('_code').has('value',"%s").where(out('usedBy').hasLabel('_code_list').has('listID','%s'))`
+	CreateInstanceToCodeRelationship = `g.V().hasLabel('_%s_Instance').as('i').` +
+		`V().hasLabel('_code').has('value',"%s").where(out('usedBy').hasLabel('_code_list').has('listID','%s')).as('c')` +
+		`.addE('inDataset').to('i')`
 	AddVersionDetailsToInstance = `g.V().hasLabel('_%s_Instance').property(single,'dataset_id','%s').` +
 		`property(single,'edition','%s').property(single,'version','%s')`
 	SetInstanceIsPublished = `g.V().hasLabel('_%s_Instance').property(single,'is_published',true)`
@@ -96,20 +99,22 @@ const (
 	// dimension
 	DropDimensionRelationships            = `g.V().hasLabel('_%s_%s').has('value', "%s").bothE().drop().iterate();`
 	DropDimension                         = `g.V().hasLabel('_%s_%s').has('value', "%s").drop().iterate();`
-	CreateDimensionToInstanceRelationship = `g.addV('_%s_%s').as('d').property('value',"%s").addE('HAS_DIMENSION')` +
-		`.V().hasLabel('_%s_Instance').select('d')`
+	CreateDimensionToInstanceRelationship = `g.V().hasLabel('_%s_Instance').as('inst')` +
+		`.addV('_%s_%s').as('d').property('value',"%s")` +
+		`.addE('HAS_DIMENSION').to('inst').select('d')`
 
 	// observation
-	DropObservationRelationships   = `g.V().hasLabel('_%s_observation').has('value', "%s").bothE().drop().iterate();`
-	DropObservation                = `g.V().hasLabel('_%s_observation').has('value', "%s").drop().iterate();`
-	CreateObservationPart          = `g.addV('_%s_observation').property(single, 'value', "%s").property(single, 'rowIndex', '%d')`
-	AddObservationRelationshipPart = `.addE('isValueOf').as('%s').V().hasId('%s').hasLabel('_%s_%s').where(values('value').is("%s")).select('%s').outV()`
+	DropObservationRelationships   = `g.V().hasLabel('_%s_observation').has('value', '%s').bothE().drop().iterate();`
+	DropObservation                = `g.V().hasLabel('_%s_observation').has('value', '%s').drop().iterate();`
+	CreateObservationPart          = `g.addV('_%s_observation').property(single, 'value', '%s').property(single, 'rowIndex', '%d')`
+	AddObservationRelationshipPart = `.V().hasId('%s').hasLabel('_%s_%s').where(values('value').is("%s"))` +
+		`.addE('isValueOf').from('o').select('o')`
 
 	GetInstanceHeaderPart  = `g.V().hasLabel('_%s_Instance').as('instance')`
 	GetAllObservationsPart = `.V().hasLabel('_%s_observation').values('row')`
 
 	GetObservationsPart         = `.V().hasLabel('_%s_observation').match(`
-	GetObservationDimensionPart = `__.as('row').out('isValueOf').hasLabel('_%s_%s').where(values('value').is(within("%s")))`
+	GetObservationDimensionPart = `__.as('row').out('isValueOf').hasLabel('_%s_%s').where(values('value').is(within('%s')))`
 	GetObservationSelectRowPart = `.select('instance', 'row').by('header').by('row').unfold().dedup().select(values)`
 	LimitPart                   = `.limit(%d)`
 )
