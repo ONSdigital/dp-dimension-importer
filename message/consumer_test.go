@@ -1,13 +1,14 @@
 package message
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
 	mock "github.com/ONSdigital/dp-dimension-importer/message/message_test"
 	"github.com/ONSdigital/go-ns/kafka"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/log.go/log"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -51,14 +52,14 @@ func TestConsumer_Listen(t *testing.T) {
 		consumer := NewConsumer(kafkaConsumer, recieverMock, time.Second*10)
 		consumer.Listen()
 
-		Convey("When the consumer receieves a valid message", func() {
+		Convey("When the consumer receives a valid message", func() {
 			incoming <- msg
 
 			select {
 			case <-handlerInvoked:
-				log.Info("Handler invoked", nil)
+				log.Event(context.Background(), "Handler invoked", log.INFO)
 			case <-time.After(time.Second * 3):
-				log.Info("Test timed out.", nil)
+				log.Event(context.Background(), "Test timed out.", log.INFO)
 				t.FailNow()
 			}
 			consumer.Close(nil)

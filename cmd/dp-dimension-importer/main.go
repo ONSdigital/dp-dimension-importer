@@ -16,12 +16,24 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/dp-graph/graph"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/go-ns/kafka"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/go-ns/server"
+	"github.com/ONSdigital/log.go/log"
+	"github.com/gorilla/mux"
 )
 
 type responseBodyReader struct{}
+
+var (
+	// BuildTime represents the time in which the service was built
+	BuildTime string
+	// GitCommit represents the commit (SHA-1) hash of the service that is running
+	GitCommit string
+	// Version represents the version of the service that is running
+	Version string
+)
 
 func (r responseBodyReader) Read(reader io.Reader) ([]byte, error) {
 	return ioutil.ReadAll(reader)
@@ -29,17 +41,18 @@ func (r responseBodyReader) Read(reader io.Reader) ([]byte, error) {
 
 func main() {
 	log.Namespace = "dimension-importer"
+	ctx := context.Background()
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	cfg, err := config.Get()
 	if err != nil {
-		log.ErrorC("config.Load returned an error", err, nil)
+		log.Event(ctx, "config.Load returned an error", log.FATAL, log.Error(err))
 		os.Exit(1)
 	}
 
-	log.Debug("application configuration", log.Data{"config": cfg})
+	log.Event(ctx, "application configuration", log.INFO, log.Data{"config": cfg})
 
 	// Incoming kafka topic for instances to process
 	instanceConsumer := newConsumer(cfg.KafkaAddr, cfg.IncomingInstancesTopic, cfg.IncomingInstancesConsumerGroup)
@@ -50,9 +63,9 @@ func main() {
 	// Outgoing topic for any errors while processing an instance
 	errorReporterProducer := newProducer(cfg.KafkaAddr, cfg.EventReporterTopic)
 
-	graphDB, err := graph.New(context.Background(), graph.Subsets{Instance: true, Dimension: true})
+	graphDB, err := graph.New(ctx, graph.Subsets{Instance: true, Dimension: true})
 	if err != nil {
-		log.ErrorC("graph.New returned an error", err, nil)
+		log.Event(ctx, "graph.New returned an error", log.FATAL, log.Error(err))
 		os.Exit(1)
 	}
 
@@ -81,11 +94,23 @@ func main() {
 	// Errors handler
 	errorReporter, err := reporter.NewImportErrorReporter(errorReporterProducer, log.Namespace)
 	if err != nil {
-		log.ErrorC("reporter.NewImportErrorReporter returned an error", err, nil)
+		log.Event(ctx, "reporter.NewImportErrorReporter returned an error", log.FATAL, log.Error(err))
 		os.Exit(1)
 	}
 
-	healthCheckErrors := make(chan error)
+	// Create healthcheck object with versionInfo
+	versionInfo, err := healthcheck.NewVersionInfo(BuildTime, GitCommit, Version)
+	if err != nil {
+		log.Event(ctx, "Failed to create versionInfo for healthcheck", log.FATAL, log.Error(err))
+		os.Exit(1)
+	}
+	hc := healthcheck.New(versionInfo, cfg.HealthCheckRecoveryInterval, cfg.HealthCheckInterval)
+	if err := registerCheckers(&hc); err != nil {
+		os.Exit(1)
+	}
+
+	chHttpServerDone := make(chan error)
+	httpServer := startHealthCheck(ctx, &hc, cfg.BindAddr, chHttpServerDone)
 
 	// TODO use new healthcheck
 
@@ -106,38 +131,41 @@ func main() {
 	consumer := message.NewConsumer(instanceConsumer, messageReciever, cfg.GracefulShutdownTimeout)
 	consumer.Listen()
 
+	// TODO non-fatal errors should do logging instead of triggering shutdown
 	select {
 	case err := <-instanceConsumer.Errors():
-		log.ErrorC("incoming instance kafka consumer receieved an error, attempting graceful shutdown", err, nil)
+		log.Event(ctx, "incoming instance kafka consumer receieved an error, attempting graceful shutdown", log.ERROR, log.Error(err))
 	case err := <-instanceCompleteProducer.Errors():
-		log.ErrorC("completed instance kafka producer receieved an error, attempting graceful shutdown", err, nil)
+		log.Event(ctx, "completed instance kafka producer receieved an error, attempting graceful shutdown", log.ERROR, log.Error(err))
 	case err := <-errorReporterProducer.Errors():
-		log.ErrorC("error reporter kafka producer recieved an error, attempting graceful shutdown", err, nil)
-	case err := <-healthCheckErrors:
-		log.ErrorC("healthcheck server returned an error, attempting graceful shutdown", err, nil)
+		log.Event(ctx, "error reporter kafka producer recieved an error, attempting graceful shutdown", log.ERROR, log.Error(err))
 	case signal := <-signals:
-		log.Info("os signal receieved, attempting graceful shutdown", log.Data{"signal": signal.String()})
+		log.Event(ctx, "os signal receieved, attempting graceful shutdown", log.INFO, log.Data{"signal": signal.String()})
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
+	shutdownCtx, cancel := context.WithTimeout(ctx, cfg.GracefulShutdownTimeout)
 
-	instanceConsumer.StopListeningToConsumer(ctx)
-	consumer.Close(ctx)
-	instanceConsumer.Close(ctx)
-	instanceCompleteProducer.Close(ctx)
-	graphDB.Close(ctx)
-	errorReporterProducer.Close(ctx)
-	// healthcheckServer.Close(ctx)
+	hc.Stop()
+
+	StopHealthCheck(shutdownCtx, &hc, httpServer)
+
+	instanceConsumer.StopListeningToConsumer(shutdownCtx)
+	consumer.Close(shutdownCtx)
+	instanceConsumer.Close(shutdownCtx)
+	instanceCompleteProducer.Close(shutdownCtx)
+	graphDB.Close(shutdownCtx)
+	errorReporterProducer.Close(shutdownCtx)
+	// healthcheckServer.Close(shutdownCtx)
 
 	cancel() // stop timer
-	log.Info("gracecful shutdown comeplete", nil)
+	log.Event(ctx, "graceful shutdown complete", log.INFO)
 	os.Exit(1)
 }
 
 func newConsumer(kafkaAddr []string, topic string, namespace string) *kafka.ConsumerGroup {
 	consumer, err := kafka.NewSyncConsumer(kafkaAddr, topic, namespace, kafka.OffsetNewest)
 	if err != nil {
-		log.ErrorC("kafka.NewSyncConsumer returned an error", err, log.Data{
+		log.Event(context.Background(), "kafka.NewSyncConsumer returned an error", log.FATAL, log.Error(err), log.Data{
 			"brokers":        kafkaAddr,
 			"topic":          topic,
 			"consumer_group": namespace,
@@ -150,8 +178,40 @@ func newConsumer(kafkaAddr []string, topic string, namespace string) *kafka.Cons
 func newProducer(kafkaAddr []string, topic string) kafka.Producer {
 	producer, err := kafka.NewProducer(kafkaAddr, topic, 0)
 	if err != nil {
-		log.ErrorC("kafka.NewProducer returned an error", err, log.Data{"topic": topic})
+		log.Event(context.Background(), "kafka.NewProducer returned an error", log.FATAL, log.Error(err), log.Data{"topic": topic})
 		os.Exit(1)
 	}
 	return producer
+}
+
+// StartHealthCheck sets up the Handler, starts the healthcheck and the http server that serves health endpoint
+func startHealthCheck(ctx context.Context, hc *healthcheck.HealthCheck, bindAddr string, serverDone chan error) *server.Server {
+	router := mux.NewRouter()
+	router.Path("/health").HandlerFunc(hc.Handler)
+	hc.Start(ctx)
+
+	httpServer := server.New(bindAddr, router)
+	httpServer.HandleOSSignals = false
+
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil {
+			log.Event(ctx, "", log.ERROR, log.Error(err))
+			hc.Stop()
+			serverDone <- err
+		}
+		close(serverDone)
+	}()
+	return httpServer
+}
+
+// RegisterCheckers adds the checkers for the provided clients to the healthcheck object.
+func registerCheckers(hc *healthcheck.HealthCheck) (err error) {
+	return nil
+}
+
+// StopHealthCheck shuts down the http listener
+func StopHealthCheck(ctx context.Context, hc *healthcheck.HealthCheck, httpServer *server.Server) (err error) {
+	err = httpServer.Shutdown(ctx)
+	hc.Stop()
+	return
 }

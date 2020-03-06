@@ -1,14 +1,14 @@
 package message
 
 import (
+	"context"
+
 	"github.com/ONSdigital/dp-dimension-importer/event"
-	"github.com/ONSdigital/dp-dimension-importer/logging"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/go-ns/kafka"
+	"github.com/ONSdigital/log.go/log"
 )
-
-var loggerR = logging.Logger{Name: "message.KafkaMessageReciever"}
 
 // InstanceEventHandler handles a event.NewInstance
 type InstanceEventHandler interface {
@@ -24,22 +24,24 @@ type KafkaMessageReciever struct {
 // OnMessage unmarshal the kafka message and pass it to the InstanceEventHandler any errors are sent to the ErrorReporter
 func (r KafkaMessageReciever) OnMessage(message kafka.Message) {
 	var newInstanceEvent event.NewInstance
+	ctx := context.Background()
+	logData := log.Data{"package": "message.KafkaMessageReciever"}
 	if err := schema.NewInstanceSchema.Unmarshal(message.GetData(), &newInstanceEvent); err != nil {
-		loggerR.ErrorC("error while attempting to unmarshal kafka message into event.NewInstance", err, nil)
+		log.Event(ctx, "error while attempting to unmarshal kafka message into event.NewInstance", log.ERROR, log.Error(err), logData)
 		return
 	}
 
-	logData := map[string]interface{}{"event": newInstanceEvent}
-	loggerR.Info("successfully unmarshalled kafka message into event.NewInstance", logData)
+	logData["event"] = newInstanceEvent
+	log.Event(ctx, "successfully unmarshalled kafka message into event.NewInstance", log.INFO, logData)
 
 	if err := r.InstanceHandler.Handle(newInstanceEvent); err != nil {
-		loggerR.ErrorC("InstanceHandler.Handle returned an error", err, logData)
+		log.Event(ctx, "InstanceHandler.Handle returned an error", log.ERROR, log.Error(err), logData)
 		if err := r.ErrorReporter.Notify(newInstanceEvent.InstanceID, "InstanceHandler.Handle returned an unexpected error", err); err != nil {
-			loggerR.ErrorC("ErrorReporter.Notify returned an error", err, logData)
+			log.Event(ctx, "ErrorReporter.Notify returned an error", log.ERROR, log.Error(err), logData)
 		}
 		return
 	}
 
-	loggerR.Info("newInstance event successfully processed", logData)
+	log.Event(ctx, "newInstance event successfully processed", log.INFO, logData)
 	message.Commit()
 }

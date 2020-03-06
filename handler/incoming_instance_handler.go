@@ -5,10 +5,9 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-dimension-importer/event"
-	"github.com/ONSdigital/dp-dimension-importer/logging"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/dp-dimension-importer/store"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/log.go/log"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +16,7 @@ import (
 var (
 	errInstanceExists = errors.New("[handler.InstanceEventHandler] instance already exists")
 	errValidationFail = errors.New("[handler.InstanceEventHandler] validation error")
-	logger            = logging.Logger{Name: "handler.InstanceEventHandler"}
+	packageName       = "handler.InstanceEventHandler"
 )
 
 // DatasetAPIClient defines interface of an Dataset API client,
@@ -44,13 +43,14 @@ type InstanceEventHandler struct {
 // and makes a PUT request to the Import API with the database ID of each Dimension entity.
 func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 
+	ctx := context.Background()
 	err := hdlr.validate(newInstance)
 	if err != nil {
 		return err
 	}
 
-	logData := log.Data{"instance_id": newInstance.InstanceID}
-	logger.Info("handling new instance event", logData)
+	logData := log.Data{"instance_id": newInstance.InstanceID, "package": packageName}
+	log.Event(ctx, "handling new instance event", logData)
 
 	start := time.Now()
 
@@ -69,7 +69,7 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 
 	if err = hdlr.createInstanceNode(instance); err != nil {
 		if err == errInstanceExists {
-			logger.Info("an instance with this id already exists, ignoring this event", logData)
+			log.Event(ctx, "an instance with this id already exists, ignoring this event", log.INFO, logData)
 			return nil // ignoring
 		}
 		return err
@@ -92,7 +92,7 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 		return errors.Wrap(err, "Producer.Completed returned an error")
 	}
 
-	logger.Info("instance processing completed successfully", log.Data{"processing_time": time.Since(start).Seconds()})
+	log.Event(context.Background(), "instance processing completed successfully", log.INFO, log.Data{"package": packageName, "processing_time": time.Since(start).Seconds()})
 	return nil
 }
 

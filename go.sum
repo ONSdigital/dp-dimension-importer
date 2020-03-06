@@ -2,6 +2,7 @@ github.com/ONSdigital/dp-code-list-api v0.0.0-20190319102426-6565cb0ef559 h1:AVQ
 github.com/ONSdigital/dp-code-list-api v0.0.0-20190319102426-6565cb0ef559/go.mod h1:7IPu9DP8bkoj8axKeyblssZeS1zak6iGqGKotwFYTNE=
 github.com/ONSdigital/dp-graph v0.0.0-20190325175313-455120c204d3 h1:CPAPVBCdkmASMvoPMqDOHtL5ruu1XKF8H0StYT43mTE=
 github.com/ONSdigital/dp-graph v0.0.0-20190325175313-455120c204d3/go.mod h1:i6K5xRJNLzreuecqhjsc/2jWb/jbHTRzqZmakrsrBMs=
+github.com/ONSdigital/dp-healthcheck v1.0.0 h1:bySQU8kQRs4n3WbgH8QtVwCJLqG9ri722saATjvNNfc=
 github.com/ONSdigital/dp-healthcheck v1.0.0/go.mod h1:zighxZ/0m5u7zo0eAr8XFlA+Dz2ic7A1vna6YXvhCjQ=
 github.com/ONSdigital/dp-hierarchy-api v0.0.0-20190322152253-64ca752d215c h1:vXToGaHHKfxsGoC86goOZBNlokmqwSjPoxRgX5Agfao=
 github.com/ONSdigital/dp-hierarchy-api v0.0.0-20190322152253-64ca752d215c/go.mod h1:1oE930hQ6vS/5KFL2aXBlHb1nPF78ZsFkE2eQ4CvrZg=
@@ -16,6 +17,7 @@ github.com/ONSdigital/go-ns v0.0.0-20191104121206-f144c4ec2e58 h1:XHnzoC7TxueLAf
 github.com/ONSdigital/go-ns v0.0.0-20191104121206-f144c4ec2e58/go.mod h1:iWos35il+NjbvDEqwtB736pyHru0MPFE/LqcwkV1wDc=
 github.com/ONSdigital/golang-neo4j-bolt-driver v0.0.0-20190228153339-da534111531d h1:Z0FsB7q0SG3tG4O/WGv0hh1MyxScyZ5JWjECEgVCIzM=
 github.com/ONSdigital/golang-neo4j-bolt-driver v0.0.0-20190228153339-da534111531d/go.mod h1:75Sxr59AMz2RiPskqSymLFxdeaIEhnkNaJE5lonMS3M=
+github.com/ONSdigital/log.go v0.0.0-20191127134126-2a610b254f20 h1:1bNmts028atdwyylee7DnEyV5xsz7RVSyVCx7HcyIU4=
 github.com/ONSdigital/log.go v0.0.0-20191127134126-2a610b254f20/go.mod h1:BD7D8FWP1fzwUWsrCopEG72jl9cchCaVNIGSz6YvL+Y=
 github.com/Shopify/sarama v1.17.1-0.20180704123112-f7df95cff1bc h1:oUDSbkgWma24dzfHdkOGOGjHxZNOAakoO9/vgzltfR0=
 github.com/Shopify/sarama v1.17.1-0.20180704123112-f7df95cff1bc/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
@@ -29,6 +31,7 @@ github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 h1:YEetp8
 github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21/go.mod h1:+020luEh2TKB4/GOp8oxxtq0Daoen/Cii55CzbTV6DU=
 github.com/eapache/queue v1.1.0 h1:YOEu7KNc61ntiQlcEeUIoDTJ2o8mQznoNvUhiigpIqc=
 github.com/eapache/queue v1.1.0/go.mod h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFPTqq+I=
+github.com/fatih/color v1.7.0 h1:DkWD4oS2D8LGGgTQ6IvwJJXSL5Vp2ffcQg58nFV38Ys=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/go-avro/avro v0.0.0-20171219232920-444163702c11 h1:yswqe8UdKNWn4kjh1YTaAbvOSPeg95xhW7h4qeICL5E=
 github.com/go-avro/avro v0.0.0-20171219232920-444163702c11/go.mod h1:kxj6THYP0dmFPk4Z+bijIAhJoGgeBfyOKXMduhvdJPA=
@@ -40,6 +43,7 @@ github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORR
 github.com/gorilla/context v1.1.1/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51q0aT7Yg=
 github.com/gorilla/mux v1.6.1-0.20171204161114-7904d2e42e7e h1:CzC0eLoUVASdPxXe4snA01BrdIzNxkJw6dguHXJLAlA=
 github.com/gorilla/mux v1.6.1-0.20171204161114-7904d2e42e7e/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
+github.com/hokaccha/go-prettyjson v0.0.0-20190818114111-108c894c2c0e h1:0aewS5NTyxftZHSnFaJmWE5oCCrj4DyEXkAiMa1iZJM=
 github.com/hokaccha/go-prettyjson v0.0.0-20190818114111-108c894c2c0e/go.mod h1:pFlLw2CfqZiIBOx6BuCeRLCrfxBJipTY0nIOF/VbGcI=
 github.com/jtolds/gls v4.2.1+incompatible h1:fSuqC+Gmlu6l/ZYAoZzx2pyucC8Xza35fpRVWLVmUEE=
 github.com/jtolds/gls v4.2.1+incompatible/go.mod h1:QJZ7F/aHp+rZTRtaJ1ow/lLfFfVYBRgL+9YlvaHOwJU=

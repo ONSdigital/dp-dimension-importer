@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/ONSdigital/dp-dimension-importer/logging"
 	"github.com/ONSdigital/go-ns/kafka"
+	"github.com/ONSdigital/log.go/log"
 )
 
 //go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessage KafkaConsumer
 
-var loggerC = logging.Logger{Name: "message.Consumer"}
+var packageName = "handler.InstanceEventHandler"
 
 // KafkaMessage type representing a kafka message.
 type KafkaMessage kafka.Message
@@ -58,14 +58,15 @@ func (c Consumer) Listen() {
 			c.closed <- true
 		}()
 
+		logData := log.Data{"package": packageName}
 		for {
 			select {
 			case consumedMessage := <-c.consumer.Incoming():
-				loggerC.Info("consumer.incoming receieved a message", nil)
+				log.Event(c.ctx, "consumer.incoming received a message", log.INFO, logData)
 				c.messageReciever.OnMessage(consumedMessage)
 				c.consumer.Release()
 			case <-c.ctx.Done():
-				loggerC.Info("loggercontext.Done received event, attempting to close consumer", nil)
+				log.Event(c.ctx, "loggercontext.Done received event, attempting to close consumer", log.INFO, logData)
 				return
 			}
 		}
@@ -91,11 +92,13 @@ func (c Consumer) Close(ctx context.Context) {
 	// Call cancel to attempt to exit the consumer loop.
 	c.cancel()
 
+	logData := log.Data{"package": packageName}
+
 	// Wait for the consumer to tell is has exited or the context timeout occurs.
 	select {
 	case <-c.closed:
-		loggerC.Info("gracefully shutdown message.Consumer", nil)
+		log.Event(ctx, "gracefully shutdown message.Consumer", log.INFO, logData)
 	case <-ctx.Done():
-		loggerC.Info("forced shutdown of message.Consumer", nil)
+		log.Event(ctx, "forced shutdown of message.Consumer", log.INFO, logData)
 	}
 }

@@ -1,11 +1,12 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"time"
 
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/log.go/log"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -23,6 +24,7 @@ type Config struct {
 	ZebedeeURL                     string        `envconfig:"ZEBEDEE_URL"`
 	GracefulShutdownTimeout        time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval            time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
+	HealthCheckRecoveryInterval    time.Duration `envconfig:"HEALTHCHECK_RECOVERY_INTERVAL"`
 }
 
 var cfg *Config
@@ -45,12 +47,13 @@ func Get() (*Config, error) {
 		OutgoingInstancesTopic:         "dimensions-inserted",
 		EventReporterTopic:             "report-events",
 		GracefulShutdownTimeout:        time.Second * 5,
-		HealthCheckInterval:            time.Minute,
+		HealthCheckInterval:            10 * time.Second,
+		HealthCheckRecoveryInterval:    1 * time.Minute,
 	}
 
 	if len(cfg.ServiceAuthToken) == 0 {
 		err := errors.New("error while attempting to load config. service auth token is required but has not been configured")
-		log.Error(err, nil)
+		log.Event(context.Background(), "service auth token error", log.ERROR, log.Error(err))
 		return nil, err
 	}
 

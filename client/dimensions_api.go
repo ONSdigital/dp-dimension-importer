@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,9 +11,8 @@ import (
 	"io"
 	"net/url"
 
-	"github.com/ONSdigital/dp-dimension-importer/logging"
 	"github.com/ONSdigital/dp-dimension-importer/model"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/log.go/log"
 )
 
 //go:generate moq -out ../mocks/dimensions_api_generated_mocks.go -pkg mocks . HTTPClient ResponseBodyReader
@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	logger             = logging.Logger{Name: "client.DatasetAPI"}
+	packageName        = "client.DatasetAPI"
 	errHostEmpty       = errors.New("validation error: api host is required but was empty")
 	errInstanceIDEmpty = errors.New("validation error: instance id is required but is empty")
 )
@@ -80,7 +80,7 @@ func (api DatasetAPI) GetInstance(instanceID string) (*model.Instance, error) {
 		return nil, errors.Wrap(err, "error while attempting to unmarshal reponse body into model.Instance")
 	}
 
-	logger.Info("GetInstance completed successfully", log.Data{"instance": instance})
+	log.Event(context.Background(), "GetInstance completed successfully", log.INFO, log.Data{"instance": instance, "package": packageName})
 	return instance, nil
 }
 
@@ -113,7 +113,7 @@ func (api DatasetAPI) GetDimensions(instanceID string) ([]*model.Dimension, erro
 		return nil, errors.Wrap(err, "errpr while attempting to unmarshal response body into model.DimensionNodeResults")
 	}
 
-	logger.Info("GetDimensions completed successfully", nil)
+	log.Event(context.Background(), "GetDimensions completed successfully", log.INFO, log.Data{"package": packageName})
 	return dimensionsResult.Items, nil
 }
 
@@ -148,7 +148,7 @@ func (api DatasetAPI) doRequest(method string, url string, expectedStatus int) (
 	req.Header.Set(authTokenHeader, api.DatasetAPIAuthToken)
 	req.Header.Set(authorizationHeader, api.AuthToken)
 
-	logger.Info("HTTPClient.Do sending HTTP Request", log.Data{"method": req.Method, "url": url})
+	log.Event(context.Background(), "HTTPClient.Do sending HTTP Request", log.INFO, log.Data{"method": req.Method, "url": url, "package": packageName})
 	resp, err := api.HTTPClient.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("HTTPClient.Do returned an error when attempting to make request: method: %s, url: %s", method, url))
@@ -158,6 +158,6 @@ func (api DatasetAPI) doRequest(method string, url string, expectedStatus int) (
 		return nil, errors.Errorf("incorrect status code: expected: %d, actual: %d, url: %s, method: %s", expectedStatus, resp.StatusCode, url, method)
 	}
 
-	logger.Info("HTTPClient.Do received a valid response", log.Data{"url": url, "method": method})
+	log.Event(context.Background(), "HTTPClient.Do received a valid response", log.INFO, log.Data{"url": url, "method": method, "package": packageName})
 	return resp, nil
 }

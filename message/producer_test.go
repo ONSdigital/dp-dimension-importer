@@ -1,15 +1,17 @@
 package message
 
 import (
+	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	mock "github.com/ONSdigital/dp-dimension-importer/message/message_test"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/log.go/log"
 	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
-	"time"
 )
 
 var completedEvent = event.InstanceCompleted{
@@ -44,9 +46,9 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 			var avroBytes []byte
 			select {
 			case avroBytes = <-output:
-				log.Info("Avro byte sent to producer output", nil)
+				log.Event(context.Background(), "Avro byte sent to producer output", log.INFO)
 			case <-time.After(time.Second * 5):
-				log.Info("Failing test due to timed out", nil)
+				log.Event(context.Background(), "Failing test due to timed out", log.INFO)
 				t.FailNow()
 			}
 

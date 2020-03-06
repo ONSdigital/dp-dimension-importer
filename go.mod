@@ -11,6 +11,7 @@ require (
 	github.com/ONSdigital/dp-reporter-client v0.0.0-20171010100543-2a4f047efd3a
 	github.com/ONSdigital/go-ns v0.0.0-20191104121206-f144c4ec2e58
 	github.com/ONSdigital/golang-neo4j-bolt-driver v0.0.0-20190228153339-da534111531d
+	github.com/ONSdigital/log.go v0.0.0-20191127134126-2a610b254f20
 	github.com/Shopify/sarama v1.17.1-0.20180704123112-f7df95cff1bc
 	github.com/bsm/sarama-cluster v2.1.15+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
