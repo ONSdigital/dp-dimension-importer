@@ -17,8 +17,6 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/dp-graph/graph"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	datasetHealthCheck "github.com/ONSdigital/go-ns/clients/dataset"
-	"github.com/ONSdigital/go-ns/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 )
@@ -89,14 +87,16 @@ func main() {
 
 	healthCheckErrors := make(chan error)
 
-	// HTTP Health check endpoint.
-	healthcheckServer := healthcheck.NewServer(
-		cfg.BindAddr,
-		cfg.HealthCheckInterval,
-		healthCheckErrors,
-		graphDB,
-		datasetHealthCheck.New(cfg.DatasetAPIAddr),
-	)
+	// TODO use new healthcheck
+
+	// // HTTP Health check endpoint.
+	// healthcheckServer := healthcheck.NewServer(
+	// 	cfg.BindAddr,
+	// 	cfg.HealthCheckInterval,
+	// 	healthCheckErrors,
+	// 	graphDB,
+	// 	datasetHealthCheck.New(cfg.DatasetAPIAddr),
+	// )
 
 	messageReciever := message.KafkaMessageReciever{
 		InstanceHandler: instanceEventHandler,
@@ -127,7 +127,7 @@ func main() {
 	instanceCompleteProducer.Close(ctx)
 	graphDB.Close(ctx)
 	errorReporterProducer.Close(ctx)
-	healthcheckServer.Close(ctx)
+	// healthcheckServer.Close(ctx)
 
 	cancel() // stop timer
 	log.Info("gracecful shutdown comeplete", nil)
