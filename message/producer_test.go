@@ -1,4 +1,4 @@
-package message
+package message_test
 
 import (
 	"context"
@@ -7,8 +7,11 @@ import (
 	"time"
 
 	"github.com/ONSdigital/dp-dimension-importer/event"
-	mock "github.com/ONSdigital/dp-dimension-importer/message/message_test"
+	"github.com/ONSdigital/dp-dimension-importer/message"
+	mock "github.com/ONSdigital/dp-dimension-importer/message/mock"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
+	kafka "github.com/ONSdigital/dp-kafka"
+	"github.com/ONSdigital/dp-kafka/kafkatest"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
@@ -21,11 +24,13 @@ var completedEvent = event.InstanceCompleted{
 
 func TestInstanceCompletedProducer_Completed(t *testing.T) {
 	Convey("Given InstanceCompletedProducer has been configured correctly", t, func() {
-		output := make(chan []byte, 1)
+		pChannels := &kafka.ProducerChannels{
+			Output: make(chan []byte, 1),
+		}
 
-		kafkaProducerMock := &mock.KafkaProducerMock{
-			OutputFunc: func() chan []byte {
-				return output
+		kafkaProducerMock := &kafkatest.IProducerMock{
+			ChannelsFunc: func() *kafka.ProducerChannels {
+				return pChannels
 			},
 		}
 		marshallerMock := &mock.MarshallerMock{
@@ -34,7 +39,7 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 			},
 		}
 
-		instanceCompletedProducer := InstanceCompletedProducer{
+		instanceCompletedProducer := message.InstanceCompletedProducer{
 			Producer:   kafkaProducerMock,
 			Marshaller: marshallerMock,
 		}
@@ -45,7 +50,7 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 
 			var avroBytes []byte
 			select {
-			case avroBytes = <-output:
+			case avroBytes = <-pChannels.Output:
 				log.Event(context.Background(), "Avro byte sent to producer output", log.INFO)
 			case <-time.After(time.Second * 5):
 				log.Event(context.Background(), "Failing test due to timed out", log.INFO)
@@ -67,12 +72,14 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 
 func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 	Convey("Given InstanceCompletedProducer has been configured correctly", t, func() {
-		output := make(chan []byte)
+		pChannels := &kafka.ProducerChannels{
+			Output: make(chan []byte),
+		}
 		mockError := errors.New("mock error")
 
-		kafkaProducerMock := &mock.KafkaProducerMock{
-			OutputFunc: func() chan []byte {
-				return output
+		kafkaProducerMock := &kafkatest.IProducerMock{
+			ChannelsFunc: func() *kafka.ProducerChannels {
+				return pChannels
 			},
 		}
 		marshallerMock := &mock.MarshallerMock{
@@ -81,7 +88,7 @@ func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 			},
 		}
 
-		instanceCompletedProducer := InstanceCompletedProducer{
+		instanceCompletedProducer := message.InstanceCompletedProducer{
 			Producer:   kafkaProducerMock,
 			Marshaller: marshallerMock,
 		}
@@ -95,7 +102,7 @@ func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 			})
 
 			Convey("And producer.Output is never called", func() {
-				So(len(kafkaProducerMock.OutputCalls()), ShouldEqual, 0)
+				So(len(kafkaProducerMock.ChannelsCalls()), ShouldEqual, 0)
 			})
 		})
 	})

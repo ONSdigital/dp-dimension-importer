@@ -18,17 +18,17 @@ import (
 //go:generate moq -out ../mocks/dimensions_api_generated_mocks.go -pkg mocks . HTTPClient ResponseBodyReader
 
 const (
-	getInstanceURIFMT     = "%s/instances/%s"
-	getDimensionsURIFMT   = "%s/instances/%s/dimensions"
-	putDimensionNodeIDURI = "%s/instances/%s/dimensions/%s/options/%s/node_id/%s"
-	authTokenHeader       = "Internal-Token"
-	authorizationHeader   = "Authorization"
+	GetInstanceURIFMT     = "%s/instances/%s"
+	GetDimensionsURIFMT   = "%s/instances/%s/dimensions"
+	PutDimensionNodeIDURI = "%s/instances/%s/dimensions/%s/options/%s/node_id/%s"
+	AuthTokenHeader       = "Internal-Token"
+	AuthorizationHeader   = "Authorization"
 )
 
 var (
 	packageName        = "client.DatasetAPI"
-	errHostEmpty       = errors.New("validation error: api host is required but was empty")
-	errInstanceIDEmpty = errors.New("validation error: instance id is required but is empty")
+	ErrHostEmpty       = errors.New("validation error: api host is required but was empty")
+	ErrInstanceIDEmpty = errors.New("validation error: instance id is required but is empty")
 )
 
 // ResponseBodyReader defines a http response body reader.
@@ -53,14 +53,14 @@ type DatasetAPI struct {
 // GetInstance retrieve the specified instance from the Dataset API.
 func (api DatasetAPI) GetInstance(instanceID string) (*model.Instance, error) {
 	if len(api.DatasetAPIHost) == 0 {
-		return nil, errHostEmpty
+		return nil, ErrHostEmpty
 	}
 
 	if len(instanceID) == 0 {
-		return nil, errInstanceIDEmpty
+		return nil, ErrInstanceIDEmpty
 	}
 
-	url := fmt.Sprintf(getInstanceURIFMT, api.DatasetAPIHost, instanceID)
+	url := fmt.Sprintf(GetInstanceURIFMT, api.DatasetAPIHost, instanceID)
 
 	resp, err := api.doRequest(http.MethodGet, url, http.StatusOK)
 	if err != nil {
@@ -87,13 +87,13 @@ func (api DatasetAPI) GetInstance(instanceID string) (*model.Instance, error) {
 // GetDimensions retrieve the dimensions of the specified instance from the Dataset API
 func (api DatasetAPI) GetDimensions(instanceID string) ([]*model.Dimension, error) {
 	if len(api.DatasetAPIHost) == 0 {
-		return nil, errHostEmpty
+		return nil, ErrHostEmpty
 	}
 	if len(instanceID) == 0 {
-		return nil, errInstanceIDEmpty
+		return nil, ErrInstanceIDEmpty
 	}
 
-	url := fmt.Sprintf(getDimensionsURIFMT, api.DatasetAPIHost, instanceID)
+	url := fmt.Sprintf(GetDimensionsURIFMT, api.DatasetAPIHost, instanceID)
 
 	resp, err := api.doRequest(http.MethodGet, url, http.StatusOK)
 	if err != nil {
@@ -120,10 +120,10 @@ func (api DatasetAPI) GetDimensions(instanceID string) ([]*model.Dimension, erro
 // PutDimensionNodeID make a HTTP put request to update the node_id of the specified dimension.
 func (api DatasetAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) error {
 	if len(api.DatasetAPIHost) == 0 {
-		return errHostEmpty
+		return ErrHostEmpty
 	}
 	if len(instanceID) == 0 {
-		return errInstanceIDEmpty
+		return ErrInstanceIDEmpty
 	}
 	if d == nil {
 		return errors.New("dimension is required but is nil")
@@ -132,7 +132,7 @@ func (api DatasetAPI) PutDimensionNodeID(instanceID string, d *model.Dimension) 
 		return errors.New("dimension.id is required but is empty")
 	}
 
-	putNodeIDURL := fmt.Sprintf(putDimensionNodeIDURI, api.DatasetAPIHost, instanceID, d.DimensionID, url.PathEscape(d.Option), d.NodeID)
+	putNodeIDURL := fmt.Sprintf(PutDimensionNodeIDURI, api.DatasetAPIHost, instanceID, d.DimensionID, url.PathEscape(d.Option), d.NodeID)
 
 	_, err := api.doRequest(http.MethodPut, putNodeIDURL, http.StatusOK)
 	return err
@@ -145,8 +145,8 @@ func (api DatasetAPI) doRequest(method string, url string, expectedStatus int) (
 	}
 
 	// TODO Remove authTokenHeader header, now uses "Authorization" header
-	req.Header.Set(authTokenHeader, api.DatasetAPIAuthToken)
-	req.Header.Set(authorizationHeader, api.AuthToken)
+	req.Header.Set(AuthTokenHeader, api.DatasetAPIAuthToken)
+	req.Header.Set(AuthorizationHeader, api.AuthToken)
 
 	log.Event(context.Background(), "HTTPClient.Do sending HTTP Request", log.INFO, log.Data{"method": req.Method, "url": url, "package": packageName})
 	resp, err := api.HTTPClient.Do(req)

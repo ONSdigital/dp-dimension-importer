@@ -6,6 +6,7 @@ package storertest
 import (
 	"context"
 	"github.com/ONSdigital/dp-dimension-importer/model"
+	"github.com/ONSdigital/dp-dimension-importer/store"
 	"sync"
 )
 
@@ -22,46 +23,50 @@ var (
 	lockStorerMockSetInstanceIsPublished      sync.RWMutex
 )
 
-// StorerMock is a mock implementation of Storer.
+// Ensure, that StorerMock does implement store.Storer.
+// If this is not the case, regenerate this file with moq.
+var _ store.Storer = &StorerMock{}
+
+// StorerMock is a mock implementation of store.Storer.
 //
 //     func TestSomethingThatUsesStorer(t *testing.T) {
 //
-//         // make and configure a mocked Storer
+//         // make and configure a mocked store.Storer
 //         mockedStorer := &StorerMock{
 //             AddDimensionsFunc: func(ctx context.Context, instance *model.Instance) error {
-// 	               panic("TODO: mock out the AddDimensions method")
+// 	               panic("mock out the AddDimensions method")
 //             },
 //             AddVersionDetailsToInstanceFunc: func(ctx context.Context, instanceID string, datasetID string, edition string, version int) error {
-// 	               panic("TODO: mock out the AddVersionDetailsToInstance method")
+// 	               panic("mock out the AddVersionDetailsToInstance method")
 //             },
 //             CloseFunc: func(ctx context.Context) error {
-// 	               panic("TODO: mock out the Close method")
+// 	               panic("mock out the Close method")
 //             },
 //             CountInsertedObservationsFunc: func(ctx context.Context, instanceID string) (int64, error) {
-// 	               panic("TODO: mock out the CountInsertedObservations method")
+// 	               panic("mock out the CountInsertedObservations method")
 //             },
 //             CreateCodeRelationshipFunc: func(ctx context.Context, instance *model.Instance, codeListID string, code string) error {
-// 	               panic("TODO: mock out the CreateCodeRelationship method")
+// 	               panic("mock out the CreateCodeRelationship method")
 //             },
 //             CreateInstanceFunc: func(ctx context.Context, instance *model.Instance) error {
-// 	               panic("TODO: mock out the CreateInstance method")
+// 	               panic("mock out the CreateInstance method")
 //             },
 //             CreateInstanceConstraintFunc: func(ctx context.Context, instance *model.Instance) error {
-// 	               panic("TODO: mock out the CreateInstanceConstraint method")
+// 	               panic("mock out the CreateInstanceConstraint method")
 //             },
 //             InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
-// 	               panic("TODO: mock out the InsertDimension method")
+// 	               panic("mock out the InsertDimension method")
 //             },
 //             InstanceExistsFunc: func(ctx context.Context, instance *model.Instance) (bool, error) {
-// 	               panic("TODO: mock out the InstanceExists method")
+// 	               panic("mock out the InstanceExists method")
 //             },
 //             SetInstanceIsPublishedFunc: func(ctx context.Context, instanceID string) error {
-// 	               panic("TODO: mock out the SetInstanceIsPublished method")
+// 	               panic("mock out the SetInstanceIsPublished method")
 //             },
 //         }
 //
-//         // TODO: use mockedStorer in code that requires Storer
-//         //       and then make assertions.
+//         // use mockedStorer in code that requires store.Storer
+//         // and then make assertions.
 //
 //     }
 type StorerMock struct {

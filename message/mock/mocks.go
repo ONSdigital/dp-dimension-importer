@@ -1,8 +1,8 @@
-package message_test
+package mock
 
 import (
 	"github.com/ONSdigital/dp-dimension-importer/event"
-	"github.com/ONSdigital/go-ns/kafka"
+	kafka "github.com/ONSdigital/dp-kafka"
 )
 
 // InstanceEventHandler a mocked implementation of message.InstanceEventHandler
@@ -26,22 +26,4 @@ type MessageReciever struct {
 // message provided
 func (mh MessageReciever) OnMessage(message kafka.Message) {
 	mh.OnMessageFunc(message)
-}
-
-// MessageMock a mock impl of KafkaMessage
-type MessageMock struct {
-	Params    []bool
-	Committed chan bool
-	Data      []byte
-}
-
-// Commit mocked impl of KakfaMessage.Commit
-func (m *MessageMock) Commit() {
-	m.Committed <- true
-	m.Params = append(m.Params, true)
-}
-
-// GetData mocked impl of KakfaMessage.GetData
-func (m *MessageMock) GetData() []byte {
-	return m.Data
 }

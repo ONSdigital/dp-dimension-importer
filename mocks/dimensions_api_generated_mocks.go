@@ -4,6 +4,7 @@
 package mocks
 
 import (
+	"github.com/ONSdigital/dp-dimension-importer/client"
 	"io"
 	"net/http"
 	"sync"
@@ -13,19 +14,23 @@ var (
 	lockHTTPClientMockDo sync.RWMutex
 )
 
-// HTTPClientMock is a mock implementation of HTTPClient.
+// Ensure, that HTTPClientMock does implement client.HTTPClient.
+// If this is not the case, regenerate this file with moq.
+var _ client.HTTPClient = &HTTPClientMock{}
+
+// HTTPClientMock is a mock implementation of client.HTTPClient.
 //
 //     func TestSomethingThatUsesHTTPClient(t *testing.T) {
 //
-//         // make and configure a mocked HTTPClient
+//         // make and configure a mocked client.HTTPClient
 //         mockedHTTPClient := &HTTPClientMock{
 //             DoFunc: func(req *http.Request) (*http.Response, error) {
-// 	               panic("TODO: mock out the Do method")
+// 	               panic("mock out the Do method")
 //             },
 //         }
 //
-//         // TODO: use mockedHTTPClient in code that requires HTTPClient
-//         //       and then make assertions.
+//         // use mockedHTTPClient in code that requires client.HTTPClient
+//         // and then make assertions.
 //
 //     }
 type HTTPClientMock struct {
@@ -77,19 +82,23 @@ var (
 	lockResponseBodyReaderMockRead sync.RWMutex
 )
 
-// ResponseBodyReaderMock is a mock implementation of ResponseBodyReader.
+// Ensure, that ResponseBodyReaderMock does implement client.ResponseBodyReader.
+// If this is not the case, regenerate this file with moq.
+var _ client.ResponseBodyReader = &ResponseBodyReaderMock{}
+
+// ResponseBodyReaderMock is a mock implementation of client.ResponseBodyReader.
 //
 //     func TestSomethingThatUsesResponseBodyReader(t *testing.T) {
 //
-//         // make and configure a mocked ResponseBodyReader
+//         // make and configure a mocked client.ResponseBodyReader
 //         mockedResponseBodyReader := &ResponseBodyReaderMock{
 //             ReadFunc: func(r io.Reader) ([]byte, error) {
-// 	               panic("TODO: mock out the Read method")
+// 	               panic("mock out the Read method")
 //             },
 //         }
 //
-//         // TODO: use mockedResponseBodyReader in code that requires ResponseBodyReader
-//         //       and then make assertions.
+//         // use mockedResponseBodyReader in code that requires client.ResponseBodyReader
+//         // and then make assertions.
 //
 //     }
 type ResponseBodyReaderMock struct {

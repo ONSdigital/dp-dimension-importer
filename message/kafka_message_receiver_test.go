@@ -1,11 +1,13 @@
-package message
+package message_test
 
 import (
 	"testing"
 
 	"github.com/ONSdigital/dp-dimension-importer/event"
-	mock "github.com/ONSdigital/dp-dimension-importer/message/message_test"
+	"github.com/ONSdigital/dp-dimension-importer/message"
+	mock "github.com/ONSdigital/dp-dimension-importer/message/mock"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
+	"github.com/ONSdigital/dp-kafka/kafkatest"
 	"github.com/ONSdigital/dp-reporter-client/reporter/reportertest"
 	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
@@ -25,7 +27,7 @@ func TestKafkaMessageHandler_Handle(t *testing.T) {
 	fixture := newFixture(avroBytes, handleInstanceFunc)
 
 	Convey("Given KafkaMessageReciever has been correctly configured", t, func() {
-		handler := KafkaMessageReciever{
+		handler := message.KafkaMessageReciever{
 			InstanceHandler: fixture.instanceHandler,
 			ErrorReporter:   fixture.errorReporter,
 		}
@@ -57,7 +59,7 @@ func TestKafkaMessageHandler_Handle_InvalidKafkaMessage(t *testing.T) {
 	fix := newFixture([]byte("I am not a valid message"), handleInstanceFunc)
 
 	Convey("Given KafkaMessageReciever has been correctly configured", t, func() {
-		handler := KafkaMessageReciever{
+		handler := message.KafkaMessageReciever{
 			InstanceHandler: fix.instanceHandler,
 			ErrorReporter:   fix.errorReporter,
 		}
@@ -96,7 +98,7 @@ func TestKafkaMessageHandler_Handle_InstanceHandlerError(t *testing.T) {
 	fix := newFixture(avroBytes, handleInstanceFunc)
 
 	Convey("Given KafkaMessageReciever has been correctly configured", t, func() {
-		handler := KafkaMessageReciever{
+		handler := message.KafkaMessageReciever{
 			InstanceHandler: fix.instanceHandler,
 			ErrorReporter:   fix.errorReporter,
 		}
@@ -125,7 +127,7 @@ type fixture struct {
 	instanceHdlrCalls []event.NewInstance
 	instanceHandler   mock.InstanceEventHandler
 	errorReporter     *reportertest.ImportErrorReporterMock
-	message           *mock.KafkaMessageMock
+	message           *kafkatest.Message
 }
 
 func newFixture(messageBytes []byte, handleInstanceFunc func(e event.NewInstance) error) *fixture {
@@ -133,14 +135,7 @@ func newFixture(messageBytes []byte, handleInstanceFunc func(e event.NewInstance
 
 	fix := &fixture{
 		instanceHdlrCalls: instanceHdlrCalls,
-		message: &mock.KafkaMessageMock{
-			CommitFunc: func() {
-				// DO Nothing
-			},
-			GetDataFunc: func() []byte {
-				return messageBytes
-			},
-		},
+		message:           kafkatest.NewMessage(messageBytes, 0),
 	}
 
 	instanceHandler := mock.InstanceEventHandler{

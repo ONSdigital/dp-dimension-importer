@@ -4,22 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/ONSdigital/go-ns/kafka"
+	kafka "github.com/ONSdigital/dp-kafka"
 	"github.com/ONSdigital/log.go/log"
 )
-
-//go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessage KafkaConsumer
 
 var packageName = "handler.InstanceEventHandler"
 
 // KafkaMessage type representing a kafka message.
 type KafkaMessage kafka.Message
-
-// KafkaConsumer consume an incoming kafka message
-type KafkaConsumer interface {
-	Incoming() chan kafka.Message
-	Release()
-}
 
 // Reciever is sent a kafka messages and processes it
 type Reciever interface {
@@ -31,13 +23,13 @@ type Consumer struct {
 	closed          chan bool
 	ctx             context.Context
 	cancel          context.CancelFunc
-	consumer        KafkaConsumer
+	consumer        kafka.IConsumerGroup
 	messageReciever Reciever
 	defaultShutdown time.Duration
 }
 
 // NewConsumer create a NewInstance event consumer.
-func NewConsumer(consumer KafkaConsumer, messageReciever Reciever, defaultShutdown time.Duration) Consumer {
+func NewConsumer(consumer kafka.IConsumerGroup, messageReciever Reciever, defaultShutdown time.Duration) Consumer {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return Consumer{
@@ -61,7 +53,7 @@ func (c Consumer) Listen() {
 		logData := log.Data{"package": packageName}
 		for {
 			select {
-			case consumedMessage := <-c.consumer.Incoming():
+			case consumedMessage := <-c.consumer.Channels().Upstream:
 				log.Event(c.ctx, "consumer.incoming received a message", log.INFO, logData)
 				c.messageReciever.OnMessage(consumedMessage)
 				c.consumer.Release()
