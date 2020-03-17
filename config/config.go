@@ -12,19 +12,19 @@ import (
 
 // Config struct to hold application configuration.
 type Config struct {
-	BindAddr                       string        `envconfig:"BIND_ADDR"`
-	ServiceAuthToken               string        `envconfig:"SERVICE_AUTH_TOKEN"                     json:"-"`
-	KafkaAddr                      []string      `envconfig:"KAFKA_ADDR"`
-	IncomingInstancesTopic         string        `envconfig:"DIMENSIONS_EXTRACTED_TOPIC"`
-	IncomingInstancesConsumerGroup string        `envconfig:"DIMENSIONS_EXTRACTED_CONSUMER_GROUP"`
-	OutgoingInstancesTopic         string        `envconfig:"DIMENSIONS_INSERTED_TOPIC"`
-	EventReporterTopic             string        `envconfig:"EVENT_REPORTER_TOPIC"`
-	DatasetAPIAddr                 string        `envconfig:"DATASET_API_ADDR"`
-	DatasetAPIAuthToken            string        `envconfig:"DATASET_API_AUTH_TOKEN"                 json:"-"`
-	ZebedeeURL                     string        `envconfig:"ZEBEDEE_URL"`
-	GracefulShutdownTimeout        time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
-	HealthCheckInterval            time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
-	HealthCheckRecoveryInterval    time.Duration `envconfig:"HEALTHCHECK_RECOVERY_INTERVAL"`
+	BindAddr                       string   `envconfig:"BIND_ADDR"`
+	ServiceAuthToken               string   `envconfig:"SERVICE_AUTH_TOKEN"                     json:"-"`
+	KafkaAddr                      []string `envconfig:"KAFKA_ADDR"`
+	IncomingInstancesTopic         string   `envconfig:"DIMENSIONS_EXTRACTED_TOPIC"`
+	IncomingInstancesConsumerGroup string   `envconfig:"DIMENSIONS_EXTRACTED_CONSUMER_GROUP"`
+	OutgoingInstancesTopic         string   `envconfig:"DIMENSIONS_INSERTED_TOPIC"`
+	EventReporterTopic             string   `envconfig:"EVENT_REPORTER_TOPIC"`
+	DatasetAPIAddr                 string   `envconfig:"DATASET_API_ADDR"`
+	// DatasetAPIAuthToken            string        `envconfig:"DATASET_API_AUTH_TOKEN"                 json:"-"`
+	ZebedeeURL                  string        `envconfig:"ZEBEDEE_URL"`
+	GracefulShutdownTimeout     time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
+	HealthCheckInterval         time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
+	HealthCheckRecoveryInterval time.Duration `envconfig:"HEALTHCHECK_RECOVERY_INTERVAL"`
 }
 
 var cfg *Config
@@ -36,10 +36,10 @@ func Get() (*Config, error) {
 	}
 
 	cfg := &Config{
-		BindAddr:                       ":23000",
-		ServiceAuthToken:               "4424A9F2-B903-40F4-85F1-240107D1AFAF",
-		DatasetAPIAddr:                 "http://localhost:22000",
-		DatasetAPIAuthToken:            "FD0108EA-825D-411C-9B1D-41EF7727F465",
+		BindAddr:         ":23000",
+		ServiceAuthToken: "4424A9F2-B903-40F4-85F1-240107D1AFAF",
+		DatasetAPIAddr:   "http://localhost:22000",
+		// DatasetAPIAuthToken:            "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		ZebedeeURL:                     "http://localhost:8082",
 		KafkaAddr:                      []string{"localhost:9092"},
 		IncomingInstancesTopic:         "dimensions-extracted",

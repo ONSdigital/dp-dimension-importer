@@ -5,8 +5,8 @@ package storertest
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/dp-dimension-importer/store"
+	"github.com/ONSdigital/dp-graph/models"
 	"sync"
 )
 
@@ -33,7 +33,7 @@ var _ store.Storer = &StorerMock{}
 //
 //         // make and configure a mocked store.Storer
 //         mockedStorer := &StorerMock{
-//             AddDimensionsFunc: func(ctx context.Context, instance *model.Instance) error {
+//             AddDimensionsFunc: func(ctx context.Context, instance *models.Instance) error {
 // 	               panic("mock out the AddDimensions method")
 //             },
 //             AddVersionDetailsToInstanceFunc: func(ctx context.Context, instanceID string, datasetID string, edition string, version int) error {
@@ -45,19 +45,19 @@ var _ store.Storer = &StorerMock{}
 //             CountInsertedObservationsFunc: func(ctx context.Context, instanceID string) (int64, error) {
 // 	               panic("mock out the CountInsertedObservations method")
 //             },
-//             CreateCodeRelationshipFunc: func(ctx context.Context, instance *model.Instance, codeListID string, code string) error {
+//             CreateCodeRelationshipFunc: func(ctx context.Context, instance *models.Instance, codeListID string, code string) error {
 // 	               panic("mock out the CreateCodeRelationship method")
 //             },
-//             CreateInstanceFunc: func(ctx context.Context, instance *model.Instance) error {
+//             CreateInstanceFunc: func(ctx context.Context, instance *models.Instance) error {
 // 	               panic("mock out the CreateInstance method")
 //             },
-//             CreateInstanceConstraintFunc: func(ctx context.Context, instance *model.Instance) error {
+//             CreateInstanceConstraintFunc: func(ctx context.Context, instance *models.Instance) error {
 // 	               panic("mock out the CreateInstanceConstraint method")
 //             },
-//             InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
+//             InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instance *models.Instance, dimension *models.Dimension) (*models.Dimension, error) {
 // 	               panic("mock out the InsertDimension method")
 //             },
-//             InstanceExistsFunc: func(ctx context.Context, instance *model.Instance) (bool, error) {
+//             InstanceExistsFunc: func(ctx context.Context, instance *models.Instance) (bool, error) {
 // 	               panic("mock out the InstanceExists method")
 //             },
 //             SetInstanceIsPublishedFunc: func(ctx context.Context, instanceID string) error {
@@ -71,7 +71,7 @@ var _ store.Storer = &StorerMock{}
 //     }
 type StorerMock struct {
 	// AddDimensionsFunc mocks the AddDimensions method.
-	AddDimensionsFunc func(ctx context.Context, instance *model.Instance) error
+	AddDimensionsFunc func(ctx context.Context, instance *models.Instance) error
 
 	// AddVersionDetailsToInstanceFunc mocks the AddVersionDetailsToInstance method.
 	AddVersionDetailsToInstanceFunc func(ctx context.Context, instanceID string, datasetID string, edition string, version int) error
@@ -83,19 +83,19 @@ type StorerMock struct {
 	CountInsertedObservationsFunc func(ctx context.Context, instanceID string) (int64, error)
 
 	// CreateCodeRelationshipFunc mocks the CreateCodeRelationship method.
-	CreateCodeRelationshipFunc func(ctx context.Context, instance *model.Instance, codeListID string, code string) error
+	CreateCodeRelationshipFunc func(ctx context.Context, instance *models.Instance, codeListID string, code string) error
 
 	// CreateInstanceFunc mocks the CreateInstance method.
-	CreateInstanceFunc func(ctx context.Context, instance *model.Instance) error
+	CreateInstanceFunc func(ctx context.Context, instance *models.Instance) error
 
 	// CreateInstanceConstraintFunc mocks the CreateInstanceConstraint method.
-	CreateInstanceConstraintFunc func(ctx context.Context, instance *model.Instance) error
+	CreateInstanceConstraintFunc func(ctx context.Context, instance *models.Instance) error
 
 	// InsertDimensionFunc mocks the InsertDimension method.
-	InsertDimensionFunc func(ctx context.Context, cache map[string]string, instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error)
+	InsertDimensionFunc func(ctx context.Context, cache map[string]string, instance *models.Instance, dimension *models.Dimension) (*models.Dimension, error)
 
 	// InstanceExistsFunc mocks the InstanceExists method.
-	InstanceExistsFunc func(ctx context.Context, instance *model.Instance) (bool, error)
+	InstanceExistsFunc func(ctx context.Context, instance *models.Instance) (bool, error)
 
 	// SetInstanceIsPublishedFunc mocks the SetInstanceIsPublished method.
 	SetInstanceIsPublishedFunc func(ctx context.Context, instanceID string) error
@@ -107,7 +107,7 @@ type StorerMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Instance is the instance argument value.
-			Instance *model.Instance
+			Instance *models.Instance
 		}
 		// AddVersionDetailsToInstance holds details about calls to the AddVersionDetailsToInstance method.
 		AddVersionDetailsToInstance []struct {
@@ -139,7 +139,7 @@ type StorerMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Instance is the instance argument value.
-			Instance *model.Instance
+			Instance *models.Instance
 			// CodeListID is the codeListID argument value.
 			CodeListID string
 			// Code is the code argument value.
@@ -150,14 +150,14 @@ type StorerMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Instance is the instance argument value.
-			Instance *model.Instance
+			Instance *models.Instance
 		}
 		// CreateInstanceConstraint holds details about calls to the CreateInstanceConstraint method.
 		CreateInstanceConstraint []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Instance is the instance argument value.
-			Instance *model.Instance
+			Instance *models.Instance
 		}
 		// InsertDimension holds details about calls to the InsertDimension method.
 		InsertDimension []struct {
@@ -166,16 +166,16 @@ type StorerMock struct {
 			// Cache is the cache argument value.
 			Cache map[string]string
 			// Instance is the instance argument value.
-			Instance *model.Instance
+			Instance *models.Instance
 			// Dimension is the dimension argument value.
-			Dimension *model.Dimension
+			Dimension *models.Dimension
 		}
 		// InstanceExists holds details about calls to the InstanceExists method.
 		InstanceExists []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Instance is the instance argument value.
-			Instance *model.Instance
+			Instance *models.Instance
 		}
 		// SetInstanceIsPublished holds details about calls to the SetInstanceIsPublished method.
 		SetInstanceIsPublished []struct {
@@ -188,13 +188,13 @@ type StorerMock struct {
 }
 
 // AddDimensions calls AddDimensionsFunc.
-func (mock *StorerMock) AddDimensions(ctx context.Context, instance *model.Instance) error {
+func (mock *StorerMock) AddDimensions(ctx context.Context, instance *models.Instance) error {
 	if mock.AddDimensionsFunc == nil {
 		panic("StorerMock.AddDimensionsFunc: method is nil but Storer.AddDimensions was just called")
 	}
 	callInfo := struct {
 		Ctx      context.Context
-		Instance *model.Instance
+		Instance *models.Instance
 	}{
 		Ctx:      ctx,
 		Instance: instance,
@@ -210,11 +210,11 @@ func (mock *StorerMock) AddDimensions(ctx context.Context, instance *model.Insta
 //     len(mockedStorer.AddDimensionsCalls())
 func (mock *StorerMock) AddDimensionsCalls() []struct {
 	Ctx      context.Context
-	Instance *model.Instance
+	Instance *models.Instance
 } {
 	var calls []struct {
 		Ctx      context.Context
-		Instance *model.Instance
+		Instance *models.Instance
 	}
 	lockStorerMockAddDimensions.RLock()
 	calls = mock.calls.AddDimensions
@@ -336,13 +336,13 @@ func (mock *StorerMock) CountInsertedObservationsCalls() []struct {
 }
 
 // CreateCodeRelationship calls CreateCodeRelationshipFunc.
-func (mock *StorerMock) CreateCodeRelationship(ctx context.Context, instance *model.Instance, codeListID string, code string) error {
+func (mock *StorerMock) CreateCodeRelationship(ctx context.Context, instance *models.Instance, codeListID string, code string) error {
 	if mock.CreateCodeRelationshipFunc == nil {
 		panic("StorerMock.CreateCodeRelationshipFunc: method is nil but Storer.CreateCodeRelationship was just called")
 	}
 	callInfo := struct {
 		Ctx        context.Context
-		Instance   *model.Instance
+		Instance   *models.Instance
 		CodeListID string
 		Code       string
 	}{
@@ -362,13 +362,13 @@ func (mock *StorerMock) CreateCodeRelationship(ctx context.Context, instance *mo
 //     len(mockedStorer.CreateCodeRelationshipCalls())
 func (mock *StorerMock) CreateCodeRelationshipCalls() []struct {
 	Ctx        context.Context
-	Instance   *model.Instance
+	Instance   *models.Instance
 	CodeListID string
 	Code       string
 } {
 	var calls []struct {
 		Ctx        context.Context
-		Instance   *model.Instance
+		Instance   *models.Instance
 		CodeListID string
 		Code       string
 	}
@@ -379,13 +379,13 @@ func (mock *StorerMock) CreateCodeRelationshipCalls() []struct {
 }
 
 // CreateInstance calls CreateInstanceFunc.
-func (mock *StorerMock) CreateInstance(ctx context.Context, instance *model.Instance) error {
+func (mock *StorerMock) CreateInstance(ctx context.Context, instance *models.Instance) error {
 	if mock.CreateInstanceFunc == nil {
 		panic("StorerMock.CreateInstanceFunc: method is nil but Storer.CreateInstance was just called")
 	}
 	callInfo := struct {
 		Ctx      context.Context
-		Instance *model.Instance
+		Instance *models.Instance
 	}{
 		Ctx:      ctx,
 		Instance: instance,
@@ -401,11 +401,11 @@ func (mock *StorerMock) CreateInstance(ctx context.Context, instance *model.Inst
 //     len(mockedStorer.CreateInstanceCalls())
 func (mock *StorerMock) CreateInstanceCalls() []struct {
 	Ctx      context.Context
-	Instance *model.Instance
+	Instance *models.Instance
 } {
 	var calls []struct {
 		Ctx      context.Context
-		Instance *model.Instance
+		Instance *models.Instance
 	}
 	lockStorerMockCreateInstance.RLock()
 	calls = mock.calls.CreateInstance
@@ -414,13 +414,13 @@ func (mock *StorerMock) CreateInstanceCalls() []struct {
 }
 
 // CreateInstanceConstraint calls CreateInstanceConstraintFunc.
-func (mock *StorerMock) CreateInstanceConstraint(ctx context.Context, instance *model.Instance) error {
+func (mock *StorerMock) CreateInstanceConstraint(ctx context.Context, instance *models.Instance) error {
 	if mock.CreateInstanceConstraintFunc == nil {
 		panic("StorerMock.CreateInstanceConstraintFunc: method is nil but Storer.CreateInstanceConstraint was just called")
 	}
 	callInfo := struct {
 		Ctx      context.Context
-		Instance *model.Instance
+		Instance *models.Instance
 	}{
 		Ctx:      ctx,
 		Instance: instance,
@@ -436,11 +436,11 @@ func (mock *StorerMock) CreateInstanceConstraint(ctx context.Context, instance *
 //     len(mockedStorer.CreateInstanceConstraintCalls())
 func (mock *StorerMock) CreateInstanceConstraintCalls() []struct {
 	Ctx      context.Context
-	Instance *model.Instance
+	Instance *models.Instance
 } {
 	var calls []struct {
 		Ctx      context.Context
-		Instance *model.Instance
+		Instance *models.Instance
 	}
 	lockStorerMockCreateInstanceConstraint.RLock()
 	calls = mock.calls.CreateInstanceConstraint
@@ -449,15 +449,15 @@ func (mock *StorerMock) CreateInstanceConstraintCalls() []struct {
 }
 
 // InsertDimension calls InsertDimensionFunc.
-func (mock *StorerMock) InsertDimension(ctx context.Context, cache map[string]string, instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
+func (mock *StorerMock) InsertDimension(ctx context.Context, cache map[string]string, instance *models.Instance, dimension *models.Dimension) (*models.Dimension, error) {
 	if mock.InsertDimensionFunc == nil {
 		panic("StorerMock.InsertDimensionFunc: method is nil but Storer.InsertDimension was just called")
 	}
 	callInfo := struct {
 		Ctx       context.Context
 		Cache     map[string]string
-		Instance  *model.Instance
-		Dimension *model.Dimension
+		Instance  *models.Instance
+		Dimension *models.Dimension
 	}{
 		Ctx:       ctx,
 		Cache:     cache,
@@ -476,14 +476,14 @@ func (mock *StorerMock) InsertDimension(ctx context.Context, cache map[string]st
 func (mock *StorerMock) InsertDimensionCalls() []struct {
 	Ctx       context.Context
 	Cache     map[string]string
-	Instance  *model.Instance
-	Dimension *model.Dimension
+	Instance  *models.Instance
+	Dimension *models.Dimension
 } {
 	var calls []struct {
 		Ctx       context.Context
 		Cache     map[string]string
-		Instance  *model.Instance
-		Dimension *model.Dimension
+		Instance  *models.Instance
+		Dimension *models.Dimension
 	}
 	lockStorerMockInsertDimension.RLock()
 	calls = mock.calls.InsertDimension
@@ -492,13 +492,13 @@ func (mock *StorerMock) InsertDimensionCalls() []struct {
 }
 
 // InstanceExists calls InstanceExistsFunc.
-func (mock *StorerMock) InstanceExists(ctx context.Context, instance *model.Instance) (bool, error) {
+func (mock *StorerMock) InstanceExists(ctx context.Context, instance *models.Instance) (bool, error) {
 	if mock.InstanceExistsFunc == nil {
 		panic("StorerMock.InstanceExistsFunc: method is nil but Storer.InstanceExists was just called")
 	}
 	callInfo := struct {
 		Ctx      context.Context
-		Instance *model.Instance
+		Instance *models.Instance
 	}{
 		Ctx:      ctx,
 		Instance: instance,
@@ -514,11 +514,11 @@ func (mock *StorerMock) InstanceExists(ctx context.Context, instance *model.Inst
 //     len(mockedStorer.InstanceExistsCalls())
 func (mock *StorerMock) InstanceExistsCalls() []struct {
 	Ctx      context.Context
-	Instance *model.Instance
+	Instance *models.Instance
 } {
 	var calls []struct {
 		Ctx      context.Context
-		Instance *model.Instance
+		Instance *models.Instance
 	}
 	lockStorerMockInstanceExists.RLock()
 	calls = mock.calls.InstanceExists

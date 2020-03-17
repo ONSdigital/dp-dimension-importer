@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate moq -out ./mock/producer_generated_mocks.go -pkg mock . Marshaller
+//go:generate moq -out ./mock/producer.go -pkg mock . Marshaller
 
 // Marshaller defines a type for marshalling the requested object into the required format.
 type Marshaller interface {

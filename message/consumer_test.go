@@ -40,7 +40,7 @@ func TestConsumer_Listen(t *testing.T) {
 		}
 
 		handleCalls := []kafka.Message{}
-		recieverMock := mock.MessageReciever{
+		receiverMock := &mock.ReceiverMock{
 			OnMessageFunc: func(message kafka.Message) {
 				handleCalls = append(handleCalls, message)
 				handlerInvoked <- message
@@ -49,7 +49,7 @@ func TestConsumer_Listen(t *testing.T) {
 
 		msg := &kafkatest.MessageMock{}
 
-		consumer := message.NewConsumer(kafkaConsumer, recieverMock, time.Second*10)
+		consumer := message.NewConsumer(kafkaConsumer, receiverMock, time.Second*10)
 		consumer.Listen()
 
 		Convey("When the consumer receives a valid message", func() {
@@ -64,7 +64,7 @@ func TestConsumer_Listen(t *testing.T) {
 			}
 			consumer.Close(nil)
 
-			Convey("Then messageReciever.OnMessage is called 1 time with the expected parameters", func() {
+			Convey("Then messageReceiver.OnMessage is called 1 time with the expected parameters", func() {
 				So(len(handleCalls), ShouldEqual, 1)
 				So(len(kafkaConsumer.ReleaseCalls()), ShouldEqual, 1)
 			})

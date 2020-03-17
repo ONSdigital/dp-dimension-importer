@@ -1,12 +1,9 @@
 package main
 
 import (
-	"io"
-	"io/ioutil"
 	"os"
 
 	"context"
-	"net/http"
 	"os/signal"
 	"syscall"
 
@@ -24,8 +21,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type responseBodyReader struct{}
-
 var (
 	// BuildTime represents the time in which the service was built
 	BuildTime string
@@ -34,10 +29,6 @@ var (
 	// Version represents the version of the service that is running
 	Version string
 )
-
-func (r responseBodyReader) Read(reader io.Reader) ([]byte, error) {
-	return ioutil.ReadAll(reader)
-}
 
 func main() {
 	log.Namespace = "dimension-importer"
@@ -75,14 +66,8 @@ func main() {
 		Marshaller: schema.InstanceCompletedSchema,
 	}
 
-	// ImportAPI HTTP client.
-	datasetAPICli := client.DatasetAPI{
-		AuthToken:           cfg.ServiceAuthToken,
-		DatasetAPIHost:      cfg.DatasetAPIAddr,
-		DatasetAPIAuthToken: cfg.DatasetAPIAuthToken,
-		HTTPClient:          &http.Client{},
-		ResponseBodyReader:  responseBodyReader{},
-	}
+	// Dataset Client wrapper.
+	datasetAPICli, err := client.NewDatasetAPIClient(cfg.ServiceAuthToken, cfg.DatasetAPIAddr)
 
 	// Receiver for NewInstance events.
 	instanceEventHandler := &handler.InstanceEventHandler{
@@ -105,25 +90,14 @@ func main() {
 		os.Exit(1)
 	}
 	hc := healthcheck.New(versionInfo, cfg.HealthCheckRecoveryInterval, cfg.HealthCheckInterval)
-	if err := registerCheckers(&hc, instanceConsumer, instanceCompleteProducer, errorReporterProducer); err != nil {
+	if err := registerCheckers(&hc, instanceConsumer, instanceCompleteProducer, errorReporterProducer, datasetAPICli.Client); err != nil {
 		os.Exit(1)
 	}
 
 	chHttpServerDone := make(chan error)
 	httpServer := startHealthCheck(ctx, &hc, cfg.BindAddr, chHttpServerDone)
 
-	// TODO use new healthcheck
-
-	// // HTTP Health check endpoint.
-	// healthcheckServer := healthcheck.NewServer(
-	// 	cfg.BindAddr,
-	// 	cfg.HealthCheckInterval,
-	// 	healthCheckErrors,
-	// 	graphDB,
-	// 	datasetHealthCheck.New(cfg.DatasetAPIAddr),
-	// )
-
-	messageReciever := message.KafkaMessageReciever{
+	messageReciever := message.KafkaMessageReceiver{
 		InstanceHandler: instanceEventHandler,
 		ErrorReporter:   errorReporter,
 	}
@@ -210,7 +184,8 @@ func startHealthCheck(ctx context.Context, hc *healthcheck.HealthCheck, bindAddr
 func registerCheckers(hc *healthcheck.HealthCheck,
 	instanceConsumer *kafka.ConsumerGroup,
 	instanceCompleteProducer *kafka.Producer,
-	errorReporterProducer *kafka.Producer) (err error) {
+	errorReporterProducer *kafka.Producer,
+	datasetClient client.IClient) (err error) {
 
 	if err = hc.AddCheck("Kafka Instance Consumer", instanceConsumer.Checker); err != nil {
 		log.Event(nil, "Error Adding Check for Kafka Instance Consumer Checker", log.ERROR, log.Error(err))
@@ -222,6 +197,10 @@ func registerCheckers(hc *healthcheck.HealthCheck,
 
 	if err = hc.AddCheck("Kafka ErrorReporter Producer", errorReporterProducer.Checker); err != nil {
 		log.Event(nil, "Error Adding Check for Kafka Error Reporter Checker", log.ERROR, log.Error(err))
+	}
+
+	if err = hc.AddCheck("Dataset", datasetClient.Checker); err != nil {
+		log.Event(nil, "Error Adding Check for Dataset Checker", log.ERROR, log.Error(err))
 	}
 
 	return

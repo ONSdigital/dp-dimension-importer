@@ -10,22 +10,24 @@ import (
 	"github.com/ONSdigital/log.go/log"
 )
 
+//go:generate moq -out mock/instance_event_handler.go -pkg mock . InstanceEventHandler
+
 // InstanceEventHandler handles a event.NewInstance
 type InstanceEventHandler interface {
 	Handle(e event.NewInstance) error
 }
 
-// KafkaMessageReciever is a Receiver for handling incoming kafka messages
-type KafkaMessageReciever struct {
+// KafkaMessageReceiver is a Receiver for handling incoming kafka messages
+type KafkaMessageReceiver struct {
 	InstanceHandler InstanceEventHandler
 	ErrorReporter   reporter.ErrorReporter
 }
 
 // OnMessage unmarshal the kafka message and pass it to the InstanceEventHandler any errors are sent to the ErrorReporter
-func (r KafkaMessageReciever) OnMessage(message kafka.Message) {
+func (r KafkaMessageReceiver) OnMessage(message kafka.Message) {
 	var newInstanceEvent event.NewInstance
 	ctx := context.Background()
-	logData := log.Data{"package": "message.KafkaMessageReciever"}
+	logData := log.Data{"package": "message.KafkaMessageReceiver"}
 	if err := schema.NewInstanceSchema.Unmarshal(message.GetData(), &newInstanceEvent); err != nil {
 		log.Event(ctx, "error while attempting to unmarshal kafka message into event.NewInstance", log.ERROR, log.Error(err), logData)
 		return

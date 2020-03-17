@@ -26,8 +26,8 @@ func TestKafkaMessageHandler_Handle(t *testing.T) {
 
 	fixture := newFixture(avroBytes, handleInstanceFunc)
 
-	Convey("Given KafkaMessageReciever has been correctly configured", t, func() {
-		handler := message.KafkaMessageReciever{
+	Convey("Given KafkaMessageReceiver has been correctly configured", t, func() {
+		handler := message.KafkaMessageReceiver{
 			InstanceHandler: fixture.instanceHandler,
 			ErrorReporter:   fixture.errorReporter,
 		}
@@ -58,13 +58,13 @@ func TestKafkaMessageHandler_Handle_InvalidKafkaMessage(t *testing.T) {
 
 	fix := newFixture([]byte("I am not a valid message"), handleInstanceFunc)
 
-	Convey("Given KafkaMessageReciever has been correctly configured", t, func() {
-		handler := message.KafkaMessageReciever{
+	Convey("Given KafkaMessageReceiver has been correctly configured", t, func() {
+		handler := message.KafkaMessageReceiver{
 			InstanceHandler: fix.instanceHandler,
 			ErrorReporter:   fix.errorReporter,
 		}
 
-		Convey("When an invalid message is receieved", func() {
+		Convey("When an invalid message is received", func() {
 			handler.OnMessage(fix.message)
 
 			Convey("Then ErrorReporter.Notify is never called", func() {
@@ -97,8 +97,8 @@ func TestKafkaMessageHandler_Handle_InstanceHandlerError(t *testing.T) {
 
 	fix := newFixture(avroBytes, handleInstanceFunc)
 
-	Convey("Given KafkaMessageReciever has been correctly configured", t, func() {
-		handler := message.KafkaMessageReciever{
+	Convey("Given KafkaMessageReceiver has been correctly configured", t, func() {
+		handler := message.KafkaMessageReceiver{
 			InstanceHandler: fix.instanceHandler,
 			ErrorReporter:   fix.errorReporter,
 		}
@@ -125,7 +125,7 @@ func TestKafkaMessageHandler_Handle_InstanceHandlerError(t *testing.T) {
 
 type fixture struct {
 	instanceHdlrCalls []event.NewInstance
-	instanceHandler   mock.InstanceEventHandler
+	instanceHandler   *mock.InstanceEventHandlerMock
 	errorReporter     *reportertest.ImportErrorReporterMock
 	message           *kafkatest.Message
 }
@@ -138,7 +138,7 @@ func newFixture(messageBytes []byte, handleInstanceFunc func(e event.NewInstance
 		message:           kafkatest.NewMessage(messageBytes, 0),
 	}
 
-	instanceHandler := mock.InstanceEventHandler{
+	instanceHandler := &mock.InstanceEventHandlerMock{
 		HandleFunc: func(e event.NewInstance) error {
 			fix.instanceHdlrCalls = append(fix.instanceHdlrCalls, e)
 			return handleInstanceFunc(e)

@@ -8,13 +8,15 @@ import (
 	"github.com/ONSdigital/log.go/log"
 )
 
+//go:generate moq -out mock/receiver.go -pkg mock . Receiver
+
 var packageName = "handler.InstanceEventHandler"
 
 // KafkaMessage type representing a kafka message.
 type KafkaMessage kafka.Message
 
-// Reciever is sent a kafka messages and processes it
-type Reciever interface {
+// Receiver is sent a kafka messages and processes it
+type Receiver interface {
 	OnMessage(message kafka.Message)
 }
 
@@ -24,12 +26,12 @@ type Consumer struct {
 	ctx             context.Context
 	cancel          context.CancelFunc
 	consumer        kafka.IConsumerGroup
-	messageReciever Reciever
+	messageReceiver Receiver
 	defaultShutdown time.Duration
 }
 
 // NewConsumer create a NewInstance event consumer.
-func NewConsumer(consumer kafka.IConsumerGroup, messageReciever Reciever, defaultShutdown time.Duration) Consumer {
+func NewConsumer(consumer kafka.IConsumerGroup, messageReceiver Receiver, defaultShutdown time.Duration) Consumer {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return Consumer{
@@ -37,12 +39,12 @@ func NewConsumer(consumer kafka.IConsumerGroup, messageReciever Reciever, defaul
 		ctx:             ctx,
 		cancel:          cancel,
 		consumer:        consumer,
-		messageReciever: messageReciever,
+		messageReceiver: messageReceiver,
 		defaultShutdown: defaultShutdown,
 	}
 }
 
-// Listen poll the KafkaConsumer for incoming messages and pass onto the Reciever
+// Listen poll the KafkaConsumer for incoming messages and pass onto the Receiver
 func (c Consumer) Listen() {
 	go func() {
 		defer func() {
@@ -55,7 +57,7 @@ func (c Consumer) Listen() {
 			select {
 			case consumedMessage := <-c.consumer.Channels().Upstream:
 				log.Event(c.ctx, "consumer.incoming received a message", log.INFO, logData)
-				c.messageReciever.OnMessage(consumedMessage)
+				c.messageReceiver.OnMessage(consumedMessage)
 				c.consumer.Release()
 			case <-c.ctx.Done():
 				log.Event(c.ctx, "loggercontext.Done received event, attempting to close consumer", log.INFO, logData)

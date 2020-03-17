@@ -4,74 +4,104 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	dataset "github.com/ONSdigital/dp-api-clients-go/dataset"
+	db "github.com/ONSdigital/dp-graph/models"
 )
 
-// DimensionNodeResults wraps dimension node objects for pagination
-type DimensionNodeResults struct {
-	Items []*Dimension `json:"items"`
-}
-
-// Dimension struct encapsulating Dimension details.
+// Dimension struct wraps the Dimension dataset API model defined in dp-api-clients, for extra functionality
 type Dimension struct {
-	DimensionID string        `json:"dimension"`
-	Option      string        `json:"option"`
-	NodeID      string        `json:"node_id,omitempty"`
-	Links       Links         `json:"links"`
-	Dimensions  []interface{} `json:"-"`
+	dbDimension *db.Dimension
 }
 
-type Links struct {
-	CodeList Link `json:"code_list,omitempty"`
-	Code     Link `json:"code,omitempty"`
+// NewDimension creates a new DB wrapped Dimension from an api dimension
+func NewDimension(dimension *dataset.Dimension) *Dimension {
+	if dimension == nil {
+		return &Dimension{&db.Dimension{}}
+	}
+	return &Dimension{
+		dbDimension: &db.Dimension{
+			DimensionID: dimension.DimensionID,
+			Option:      dimension.Option,
+			NodeID:      dimension.NodeID,
+			Links: db.Links{
+				CodeList: db.Link{
+					ID:   dimension.Links.CodeList.ID,
+					Href: dimension.Links.CodeList.URL,
+				},
+				Code: db.Link{
+					ID:   dimension.Links.Code.ID,
+					Href: dimension.Links.Code.URL,
+				},
+			},
+		},
+	}
 }
 
-// Link represents a single link within a dataset model
-type Link struct {
-	HRef string `json:"href"`
-	ID   string `json:"id,omitempty"`
+// DbModel returns a DB representation of the Dimension model
+func (d *Dimension) DbModel() *db.Dimension {
+	return d.dbDimension
 }
 
 // GetName return the name or type of Dimension e.g. sex, geography time etc.
 func (d *Dimension) GetName(instanceID string) string {
 	instID := fmt.Sprintf("_%s_", instanceID)
-	dimLabel := "_" + d.DimensionID
+	dimLabel := "_" + d.dbDimension.DimensionID
 	result := strings.Replace(dimLabel, instID, "", 2)
 	return result
 }
 
+// Validate validates tha Dimension is not nil and that there are values for DimensionID and Option
 func (d *Dimension) Validate() error {
 	if d == nil {
 		return errors.New("dimension is required but was nil")
 	}
-	if len(d.DimensionID) == 0 && len(d.Option) == 0 {
+	if len(d.dbDimension.DimensionID) == 0 && len(d.dbDimension.Option) == 0 {
 		return errors.New("dimension invalid: both dimension.dimension_id and dimension.value are required but were both empty")
 	}
-	if len(d.DimensionID) == 0 {
+	if len(d.dbDimension.DimensionID) == 0 {
 		return errors.New("dimension id is required but was empty")
 	}
-	if len(d.Option) == 0 {
+	if len(d.dbDimension.Option) == 0 {
 		return errors.New("dimension value is required but was empty")
 	}
 	return nil
 }
 
-// Instance struct to hold instance information.
+// Instance struct to hold instance information by wrapping DB Instance model
 type Instance struct {
-	InstanceID string        `json:"id,omitempty"`
-	CSVHeader  []string      `json:"headers"`
-	Dimensions []interface{} `json:"-"`
+	dbInstance *db.Instance
+}
+
+// NewInstance creates a new Instance struct from an API Instance model
+func NewInstance(instance *dataset.Instance) *Instance {
+	if instance == nil {
+		return &Instance{&db.Instance{}}
+	}
+	return &Instance{
+		dbInstance: &db.Instance{
+			InstanceID: instance.ID,
+			CSVHeader:  instance.CSVHeader,
+		},
+	}
 }
 
 // AddDimension add a dimension distinct type/name to the instance.
 func (i *Instance) AddDimension(d *Dimension) {
-	i.Dimensions = append(i.Dimensions, string(d.DimensionID))
+	i.dbInstance.Dimensions = append(i.dbInstance.Dimensions, d)
 }
 
+// DbModel returns the DB model of an instance struct
+func (i *Instance) DbModel() *db.Instance {
+	return i.dbInstance
+}
+
+// Validate validates that the instance is not nil and has an ID
 func (i *Instance) Validate() error {
 	if i == nil {
 		return errors.New("instance is required but was nil")
 	}
-	if len(i.InstanceID) == 0 {
+	if len(i.dbInstance.InstanceID) == 0 {
 		return errors.New("instance id is required but was empty")
 	}
 	return nil
