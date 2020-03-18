@@ -12,35 +12,34 @@ import (
 // Dimension struct wraps the Dimension dataset API model defined in dp-api-clients, for extra functionality
 type Dimension struct {
 	dbDimension *db.Dimension
+	codeListID  string
 }
 
 // NewDimension creates a new DB wrapped Dimension from an api dimension
 func NewDimension(dimension *dataset.Dimension) *Dimension {
 	if dimension == nil {
-		return &Dimension{&db.Dimension{}}
+		return &Dimension{&db.Dimension{}, ""}
 	}
+	dbDimension := &db.Dimension{
+		DimensionID: dimension.DimensionID,
+		Option:      dimension.Option,
+		NodeID:      dimension.NodeID,
+	}
+
 	return &Dimension{
-		dbDimension: &db.Dimension{
-			DimensionID: dimension.DimensionID,
-			Option:      dimension.Option,
-			NodeID:      dimension.NodeID,
-			Links: db.Links{
-				CodeList: db.Link{
-					ID:   dimension.Links.CodeList.ID,
-					Href: dimension.Links.CodeList.URL,
-				},
-				Code: db.Link{
-					ID:   dimension.Links.Code.ID,
-					Href: dimension.Links.Code.URL,
-				},
-			},
-		},
+		dbDimension: dbDimension,
+		codeListID:  dimension.Links.CodeList.ID,
 	}
 }
 
 // DbModel returns a DB representation of the Dimension model
 func (d *Dimension) DbModel() *db.Dimension {
 	return d.dbDimension
+}
+
+// CodeListID returns the code list ID linked by this dimension
+func (d *Dimension) CodeListID() string {
+	return d.codeListID
 }
 
 // GetName return the name or type of Dimension e.g. sex, geography time etc.

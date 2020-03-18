@@ -76,10 +76,10 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 2)
 
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 
-				So(calls[1].Instance, ShouldResemble, instance.DbModel())
+				So(calls[1].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(calls[1].Dimension, ShouldResemble, d2.DbModel())
 			})
 
@@ -97,17 +97,17 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				calls := storerMock.AddDimensionsCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And storer.CreateCodeRelationshipCalls is called once with the expected parameters", func() {
 				calls := storerMock.CreateCodeRelationshipCalls()
 				So(len(calls), ShouldEqual, 2)
 
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(calls[0].Code, ShouldResemble, d1.DbModel().Option)
 
-				So(calls[1].Instance, ShouldResemble, instance.DbModel())
+				So(calls[1].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(calls[1].Code, ShouldResemble, d2.DbModel().Option)
 			})
 
@@ -170,7 +170,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When storer.CreateInstance returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			storerMock.CreateInstanceFunc = func(ctx context.Context, instance *models.Instance) error {
+			storerMock.CreateInstanceFunc = func(ctx context.Context, instanceID string, csvHeaders []string) error {
 				return errorMock
 			}
 
@@ -187,7 +187,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
 				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -204,7 +204,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When storer.CreateCodeRelationship returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			storerMock.CreateCodeRelationshipFunc = func(ctx context.Context, instance *models.Instance, codeListID string, code string) error {
+			storerMock.CreateCodeRelationshipFunc = func(ctx context.Context, instanceID string, codeListID string, code string) error {
 				return errorMock
 			}
 
@@ -221,14 +221,14 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
 				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And storer.InsertDimension is called 2 times with the expected parameters", func() {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 			})
 
@@ -252,7 +252,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When storer.InsertDimension returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instance *models.Instance, dimension *models.Dimension) (*models.Dimension, error) {
+			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 				return dimension, errorMock
 			}
 			err := handler.Handle(event)
@@ -268,13 +268,13 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
 				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And storer.InsertDimension is called 1 time with the expected parameters", func() {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 			})
 
@@ -291,7 +291,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When DatasetAPICli.PutDimensionNodeID returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instance *models.Instance, dimension *models.Dimension) (*models.Dimension, error) {
+			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 				return dimension, nil
 			}
 			datasetAPIMock.PutInstanceDimensionOptionNodeIDFunc = func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string) error {
@@ -311,13 +311,13 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
 				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And storer.InsertDimension is called 2 time with the expected parameters", func() {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 			})
 
@@ -341,13 +341,13 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When storer.AddDimensions returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instance *models.Instance, dimension *models.Dimension) (*models.Dimension, error) {
+			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 				return dimension, nil
 			}
 			datasetAPIMock.PutInstanceDimensionOptionNodeIDFunc = func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string) error {
 				return nil
 			}
-			storerMock.AddDimensionsFunc = func(ctx context.Context, instance *models.Instance) error {
+			storerMock.AddDimensionsFunc = func(ctx context.Context, instanceID string, dimensions []interface{}) error {
 				return errorMock
 			}
 
@@ -364,16 +364,16 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
 				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And storer.InsertDimension is called 2 time with the expected parameters", func() {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 2)
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 
-				So(calls[1].Instance, ShouldResemble, instance.DbModel())
+				So(calls[1].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(calls[1].Dimension, ShouldResemble, d2.DbModel())
 			})
 
@@ -450,7 +450,7 @@ func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 		storerMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		// override default
-		storerMock.InstanceExistsFunc = func(ctx context.Context, instance *models.Instance) (bool, error) {
+		storerMock.InstanceExistsFunc = func(ctx context.Context, instanceID string) (bool, error) {
 			return true, nil
 		}
 
@@ -460,7 +460,7 @@ func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 			Convey("Then storer.InstanceExists is called 1 time with expected parameters ", func() {
 				calls := storerMock.InstanceExistsCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance.DbModel())
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And storer.CreateInstance is not called", func() {
@@ -495,7 +495,7 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 		storerMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		Convey("When storer.InstanceExists returns an error", func() {
-			storerMock.InstanceExistsFunc = func(ctx context.Context, instance *models.Instance) (bool, error) {
+			storerMock.InstanceExistsFunc = func(ctx context.Context, instanceID string) (bool, error) {
 				return false, errorMock
 			}
 
@@ -517,7 +517,7 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 
 			Convey("And storer makes the expected called with the expected parameters", func() {
 				So(len(storerMock.InstanceExistsCalls()), ShouldEqual, 1)
-				So(storerMock.InstanceExistsCalls()[0].Instance, ShouldResemble, instance.DbModel())
+				So(storerMock.InstanceExistsCalls()[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(len(storerMock.CreateInstanceCalls()), ShouldEqual, 0)
 				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
@@ -535,22 +535,22 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 // Default set up for the mocks.
 func setUp() (*storertest.StorerMock, *mocks.IClientMock, *mocks.CompletedProducerMock, handler.InstanceEventHandler) {
 	storeMock := &storertest.StorerMock{
-		InstanceExistsFunc: func(ctx context.Context, instance *models.Instance) (bool, error) {
+		InstanceExistsFunc: func(ctx context.Context, instanceID string) (bool, error) {
 			return false, nil
 		},
-		AddDimensionsFunc: func(ctx context.Context, instance *models.Instance) error {
+		AddDimensionsFunc: func(ctx context.Context, instanceID string, dimensions []interface{}) error {
 			return nil
 		},
-		CreateInstanceFunc: func(ctx context.Context, instance *models.Instance) error {
+		CreateInstanceFunc: func(ctx context.Context, instanceID string, csvHeaders []string) error {
 			return nil
 		},
-		CreateCodeRelationshipFunc: func(ctx context.Context, instance *models.Instance, codeListID string, code string) error {
+		CreateCodeRelationshipFunc: func(ctx context.Context, instanceID string, codeListID string, code string) error {
 			return nil
 		},
-		InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instance *models.Instance, dimension *models.Dimension) (*models.Dimension, error) {
+		InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 			return dimension, nil
 		},
-		CreateInstanceConstraintFunc: func(ctx context.Context, instance *models.Instance) error {
+		CreateInstanceConstraintFunc: func(ctx context.Context, instanceID string) error {
 			return nil
 		},
 		CloseFunc: func(ctx context.Context) error {

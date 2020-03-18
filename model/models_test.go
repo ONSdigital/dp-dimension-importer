@@ -50,7 +50,7 @@ func TestDimension_Validate(t *testing.T) {
 	})
 
 	Convey("Given a dimension with an empty dimensionID", t, func() {
-		d := &Dimension{&db.Dimension{Option: "10"}}
+		d := &Dimension{&db.Dimension{Option: "10"}, ""}
 
 		Convey("When validateDimension is called", func() {
 			err := d.Validate()
@@ -62,7 +62,7 @@ func TestDimension_Validate(t *testing.T) {
 	})
 
 	Convey("Given a dimension with an empty dimensionID and option", t, func() {
-		d := &Dimension{&db.Dimension{DimensionID: "", Option: ""}}
+		d := &Dimension{&db.Dimension{DimensionID: "", Option: ""}, ""}
 
 		Convey("When validateDimension is called", func() {
 			err := d.Validate()
@@ -74,7 +74,7 @@ func TestDimension_Validate(t *testing.T) {
 	})
 
 	Convey("Given a dimension with an empty option", t, func() {
-		d := &Dimension{&db.Dimension{DimensionID: "id"}}
+		d := &Dimension{&db.Dimension{DimensionID: "id"}, ""}
 
 		Convey("When validateDimension is called", func() {
 			err := d.Validate()
@@ -88,7 +88,7 @@ func TestDimension_Validate(t *testing.T) {
 
 func TestDimension_New(t *testing.T) {
 
-	emptyDimension := &Dimension{&db.Dimension{}}
+	emptyDimension := &Dimension{&db.Dimension{}, ""}
 
 	Convey("Given a new dimension with a nil pointer dataset API model", t, func() {
 		d := NewDimension(nil)
@@ -120,29 +120,30 @@ func TestDimension_New(t *testing.T) {
 			DimensionID: "dimID",
 			NodeID:      "nodeID",
 			Option:      "opt",
-			Links:       db.Links{},
+			// Links:       db.Links{},
 		}
 
 		Convey("It is mapped to an equivalent database model", func() {
 			So(d.DbModel(), ShouldResemble, expected)
+			So(d.CodeListID(), ShouldEqual, "")
 		})
 
 	})
 
 	Convey("Given a new dimension with a dataset API model with non-empty links", t, func() {
 		apiDim := &dataset.Dimension{
-			Links: dataset.Links{Code: dataset.Link{ID: "code1", URL: "url1"}},
+			Links: dataset.Links{CodeList: dataset.Link{ID: "myCodeList", URL: "url1"}},
 		}
 		d := NewDimension(apiDim)
 		expected := &db.Dimension{
 			DimensionID: "",
 			NodeID:      "",
 			Option:      "",
-			Links:       db.Links{Code: db.Link{ID: "code1", Href: "url1"}},
 		}
 
-		Convey("It is mapped to an equivalent database model", func() {
+		Convey("It is mapped to an equivalent database model and the codeID is obtained from the link", func() {
 			So(d.DbModel(), ShouldResemble, expected)
+			So(d.CodeListID(), ShouldEqual, "myCodeList")
 		})
 
 	})

@@ -105,13 +105,14 @@ func (hdlr *InstanceEventHandler) validate(newInstance event.NewInstance) error 
 	return nil
 }
 
+// func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance *model.Instance, dimensions []*model.Dimension) error {
 func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance *model.Instance, dimensions []*model.Dimension) error {
 
 	cache := make(map[string]string)
 
 	for _, dimension := range dimensions {
 
-		dbDimension, err := hdlr.Store.InsertDimension(context.Background(), cache, instance.DbModel(), dimension.DbModel())
+		dbDimension, err := hdlr.Store.InsertDimension(context.Background(), cache, instance.DbModel().InstanceID, dimension.DbModel())
 		if err != nil {
 			return errors.Wrap(err, "error while attempting to insert dimension")
 		}
@@ -122,13 +123,13 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 
 		// todo: remove this temp hack once the time codelist / input data has been fixed.
 		if dbDimension.DimensionID != "time" {
-			if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance.DbModel(), dbDimension.Links.CodeList.ID, dbDimension.Option); err != nil {
+			if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance.DbModel().InstanceID, dimension.CodeListID(), dbDimension.Option); err != nil {
 				return errors.Wrap(err, "error attempting to create relationship to code")
 			}
 		}
 	}
 
-	if err := hdlr.Store.AddDimensions(context.Background(), instance.DbModel()); err != nil {
+	if err := hdlr.Store.AddDimensions(context.Background(), instance.DbModel().InstanceID, instance.DbModel().Dimensions); err != nil {
 		return errors.Wrap(err, "AddDimensions returned an error")
 	}
 
@@ -137,7 +138,7 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 
 func (hdlr *InstanceEventHandler) createInstanceNode(instance *model.Instance) error {
 
-	exists, err := hdlr.Store.InstanceExists(context.Background(), instance.DbModel())
+	exists, err := hdlr.Store.InstanceExists(context.Background(), instance.DbModel().InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "instance exists check returned an error")
 	}
@@ -146,7 +147,7 @@ func (hdlr *InstanceEventHandler) createInstanceNode(instance *model.Instance) e
 		return errInstanceExists
 	}
 
-	if err = hdlr.Store.CreateInstance(context.Background(), instance.DbModel()); err != nil {
+	if err = hdlr.Store.CreateInstance(context.Background(), instance.DbModel().InstanceID, instance.DbModel().CSVHeader); err != nil {
 		return errors.Wrap(err, "create instance returned an error")
 	}
 
@@ -155,7 +156,7 @@ func (hdlr *InstanceEventHandler) createInstanceNode(instance *model.Instance) e
 
 func (hdlr *InstanceEventHandler) createObservationConstraint(instance *model.Instance) error {
 
-	if err := hdlr.Store.CreateInstanceConstraint(context.Background(), instance.DbModel()); err != nil {
+	if err := hdlr.Store.CreateInstanceConstraint(context.Background(), instance.DbModel().InstanceID); err != nil {
 		return errors.Wrap(err, "error while attempting to add the unique observation constraint")
 	}
 

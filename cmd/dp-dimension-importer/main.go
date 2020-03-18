@@ -98,24 +98,24 @@ func main() {
 	chHttpServerDone := make(chan error)
 	httpServer := startHealthCheck(ctx, &hc, cfg.BindAddr, chHttpServerDone)
 
-	messageReciever := message.KafkaMessageReceiver{
+	messageReceiver := message.KafkaMessageReceiver{
 		InstanceHandler: instanceEventHandler,
 		ErrorReporter:   errorReporter,
 	}
 
-	consumer := message.NewConsumer(instanceConsumer, messageReciever, cfg.GracefulShutdownTimeout)
+	consumer := message.NewConsumer(instanceConsumer, messageReceiver, cfg.GracefulShutdownTimeout)
 	consumer.Listen()
 
 	// TODO non-fatal errors should do logging instead of triggering shutdown
 	select {
 	case err := <-instanceConsumer.Channels().Errors:
-		log.Event(ctx, "incoming instance kafka consumer receieved an error, attempting graceful shutdown", log.ERROR, log.Error(err))
+		log.Event(ctx, "incoming instance kafka consumer received an error, attempting graceful shutdown", log.ERROR, log.Error(err))
 	case err := <-instanceCompleteProducer.Channels().Errors:
-		log.Event(ctx, "completed instance kafka producer receieved an error, attempting graceful shutdown", log.ERROR, log.Error(err))
+		log.Event(ctx, "completed instance kafka producer received an error, attempting graceful shutdown", log.ERROR, log.Error(err))
 	case err := <-errorReporterProducer.Channels().Errors:
-		log.Event(ctx, "error reporter kafka producer recieved an error, attempting graceful shutdown", log.ERROR, log.Error(err))
+		log.Event(ctx, "error reporter kafka producer received an error, attempting graceful shutdown", log.ERROR, log.Error(err))
 	case signal := <-signals:
-		log.Event(ctx, "os signal receieved, attempting graceful shutdown", log.INFO, log.Data{"signal": signal.String()})
+		log.Event(ctx, "os signal received, attempting graceful shutdown", log.INFO, log.Data{"signal": signal.String()})
 	}
 
 	shutdownCtx, cancel := context.WithTimeout(ctx, cfg.GracefulShutdownTimeout)

@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.8.1-0.20200313134508-9ee16f0cd68c
 	github.com/ONSdigital/dp-code-list-api v0.0.0-20191210144507-f59b8560081b // indirect
-	github.com/ONSdigital/dp-graph v1.0.3-0.20200316165703-8105d27c5003
+	github.com/ONSdigital/dp-graph v1.0.3-0.20200318104631-bfc95a183ee5
 	github.com/ONSdigital/dp-healthcheck v1.0.0
 	github.com/ONSdigital/dp-hierarchy-api v0.0.0-20190530123622-0be246287b59 // indirect
 	github.com/ONSdigital/dp-kafka v1.1.4
