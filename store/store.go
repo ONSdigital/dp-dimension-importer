@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-graph/models"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
 
 //go:generate moq -out storertest/storer.go -pkg storertest . Storer
@@ -19,5 +20,6 @@ type Storer interface {
 	AddVersionDetailsToInstance(ctx context.Context, instanceID string, datasetID string, edition string, version int) error
 	SetInstanceIsPublished(ctx context.Context, instanceID string) error
 	InsertDimension(ctx context.Context, cache map[string]string, instance *models.Instance, dimension *models.Dimension) (*models.Dimension, error)
+	Checker(ctx context.Context, state *healthcheck.CheckState) error
 	Close(ctx context.Context) error
 }

@@ -7,12 +7,14 @@ import (
 	"context"
 	"github.com/ONSdigital/dp-dimension-importer/store"
 	"github.com/ONSdigital/dp-graph/models"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"sync"
 )
 
 var (
 	lockStorerMockAddDimensions               sync.RWMutex
 	lockStorerMockAddVersionDetailsToInstance sync.RWMutex
+	lockStorerMockChecker                     sync.RWMutex
 	lockStorerMockClose                       sync.RWMutex
 	lockStorerMockCountInsertedObservations   sync.RWMutex
 	lockStorerMockCreateCodeRelationship      sync.RWMutex
@@ -38,6 +40,9 @@ var _ store.Storer = &StorerMock{}
 //             },
 //             AddVersionDetailsToInstanceFunc: func(ctx context.Context, instanceID string, datasetID string, edition string, version int) error {
 // 	               panic("mock out the AddVersionDetailsToInstance method")
+//             },
+//             CheckerFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
+// 	               panic("mock out the Checker method")
 //             },
 //             CloseFunc: func(ctx context.Context) error {
 // 	               panic("mock out the Close method")
@@ -75,6 +80,9 @@ type StorerMock struct {
 
 	// AddVersionDetailsToInstanceFunc mocks the AddVersionDetailsToInstance method.
 	AddVersionDetailsToInstanceFunc func(ctx context.Context, instanceID string, datasetID string, edition string, version int) error
+
+	// CheckerFunc mocks the Checker method.
+	CheckerFunc func(ctx context.Context, state *healthcheck.CheckState) error
 
 	// CloseFunc mocks the Close method.
 	CloseFunc func(ctx context.Context) error
@@ -121,6 +129,13 @@ type StorerMock struct {
 			Edition string
 			// Version is the version argument value.
 			Version int
+		}
+		// Checker holds details about calls to the Checker method.
+		Checker []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// State is the state argument value.
+			State *healthcheck.CheckState
 		}
 		// Close holds details about calls to the Close method.
 		Close []struct {
@@ -266,6 +281,41 @@ func (mock *StorerMock) AddVersionDetailsToInstanceCalls() []struct {
 	lockStorerMockAddVersionDetailsToInstance.RLock()
 	calls = mock.calls.AddVersionDetailsToInstance
 	lockStorerMockAddVersionDetailsToInstance.RUnlock()
+	return calls
+}
+
+// Checker calls CheckerFunc.
+func (mock *StorerMock) Checker(ctx context.Context, state *healthcheck.CheckState) error {
+	if mock.CheckerFunc == nil {
+		panic("StorerMock.CheckerFunc: method is nil but Storer.Checker was just called")
+	}
+	callInfo := struct {
+		Ctx   context.Context
+		State *healthcheck.CheckState
+	}{
+		Ctx:   ctx,
+		State: state,
+	}
+	lockStorerMockChecker.Lock()
+	mock.calls.Checker = append(mock.calls.Checker, callInfo)
+	lockStorerMockChecker.Unlock()
+	return mock.CheckerFunc(ctx, state)
+}
+
+// CheckerCalls gets all the calls that were made to Checker.
+// Check the length with:
+//     len(mockedStorer.CheckerCalls())
+func (mock *StorerMock) CheckerCalls() []struct {
+	Ctx   context.Context
+	State *healthcheck.CheckState
+} {
+	var calls []struct {
+		Ctx   context.Context
+		State *healthcheck.CheckState
+	}
+	lockStorerMockChecker.RLock()
+	calls = mock.calls.Checker
+	lockStorerMockChecker.RUnlock()
 	return calls
 }
 

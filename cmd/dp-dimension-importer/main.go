@@ -12,6 +12,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/handler"
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
+	"github.com/ONSdigital/dp-dimension-importer/store"
 	"github.com/ONSdigital/dp-graph/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka"
@@ -90,7 +91,7 @@ func main() {
 		os.Exit(1)
 	}
 	hc := healthcheck.New(versionInfo, cfg.HealthCheckRecoveryInterval, cfg.HealthCheckInterval)
-	if err := registerCheckers(&hc, instanceConsumer, instanceCompleteProducer, errorReporterProducer, datasetAPICli.Client); err != nil {
+	if err := registerCheckers(&hc, instanceConsumer, instanceCompleteProducer, errorReporterProducer, datasetAPICli.Client, graphDB); err != nil {
 		os.Exit(1)
 	}
 
@@ -185,8 +186,8 @@ func registerCheckers(hc *healthcheck.HealthCheck,
 	instanceConsumer *kafka.ConsumerGroup,
 	instanceCompleteProducer *kafka.Producer,
 	errorReporterProducer *kafka.Producer,
-	datasetClient client.IClient) (err error) {
-
+	datasetClient client.IClient,
+	db store.Storer) (err error) {
 	if err = hc.AddCheck("Kafka Instance Consumer", instanceConsumer.Checker); err != nil {
 		log.Event(nil, "Error Adding Check for Kafka Instance Consumer Checker", log.ERROR, log.Error(err))
 	}
@@ -201,6 +202,10 @@ func registerCheckers(hc *healthcheck.HealthCheck,
 
 	if err = hc.AddCheck("Dataset", datasetClient.Checker); err != nil {
 		log.Event(nil, "Error Adding Check for Dataset Checker", log.ERROR, log.Error(err))
+	}
+
+	if err = hc.AddCheck("Neo4J", db.Checker); err != nil {
+		log.Event(nil, "Error Adding Check for GraphDB", log.ERROR, log.Error(err))
 	}
 
 	return
