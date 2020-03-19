@@ -44,7 +44,7 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 	}
 
 	logData := log.Data{"instance_id": newInstance.InstanceID, "package": packageName}
-	log.Event(ctx, "handling new instance event", logData)
+	log.Event(ctx, "handling new instance event", log.INFO, logData)
 
 	start := time.Now()
 
@@ -86,7 +86,7 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 		return errors.Wrap(err, "Producer.Completed returned an error")
 	}
 
-	log.Event(context.Background(), "instance processing completed successfully", log.INFO, log.Data{"package": packageName, "processing_time": time.Since(start).Seconds()})
+	log.Event(ctx, "instance processing completed successfully", log.INFO, log.Data{"package": packageName, "processing_time": time.Since(start).Seconds()})
 	return nil
 }
 
@@ -105,7 +105,6 @@ func (hdlr *InstanceEventHandler) validate(newInstance event.NewInstance) error 
 	return nil
 }
 
-// func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance *model.Instance, dimensions []*model.Dimension) error {
 func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance *model.Instance, dimensions []*model.Dimension) error {
 
 	cache := make(map[string]string)
