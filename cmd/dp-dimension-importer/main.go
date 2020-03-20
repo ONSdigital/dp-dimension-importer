@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 
 	"context"
@@ -192,27 +193,38 @@ func registerCheckers(hc *healthcheck.HealthCheck,
 	errorReporterProducer *kafka.Producer,
 	datasetClient client.IClient,
 	db store.Storer) (err error) {
+
+	hasErrors := false
+
 	if err = hc.AddCheck("Kafka Instance Consumer", instanceConsumer.Checker); err != nil {
+		hasErrors = true
 		log.Event(nil, "Error Adding Check for Kafka Instance Consumer Checker", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Kafka InstanceComplete Producer", instanceCompleteProducer.Checker); err != nil {
+		hasErrors = true
 		log.Event(nil, "Error Adding Check for Kafka Instance Complete Producer Checker", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Kafka ErrorReporter Producer", errorReporterProducer.Checker); err != nil {
+		hasErrors = true
 		log.Event(nil, "Error Adding Check for Kafka Error Reporter Checker", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Dataset", datasetClient.Checker); err != nil {
+		hasErrors = true
 		log.Event(nil, "Error Adding Check for Dataset Checker", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Neo4J", db.Checker); err != nil {
+		hasErrors = true
 		log.Event(nil, "Error Adding Check for GraphDB", log.ERROR, log.Error(err))
 	}
 
-	return
+	if hasErrors {
+		return errors.New("Error(s) registering checkers for healthcheck")
+	}
+	return nil
 }
 
 func logIfError(ctx context.Context, err error) {
