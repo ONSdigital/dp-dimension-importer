@@ -46,7 +46,7 @@ func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Confi
 	consumer, err := kafka.NewConsumerGroup(
 		ctx, cfg.KafkaAddr, cfg.IncomingInstancesTopic, cfg.IncomingInstancesConsumerGroup, kafka.OffsetNewest, true, cgChannels)
 	if err != nil {
-		log.Event(context.Background(), "new kafka consumer group returned an error", log.FATAL, log.Error(err), log.Data{
+		log.Event(ctx, "new kafka consumer group returned an error", log.FATAL, log.Error(err), log.Data{
 			"brokers":        cfg.KafkaAddr,
 			"topic":          cfg.IncomingInstancesTopic,
 			"consumer_group": cfg.IncomingInstancesConsumerGroup,
@@ -63,7 +63,7 @@ func (e *ExternalServiceList) GetProducer(ctx context.Context, cfg *config.Confi
 	pChannels := kafka.CreateProducerChannels()
 	producer, err := kafka.NewProducer(ctx, cfg.KafkaAddr, cfg.OutgoingInstancesTopic, 0, pChannels)
 	if err != nil {
-		log.Event(context.Background(), "new kafka producer returned an error", log.FATAL, log.Error(err), log.Data{"topic": cfg.OutgoingInstancesTopic})
+		log.Event(ctx, "new kafka producer returned an error", log.FATAL, log.Error(err), log.Data{"topic": cfg.OutgoingInstancesTopic})
 		return nil, err
 	}
 
@@ -92,9 +92,9 @@ func (e *ExternalServiceList) GetGraphDB(ctx context.Context) (store.Storer, err
 }
 
 // NewConsumer creates a new InstanceEvent consumer
-func (e *ExternalServiceList) NewConsumer(consumer kafka.IConsumerGroup, messageReceiver message.Receiver, defaultShutdown time.Duration) message.Consumer {
+func (e *ExternalServiceList) NewConsumer(ctx context.Context, consumer kafka.IConsumerGroup, messageReceiver message.Receiver, defaultShutdown time.Duration) message.Consumer {
 	e.Consumer = true
-	return message.NewConsumer(consumer, messageReceiver, defaultShutdown)
+	return message.NewConsumer(ctx, consumer, messageReceiver, defaultShutdown)
 }
 
 // GetHealthChecker creates a new healthcheck object

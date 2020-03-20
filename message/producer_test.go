@@ -22,6 +22,8 @@ var completedEvent = event.InstanceCompleted{
 	FileURL:    "/cmd/my.csv",
 }
 
+var ctx = context.Background()
+
 func TestInstanceCompletedProducer_Completed(t *testing.T) {
 	Convey("Given InstanceCompletedProducer has been configured correctly", t, func() {
 		pChannels := &kafka.ProducerChannels{
@@ -46,21 +48,21 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 
 		Convey("When given a valid instanceCompletedEvent", func() {
 
-			err := instanceCompletedProducer.Completed(completedEvent)
+			err := instanceCompletedProducer.Completed(ctx, completedEvent)
 
 			var avroBytes []byte
 			select {
 			case avroBytes = <-pChannels.Output:
-				log.Event(context.Background(), "Avro byte sent to producer output", log.INFO)
+				log.Event(ctx, "Avro byte sent to producer output", log.INFO)
 			case <-time.After(time.Second * 5):
-				log.Event(context.Background(), "Failing test due to timed out", log.INFO)
+				log.Event(ctx, "Failing test due to timed out", log.INFO)
 				t.FailNow()
 			}
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
 
-				Convey("And the exepcted bytes are sent to producer.output", func() {
+				Convey("And the expected bytes are sent to producer.output", func() {
 					var actual event.InstanceCompleted
 					schema.InstanceCompletedSchema.Unmarshal(avroBytes, &actual)
 					So(completedEvent, ShouldResemble, actual)
@@ -94,7 +96,7 @@ func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 		}
 
 		Convey("When marshaller.Marshal returns an error", func() {
-			err := instanceCompletedProducer.Completed(completedEvent)
+			err := instanceCompletedProducer.Completed(ctx, completedEvent)
 
 			Convey("Then the expected error is returned", func() {
 				expectedError := errors.Wrap(mockError, fmt.Sprintf("Marshaller.Marshal returned an error: event=%v", completedEvent))

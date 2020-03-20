@@ -31,8 +31,8 @@ type Consumer struct {
 }
 
 // NewConsumer create a NewInstance event consumer.
-func NewConsumer(consumer kafka.IConsumerGroup, messageReceiver Receiver, defaultShutdown time.Duration) Consumer {
-	ctx, cancel := context.WithCancel(context.Background())
+func NewConsumer(ctx context.Context, consumer kafka.IConsumerGroup, messageReceiver Receiver, defaultShutdown time.Duration) Consumer {
+	ctx, cancel := context.WithCancel(ctx)
 
 	return Consumer{
 		closed:          make(chan bool, 1),
@@ -72,14 +72,14 @@ func (c Consumer) Close(ctx context.Context) {
 	// if nil use a default context with a timeout
 	if ctx == nil {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), c.defaultShutdown)
+		ctx, cancel = context.WithTimeout(ctx, c.defaultShutdown)
 		defer cancel()
 	}
 
 	// if the context is not nil but no deadline is set the apply the default
 	if _, ok := ctx.Deadline(); !ok {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), c.defaultShutdown)
+		ctx, cancel = context.WithTimeout(ctx, c.defaultShutdown)
 		defer cancel()
 	}
 

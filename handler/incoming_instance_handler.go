@@ -22,7 +22,7 @@ var (
 
 // CompletedProducer Producer kafka messages for instances that have been successfully processed.
 type CompletedProducer interface {
-	Completed(e event.InstanceCompleted) error
+	Completed(ctx context.Context, e event.InstanceCompleted) error
 }
 
 // InstanceEventHandler provides functions for handling DimensionsExtractedEvents.
@@ -35,9 +35,8 @@ type InstanceEventHandler struct {
 // Handle retrieves the dimensions for specified instanceID from the Import API, creates an MyInstance entity for
 // provided instanceID, creates a Dimension entity for each dimension and a relationship to the MyInstance it belongs to
 // and makes a PUT request to the Import API with the database ID of each Dimension entity.
-func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
+func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.NewInstance) error {
 
-	ctx := context.Background()
 	err := hdlr.validate(newInstance)
 	if err != nil {
 		return err
@@ -61,7 +60,7 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 		return errors.Wrap(err, "dataset api client get instance returned an error")
 	}
 
-	if err = hdlr.createInstanceNode(instance); err != nil {
+	if err = hdlr.createInstanceNode(ctx, instance); err != nil {
 		if err == errInstanceExists {
 			log.Event(ctx, "an instance with this id already exists, ignoring this event", log.INFO, logData)
 			return nil // ignoring
@@ -73,7 +72,7 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 		return err
 	}
 
-	if err = hdlr.createObservationConstraint(instance); err != nil {
+	if err = hdlr.createObservationConstraint(ctx, instance); err != nil {
 		return err
 	}
 
@@ -82,7 +81,7 @@ func (hdlr *InstanceEventHandler) Handle(newInstance event.NewInstance) error {
 		InstanceID: newInstance.InstanceID,
 	}
 
-	if err := hdlr.Producer.Completed(instanceProcessed); err != nil {
+	if err := hdlr.Producer.Completed(ctx, instanceProcessed); err != nil {
 		return errors.Wrap(err, "Producer.Completed returned an error")
 	}
 
@@ -111,7 +110,7 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 
 	for _, dimension := range dimensions {
 
-		dbDimension, err := hdlr.Store.InsertDimension(context.Background(), cache, instance.DbModel().InstanceID, dimension.DbModel())
+		dbDimension, err := hdlr.Store.InsertDimension(ctx, cache, instance.DbModel().InstanceID, dimension.DbModel())
 		if err != nil {
 			return errors.Wrap(err, "error while attempting to insert dimension")
 		}
@@ -122,22 +121,22 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 
 		// todo: remove this temp hack once the time codelist / input data has been fixed.
 		if dbDimension.DimensionID != "time" {
-			if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance.DbModel().InstanceID, dimension.CodeListID(), dbDimension.Option); err != nil {
+			if err = hdlr.Store.CreateCodeRelationship(ctx, instance.DbModel().InstanceID, dimension.CodeListID(), dbDimension.Option); err != nil {
 				return errors.Wrap(err, "error attempting to create relationship to code")
 			}
 		}
 	}
 
-	if err := hdlr.Store.AddDimensions(context.Background(), instance.DbModel().InstanceID, instance.DbModel().Dimensions); err != nil {
+	if err := hdlr.Store.AddDimensions(ctx, instance.DbModel().InstanceID, instance.DbModel().Dimensions); err != nil {
 		return errors.Wrap(err, "AddDimensions returned an error")
 	}
 
 	return nil
 }
 
-func (hdlr *InstanceEventHandler) createInstanceNode(instance *model.Instance) error {
+func (hdlr *InstanceEventHandler) createInstanceNode(ctx context.Context, instance *model.Instance) error {
 
-	exists, err := hdlr.Store.InstanceExists(context.Background(), instance.DbModel().InstanceID)
+	exists, err := hdlr.Store.InstanceExists(ctx, instance.DbModel().InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "instance exists check returned an error")
 	}
@@ -146,16 +145,16 @@ func (hdlr *InstanceEventHandler) createInstanceNode(instance *model.Instance) e
 		return errInstanceExists
 	}
 
-	if err = hdlr.Store.CreateInstance(context.Background(), instance.DbModel().InstanceID, instance.DbModel().CSVHeader); err != nil {
+	if err = hdlr.Store.CreateInstance(ctx, instance.DbModel().InstanceID, instance.DbModel().CSVHeader); err != nil {
 		return errors.Wrap(err, "create instance returned an error")
 	}
 
 	return nil
 }
 
-func (hdlr *InstanceEventHandler) createObservationConstraint(instance *model.Instance) error {
+func (hdlr *InstanceEventHandler) createObservationConstraint(ctx context.Context, instance *model.Instance) error {
 
-	if err := hdlr.Store.CreateInstanceConstraint(context.Background(), instance.DbModel().InstanceID); err != nil {
+	if err := hdlr.Store.CreateInstanceConstraint(ctx, instance.DbModel().InstanceID); err != nil {
 		return errors.Wrap(err, "error while attempting to add the unique observation constraint")
 	}
 

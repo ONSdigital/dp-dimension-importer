@@ -39,7 +39,7 @@ func main() {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	cfg, err := config.Get()
+	cfg, err := config.Get(ctx)
 	if err != nil {
 		log.Event(ctx, "config.Load returned an error", log.FATAL, log.Error(err))
 		os.Exit(1)
@@ -115,13 +115,14 @@ func main() {
 	}
 
 	// Create Consumer with kafkaConsmer
-	consumer := serviceList.NewConsumer(instanceConsumer, messageReceiver, cfg.GracefulShutdownTimeout)
+	consumer := serviceList.NewConsumer(ctx, instanceConsumer, messageReceiver, cfg.GracefulShutdownTimeout)
 	consumer.Listen()
 
 	instanceConsumer.Channels().LogErrors(ctx, "incoming instance kafka consumer received an error")
 	instanceCompleteProducer.Channels().LogErrors(ctx, "completed instance kafka producer received an error")
 	errorReporterProducer.Channels().LogErrors(ctx, "error reporter kafka producer received an error")
 
+	// If we receive a signal (SIGINT or SIGTERM), start graceful shutdown
 	signal := <-signals
 	log.Event(ctx, "os signal received, attempting graceful shutdown", log.INFO, log.Data{"signal": signal.String()})
 

@@ -1,7 +1,6 @@
 package message_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -49,7 +48,7 @@ func TestConsumer_Listen(t *testing.T) {
 
 		msg := &kafkatest.MessageMock{}
 
-		consumer := message.NewConsumer(kafkaConsumer, receiverMock, time.Second*10)
+		consumer := message.NewConsumer(ctx, kafkaConsumer, receiverMock, time.Second*10)
 		consumer.Listen()
 
 		Convey("When the consumer receives a valid message", func() {
@@ -57,12 +56,12 @@ func TestConsumer_Listen(t *testing.T) {
 
 			select {
 			case <-handlerInvoked:
-				log.Event(context.Background(), "Handler invoked", log.INFO)
+				log.Event(ctx, "Handler invoked", log.INFO)
 			case <-time.After(time.Second * 3):
-				log.Event(context.Background(), "Test timed out.", log.INFO)
+				log.Event(ctx, "Test timed out.", log.INFO)
 				t.FailNow()
 			}
-			consumer.Close(nil)
+			consumer.Close(ctx)
 
 			Convey("Then messageReceiver.OnMessage is called 1 time with the expected parameters", func() {
 				So(len(handleCalls), ShouldEqual, 1)

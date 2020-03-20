@@ -1,6 +1,7 @@
 package message_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ONSdigital/dp-dimension-importer/event"
@@ -139,7 +140,7 @@ func newFixture(messageBytes []byte, handleInstanceFunc func(e event.NewInstance
 	}
 
 	instanceHandler := &mock.InstanceEventHandlerMock{
-		HandleFunc: func(e event.NewInstance) error {
+		HandleFunc: func(ctx context.Context, e event.NewInstance) error {
 			fix.instanceHdlrCalls = append(fix.instanceHdlrCalls, e)
 			return handleInstanceFunc(e)
 		},

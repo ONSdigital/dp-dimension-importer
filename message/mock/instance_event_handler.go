@@ -4,6 +4,7 @@
 package mock
 
 import (
+	"context"
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	"sync"
@@ -23,7 +24,7 @@ var _ message.InstanceEventHandler = &InstanceEventHandlerMock{}
 //
 //         // make and configure a mocked message.InstanceEventHandler
 //         mockedInstanceEventHandler := &InstanceEventHandlerMock{
-//             HandleFunc: func(e event.NewInstance) error {
+//             HandleFunc: func(ctx context.Context, e event.NewInstance) error {
 // 	               panic("mock out the Handle method")
 //             },
 //         }
@@ -34,12 +35,14 @@ var _ message.InstanceEventHandler = &InstanceEventHandlerMock{}
 //     }
 type InstanceEventHandlerMock struct {
 	// HandleFunc mocks the Handle method.
-	HandleFunc func(e event.NewInstance) error
+	HandleFunc func(ctx context.Context, e event.NewInstance) error
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// Handle holds details about calls to the Handle method.
 		Handle []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// E is the e argument value.
 			E event.NewInstance
 		}
@@ -47,29 +50,33 @@ type InstanceEventHandlerMock struct {
 }
 
 // Handle calls HandleFunc.
-func (mock *InstanceEventHandlerMock) Handle(e event.NewInstance) error {
+func (mock *InstanceEventHandlerMock) Handle(ctx context.Context, e event.NewInstance) error {
 	if mock.HandleFunc == nil {
 		panic("InstanceEventHandlerMock.HandleFunc: method is nil but InstanceEventHandler.Handle was just called")
 	}
 	callInfo := struct {
-		E event.NewInstance
+		Ctx context.Context
+		E   event.NewInstance
 	}{
-		E: e,
+		Ctx: ctx,
+		E:   e,
 	}
 	lockInstanceEventHandlerMockHandle.Lock()
 	mock.calls.Handle = append(mock.calls.Handle, callInfo)
 	lockInstanceEventHandlerMockHandle.Unlock()
-	return mock.HandleFunc(e)
+	return mock.HandleFunc(ctx, e)
 }
 
 // HandleCalls gets all the calls that were made to Handle.
 // Check the length with:
 //     len(mockedInstanceEventHandler.HandleCalls())
 func (mock *InstanceEventHandlerMock) HandleCalls() []struct {
-	E event.NewInstance
+	Ctx context.Context
+	E   event.NewInstance
 } {
 	var calls []struct {
-		E event.NewInstance
+		Ctx context.Context
+		E   event.NewInstance
 	}
 	lockInstanceEventHandlerMockHandle.RLock()
 	calls = mock.calls.Handle

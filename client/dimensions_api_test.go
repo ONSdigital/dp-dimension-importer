@@ -33,8 +33,6 @@ var datasetDimensions = dataset.Dimensions{[]dataset.Dimension{datasetDimensionO
 var dimensionOne = model.NewDimension(&datasetDimensionOne)
 var dimensionTwo = model.NewDimension(&datasetDimensionTwo)
 
-// var dimensionOne = &model.Dimension{datasetDimensionOne}
-// var dimensionTwo = &model.Dimension{datasetDimensionTwo}
 var expectedDimensions = []*model.Dimension{dimensionOne, dimensionTwo}
 
 // Instance returned by dataset API mock

@@ -4,6 +4,7 @@
 package mocks
 
 import (
+	"context"
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/handler"
 	"sync"
@@ -23,7 +24,7 @@ var _ handler.CompletedProducer = &CompletedProducerMock{}
 //
 //         // make and configure a mocked handler.CompletedProducer
 //         mockedCompletedProducer := &CompletedProducerMock{
-//             CompletedFunc: func(e event.InstanceCompleted) error {
+//             CompletedFunc: func(ctx context.Context, e event.InstanceCompleted) error {
 // 	               panic("mock out the Completed method")
 //             },
 //         }
@@ -34,12 +35,14 @@ var _ handler.CompletedProducer = &CompletedProducerMock{}
 //     }
 type CompletedProducerMock struct {
 	// CompletedFunc mocks the Completed method.
-	CompletedFunc func(e event.InstanceCompleted) error
+	CompletedFunc func(ctx context.Context, e event.InstanceCompleted) error
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// Completed holds details about calls to the Completed method.
 		Completed []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// E is the e argument value.
 			E event.InstanceCompleted
 		}
@@ -47,29 +50,33 @@ type CompletedProducerMock struct {
 }
 
 // Completed calls CompletedFunc.
-func (mock *CompletedProducerMock) Completed(e event.InstanceCompleted) error {
+func (mock *CompletedProducerMock) Completed(ctx context.Context, e event.InstanceCompleted) error {
 	if mock.CompletedFunc == nil {
 		panic("CompletedProducerMock.CompletedFunc: method is nil but CompletedProducer.Completed was just called")
 	}
 	callInfo := struct {
-		E event.InstanceCompleted
+		Ctx context.Context
+		E   event.InstanceCompleted
 	}{
-		E: e,
+		Ctx: ctx,
+		E:   e,
 	}
 	lockCompletedProducerMockCompleted.Lock()
 	mock.calls.Completed = append(mock.calls.Completed, callInfo)
 	lockCompletedProducerMockCompleted.Unlock()
-	return mock.CompletedFunc(e)
+	return mock.CompletedFunc(ctx, e)
 }
 
 // CompletedCalls gets all the calls that were made to Completed.
 // Check the length with:
 //     len(mockedCompletedProducer.CompletedCalls())
 func (mock *CompletedProducerMock) CompletedCalls() []struct {
-	E event.InstanceCompleted
+	Ctx context.Context
+	E   event.InstanceCompleted
 } {
 	var calls []struct {
-		E event.InstanceCompleted
+		Ctx context.Context
+		E   event.InstanceCompleted
 	}
 	lockCompletedProducerMockCompleted.RLock()
 	calls = mock.calls.Completed

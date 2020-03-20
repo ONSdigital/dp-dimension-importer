@@ -28,7 +28,7 @@ type Config struct {
 var cfg *Config
 
 // Get configures the application and returns the configuration
-func Get() (*Config, error) {
+func Get(ctx context.Context) (*Config, error) {
 	if cfg != nil {
 		return cfg, nil
 	}
@@ -49,7 +49,7 @@ func Get() (*Config, error) {
 
 	if len(cfg.ServiceAuthToken) == 0 {
 		err := errors.New("error while attempting to load config. service auth token is required but has not been configured")
-		log.Event(context.Background(), "service auth token error", log.ERROR, log.Error(err))
+		log.Event(ctx, "service auth token error", log.ERROR, log.Error(err))
 		return nil, err
 	}
 

@@ -14,7 +14,7 @@ import (
 
 // InstanceEventHandler handles a event.NewInstance
 type InstanceEventHandler interface {
-	Handle(e event.NewInstance) error
+	Handle(ctx context.Context, e event.NewInstance) error
 }
 
 // KafkaMessageReceiver is a Receiver for handling incoming kafka messages
@@ -26,6 +26,7 @@ type KafkaMessageReceiver struct {
 // OnMessage unmarshal the kafka message and pass it to the InstanceEventHandler any errors are sent to the ErrorReporter
 func (r KafkaMessageReceiver) OnMessage(message kafka.Message) {
 	var newInstanceEvent event.NewInstance
+	// This context will come from the received kafka message
 	ctx := context.Background()
 	logData := log.Data{"package": "message.KafkaMessageReceiver"}
 	if err := schema.NewInstanceSchema.Unmarshal(message.GetData(), &newInstanceEvent); err != nil {
@@ -36,7 +37,7 @@ func (r KafkaMessageReceiver) OnMessage(message kafka.Message) {
 	logData["event"] = newInstanceEvent
 	log.Event(ctx, "successfully unmarshalled kafka message into event.NewInstance", log.INFO, logData)
 
-	if err := r.InstanceHandler.Handle(newInstanceEvent); err != nil {
+	if err := r.InstanceHandler.Handle(ctx, newInstanceEvent); err != nil {
 		log.Event(ctx, "InstanceHandler.Handle returned an error", log.ERROR, log.Error(err), logData)
 		if err := r.ErrorReporter.Notify(newInstanceEvent.InstanceID, "InstanceHandler.Handle returned an unexpected error", err); err != nil {
 			log.Event(ctx, "ErrorReporter.Notify returned an error", log.ERROR, log.Error(err), logData)
