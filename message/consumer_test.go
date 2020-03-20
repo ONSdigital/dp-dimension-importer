@@ -56,9 +56,9 @@ func TestConsumer_Listen(t *testing.T) {
 
 			select {
 			case <-handlerInvoked:
-				log.Event(ctx, "Handler invoked", log.INFO)
+				log.Event(ctx, "handler invoked", log.INFO)
 			case <-time.After(time.Second * 3):
-				log.Event(ctx, "Test timed out.", log.INFO)
+				log.Event(ctx, "test timed out.", log.INFO)
 				t.FailNow()
 			}
 			consumer.Close(ctx)

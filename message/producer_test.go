@@ -53,9 +53,9 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 			var avroBytes []byte
 			select {
 			case avroBytes = <-pChannels.Output:
-				log.Event(ctx, "Avro byte sent to producer output", log.INFO)
+				log.Event(ctx, "avro byte sent to producer output", log.INFO)
 			case <-time.After(time.Second * 5):
-				log.Event(ctx, "Failing test due to timed out", log.INFO)
+				log.Event(ctx, "failing test due to timed out", log.INFO)
 				t.FailNow()
 			}
 

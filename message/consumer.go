@@ -56,11 +56,11 @@ func (c Consumer) Listen() {
 		for {
 			select {
 			case consumedMessage := <-c.consumer.Channels().Upstream:
-				log.Event(c.ctx, "consumer.incoming received a message", log.INFO, logData)
+				log.Event(c.ctx, "consumer received a message", log.INFO, logData)
 				c.messageReceiver.OnMessage(consumedMessage)
 				c.consumer.Release()
 			case <-c.ctx.Done():
-				log.Event(c.ctx, "loggercontext.Done received event, attempting to close consumer", log.INFO, logData)
+				log.Event(c.ctx, "loggercontext done received event, attempting to close consumer", log.INFO, logData)
 				return
 			}
 		}
@@ -91,8 +91,8 @@ func (c Consumer) Close(ctx context.Context) {
 	// Wait for the consumer to tell is has exited or the context timeout occurs.
 	select {
 	case <-c.closed:
-		log.Event(ctx, "gracefully shutdown message.Consumer", log.INFO, logData)
+		log.Event(ctx, "gracefully shutdown message consumer", log.INFO, logData)
 	case <-ctx.Done():
-		log.Event(ctx, "forced shutdown of message.Consumer", log.INFO, logData)
+		log.Event(ctx, "forced shutdown of message consumer", log.INFO, logData)
 	}
 }

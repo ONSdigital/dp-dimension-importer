@@ -41,7 +41,7 @@ func main() {
 
 	cfg, err := config.Get(ctx)
 	if err != nil {
-		log.Event(ctx, "config.Load returned an error", log.FATAL, log.Error(err))
+		log.Event(ctx, "config load returned an error", log.FATAL, log.Error(err))
 		os.Exit(1)
 	}
 
@@ -93,7 +93,7 @@ func main() {
 	// Errors handler
 	errorReporter, err := reporter.NewImportErrorReporter(errorReporterProducer, log.Namespace)
 	if err != nil {
-		log.Event(ctx, "reporter.NewImportErrorReporter returned an error", log.FATAL, log.Error(err))
+		log.Event(ctx, "new import error reporter error", log.FATAL, log.Error(err))
 		os.Exit(1)
 	}
 
@@ -180,7 +180,7 @@ func startHealthCheck(ctx context.Context, hc *healthcheck.HealthCheck, bindAddr
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil {
-			log.Event(ctx, "", log.ERROR, log.Error(err))
+			log.Event(ctx, "http server error", log.ERROR, log.Error(err))
 			hc.Stop()
 		}
 	}()
@@ -199,27 +199,27 @@ func registerCheckers(hc *healthcheck.HealthCheck,
 
 	if err = hc.AddCheck("Kafka Instance Consumer", instanceConsumer.Checker); err != nil {
 		hasErrors = true
-		log.Event(nil, "Error Adding Check for Kafka Instance Consumer Checker", log.ERROR, log.Error(err))
+		log.Event(nil, "error adding check for kafka instance consumer checker", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Kafka InstanceComplete Producer", instanceCompleteProducer.Checker); err != nil {
 		hasErrors = true
-		log.Event(nil, "Error Adding Check for Kafka Instance Complete Producer Checker", log.ERROR, log.Error(err))
+		log.Event(nil, "error adding check for kafka instance complete producer checker", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Kafka ErrorReporter Producer", errorReporterProducer.Checker); err != nil {
 		hasErrors = true
-		log.Event(nil, "Error Adding Check for Kafka Error Reporter Checker", log.ERROR, log.Error(err))
+		log.Event(nil, "error adding check for kafka error reporter checker", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Dataset", datasetClient.Checker); err != nil {
 		hasErrors = true
-		log.Event(nil, "Error Adding Check for Dataset Checker", log.ERROR, log.Error(err))
+		log.Event(nil, "error adding check for dataset checker", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Neo4J", db.Checker); err != nil {
 		hasErrors = true
-		log.Event(nil, "Error Adding Check for GraphDB", log.ERROR, log.Error(err))
+		log.Event(nil, "error adding check for graph db", log.ERROR, log.Error(err))
 	}
 
 	if hasErrors {
