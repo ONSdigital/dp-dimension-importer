@@ -59,11 +59,11 @@ func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Confi
 }
 
 // GetProducer returns a kafka producer, which might not be initialised
-func (e *ExternalServiceList) GetProducer(ctx context.Context, cfg *config.Config, name KafkaProducerName) (kafkaProducer *kafka.Producer, err error) {
+func (e *ExternalServiceList) GetProducer(ctx context.Context, brokers []string, topic string, name KafkaProducerName) (kafkaProducer *kafka.Producer, err error) {
 	pChannels := kafka.CreateProducerChannels()
-	producer, err := kafka.NewProducer(ctx, cfg.KafkaAddr, cfg.OutgoingInstancesTopic, 0, pChannels)
+	producer, err := kafka.NewProducer(ctx, brokers, topic, 0, pChannels)
 	if err != nil {
-		log.Event(ctx, "new kafka producer returned an error", log.FATAL, log.Error(err), log.Data{"topic": cfg.OutgoingInstancesTopic})
+		log.Event(ctx, "new kafka producer returned an error", log.FATAL, log.Error(err), log.Data{"topic": topic})
 		return nil, err
 	}
 
