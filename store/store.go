@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	"github.com/ONSdigital/dp-graph/models"
+	"github.com/ONSdigital/dp-graph/v2/models"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
 

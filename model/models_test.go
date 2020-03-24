@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	dataset "github.com/ONSdigital/dp-api-clients-go/dataset"
-	db "github.com/ONSdigital/dp-graph/models"
+	db "github.com/ONSdigital/dp-graph/v2/models"
 
 	. "github.com/smartystreets/goconvey/convey"
 )

@@ -13,7 +13,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/mocks"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/dp-dimension-importer/store/storertest"
-	"github.com/ONSdigital/dp-graph/models"
+	"github.com/ONSdigital/dp-graph/v2/models"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

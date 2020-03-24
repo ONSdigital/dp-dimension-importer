@@ -5,10 +5,11 @@ package storertest
 
 import (
 	"context"
-	"github.com/ONSdigital/dp-dimension-importer/store"
-	"github.com/ONSdigital/dp-graph/models"
-	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	"sync"
+
+	"github.com/ONSdigital/dp-dimension-importer/store"
+	"github.com/ONSdigital/dp-graph/v2/models"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
 
 var (

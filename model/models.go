@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	dataset "github.com/ONSdigital/dp-api-clients-go/dataset"
-	db "github.com/ONSdigital/dp-graph/models"
+	db "github.com/ONSdigital/dp-graph/v2/models"
 )
 
 // Dimension struct wraps the Dimension dataset API model defined in dp-api-clients, for extra functionality
