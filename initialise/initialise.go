@@ -104,7 +104,7 @@ func (e *ExternalServiceList) GetHealthChecker(ctx context.Context, buildTime, g
 		log.Event(ctx, "failed to create versionInfo for healthcheck", log.FATAL, log.Error(err))
 		return nil, err
 	}
-	hc := healthcheck.New(versionInfo, cfg.HealthCheckRecoveryInterval, cfg.HealthCheckInterval)
+	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
 	e.HealthCheck = true
 
 	return &hc, nil

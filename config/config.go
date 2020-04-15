@@ -22,7 +22,7 @@ type Config struct {
 	DatasetAPIAddr                 string        `envconfig:"DATASET_API_ADDR"`
 	GracefulShutdownTimeout        time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval            time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
-	HealthCheckRecoveryInterval    time.Duration `envconfig:"HEALTHCHECK_RECOVERY_INTERVAL"`
+	HealthCheckCriticalTimeout     time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
 }
 
 var cfg *Config
@@ -43,8 +43,8 @@ func Get(ctx context.Context) (*Config, error) {
 		OutgoingInstancesTopic:         "dimensions-inserted",
 		EventReporterTopic:             "report-events",
 		GracefulShutdownTimeout:        time.Second * 5,
-		HealthCheckInterval:            10 * time.Second,
-		HealthCheckRecoveryInterval:    1 * time.Minute,
+		HealthCheckInterval:            30 * time.Second,
+		HealthCheckCriticalTimeout:     90 * time.Second,
 	}
 
 	if len(cfg.ServiceAuthToken) == 0 {
