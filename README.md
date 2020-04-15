@@ -39,7 +39,8 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | DIMENSIONS_INSERTED_TOPIC           | dimensions-inserted                  | The topic to write output messages when dimensions are inserted
 | EVENT_REPORTER_TOPIC                | report-events                        | The topic to write output messages when any errors occur during processing an instance
 | GRACEFUL_SHUTDOWN_TIMEOUT           | 5s                                   | The graceful shutdown timeout (time.Duration)
-| HEALTHCHECK_INTERVAL                | 60s                                  | How often to run a health check (time.Duration)
+| HEALTHCHECK_INTERVAL                | 30s                                  | The period of time between health checks (time.Duration)
+| HEALTHCHECK_CRITICAL_TIMEOUT        | 90s                                  | The period of time after which failing checks will result in critical global check (time.Duration)
 | SERVICE_AUTH_TOKEN                  | 4424A9F2-B903-40F4-85F1-240107D1AFAF | The service authorization token
 | ZEBEDEE_URL                         | http://localhost:8082                | The host name for Zebedee
 
