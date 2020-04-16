@@ -4,25 +4,19 @@ import (
 	"context"
 	"time"
 
-	"github.com/ONSdigital/dp-dimension-importer/logging"
-	"github.com/ONSdigital/go-ns/kafka"
+	kafka "github.com/ONSdigital/dp-kafka"
+	"github.com/ONSdigital/log.go/log"
 )
 
-//go:generate moq -out ./message_test/consumer_generated_mocks.go -pkg message_test . KafkaMessage KafkaConsumer
+//go:generate moq -out mock/receiver.go -pkg mock . Receiver
 
-var loggerC = logging.Logger{Name: "message.Consumer"}
+var packageName = "handler.InstanceEventHandler"
 
 // KafkaMessage type representing a kafka message.
 type KafkaMessage kafka.Message
 
-// KafkaConsumer consume an incoming kafka message
-type KafkaConsumer interface {
-	Incoming() chan kafka.Message
-	Release()
-}
-
-// Reciever is sent a kafka messages and processes it
-type Reciever interface {
+// Receiver is sent a kafka messages and processes it
+type Receiver interface {
 	OnMessage(message kafka.Message)
 }
 
@@ -31,26 +25,26 @@ type Consumer struct {
 	closed          chan bool
 	ctx             context.Context
 	cancel          context.CancelFunc
-	consumer        KafkaConsumer
-	messageReciever Reciever
+	consumer        kafka.IConsumerGroup
+	messageReceiver Receiver
 	defaultShutdown time.Duration
 }
 
 // NewConsumer create a NewInstance event consumer.
-func NewConsumer(consumer KafkaConsumer, messageReciever Reciever, defaultShutdown time.Duration) Consumer {
-	ctx, cancel := context.WithCancel(context.Background())
+func NewConsumer(ctx context.Context, consumer kafka.IConsumerGroup, messageReceiver Receiver, defaultShutdown time.Duration) Consumer {
+	ctx, cancel := context.WithCancel(ctx)
 
 	return Consumer{
 		closed:          make(chan bool, 1),
 		ctx:             ctx,
 		cancel:          cancel,
 		consumer:        consumer,
-		messageReciever: messageReciever,
+		messageReceiver: messageReceiver,
 		defaultShutdown: defaultShutdown,
 	}
 }
 
-// Listen poll the KafkaConsumer for incoming messages and pass onto the Reciever
+// Listen poll the KafkaConsumer for incoming messages and pass onto the Receiver
 func (c Consumer) Listen() {
 	go func() {
 		defer func() {
@@ -58,14 +52,15 @@ func (c Consumer) Listen() {
 			c.closed <- true
 		}()
 
+		logData := log.Data{"package": packageName}
 		for {
 			select {
-			case consumedMessage := <-c.consumer.Incoming():
-				loggerC.Info("consumer.incoming receieved a message", nil)
-				c.messageReciever.OnMessage(consumedMessage)
+			case consumedMessage := <-c.consumer.Channels().Upstream:
+				log.Event(c.ctx, "consumer received a message", log.INFO, logData)
+				c.messageReceiver.OnMessage(consumedMessage)
 				c.consumer.Release()
 			case <-c.ctx.Done():
-				loggerC.Info("loggercontext.Done received event, attempting to close consumer", nil)
+				log.Event(c.ctx, "loggercontext done received event, attempting to close consumer", log.INFO, logData)
 				return
 			}
 		}
@@ -77,25 +72,27 @@ func (c Consumer) Close(ctx context.Context) {
 	// if nil use a default context with a timeout
 	if ctx == nil {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), c.defaultShutdown)
+		ctx, cancel = context.WithTimeout(ctx, c.defaultShutdown)
 		defer cancel()
 	}
 
 	// if the context is not nil but no deadline is set the apply the default
 	if _, ok := ctx.Deadline(); !ok {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), c.defaultShutdown)
+		ctx, cancel = context.WithTimeout(ctx, c.defaultShutdown)
 		defer cancel()
 	}
 
 	// Call cancel to attempt to exit the consumer loop.
 	c.cancel()
 
+	logData := log.Data{"package": packageName}
+
 	// Wait for the consumer to tell is has exited or the context timeout occurs.
 	select {
 	case <-c.closed:
-		loggerC.Info("gracefully shutdown message.Consumer", nil)
+		log.Event(ctx, "gracefully shutdown message consumer", log.INFO, logData)
 	case <-ctx.Done():
-		loggerC.Info("forced shutdown of message.Consumer", nil)
+		log.Event(ctx, "forced shutdown of message consumer", log.INFO, logData)
 	}
 }

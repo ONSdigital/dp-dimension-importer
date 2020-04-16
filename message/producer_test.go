@@ -1,15 +1,20 @@
-package message
+package message_test
 
 import (
+	"context"
 	"fmt"
-	"github.com/ONSdigital/dp-dimension-importer/event"
-	mock "github.com/ONSdigital/dp-dimension-importer/message/message_test"
-	"github.com/ONSdigital/dp-dimension-importer/schema"
-	"github.com/ONSdigital/go-ns/log"
-	"github.com/pkg/errors"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+
+	"github.com/ONSdigital/dp-dimension-importer/event"
+	"github.com/ONSdigital/dp-dimension-importer/message"
+	mock "github.com/ONSdigital/dp-dimension-importer/message/mock"
+	"github.com/ONSdigital/dp-dimension-importer/schema"
+	kafka "github.com/ONSdigital/dp-kafka"
+	"github.com/ONSdigital/dp-kafka/kafkatest"
+	"github.com/ONSdigital/log.go/log"
+	"github.com/pkg/errors"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 var completedEvent = event.InstanceCompleted{
@@ -17,13 +22,17 @@ var completedEvent = event.InstanceCompleted{
 	FileURL:    "/cmd/my.csv",
 }
 
+var ctx = context.Background()
+
 func TestInstanceCompletedProducer_Completed(t *testing.T) {
 	Convey("Given InstanceCompletedProducer has been configured correctly", t, func() {
-		output := make(chan []byte, 1)
+		pChannels := &kafka.ProducerChannels{
+			Output: make(chan []byte, 1),
+		}
 
-		kafkaProducerMock := &mock.KafkaProducerMock{
-			OutputFunc: func() chan []byte {
-				return output
+		kafkaProducerMock := &kafkatest.IProducerMock{
+			ChannelsFunc: func() *kafka.ProducerChannels {
+				return pChannels
 			},
 		}
 		marshallerMock := &mock.MarshallerMock{
@@ -32,28 +41,28 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 			},
 		}
 
-		instanceCompletedProducer := InstanceCompletedProducer{
+		instanceCompletedProducer := message.InstanceCompletedProducer{
 			Producer:   kafkaProducerMock,
 			Marshaller: marshallerMock,
 		}
 
 		Convey("When given a valid instanceCompletedEvent", func() {
 
-			err := instanceCompletedProducer.Completed(completedEvent)
+			err := instanceCompletedProducer.Completed(ctx, completedEvent)
 
 			var avroBytes []byte
 			select {
-			case avroBytes = <-output:
-				log.Info("Avro byte sent to producer output", nil)
+			case avroBytes = <-pChannels.Output:
+				log.Event(ctx, "avro byte sent to producer output", log.INFO)
 			case <-time.After(time.Second * 5):
-				log.Info("Failing test due to timed out", nil)
+				log.Event(ctx, "failing test due to timed out", log.INFO)
 				t.FailNow()
 			}
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
 
-				Convey("And the exepcted bytes are sent to producer.output", func() {
+				Convey("And the expected bytes are sent to producer.output", func() {
 					var actual event.InstanceCompleted
 					schema.InstanceCompletedSchema.Unmarshal(avroBytes, &actual)
 					So(completedEvent, ShouldResemble, actual)
@@ -65,12 +74,14 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 
 func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 	Convey("Given InstanceCompletedProducer has been configured correctly", t, func() {
-		output := make(chan []byte)
+		pChannels := &kafka.ProducerChannels{
+			Output: make(chan []byte),
+		}
 		mockError := errors.New("mock error")
 
-		kafkaProducerMock := &mock.KafkaProducerMock{
-			OutputFunc: func() chan []byte {
-				return output
+		kafkaProducerMock := &kafkatest.IProducerMock{
+			ChannelsFunc: func() *kafka.ProducerChannels {
+				return pChannels
 			},
 		}
 		marshallerMock := &mock.MarshallerMock{
@@ -79,13 +90,13 @@ func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 			},
 		}
 
-		instanceCompletedProducer := InstanceCompletedProducer{
+		instanceCompletedProducer := message.InstanceCompletedProducer{
 			Producer:   kafkaProducerMock,
 			Marshaller: marshallerMock,
 		}
 
 		Convey("When marshaller.Marshal returns an error", func() {
-			err := instanceCompletedProducer.Completed(completedEvent)
+			err := instanceCompletedProducer.Completed(ctx, completedEvent)
 
 			Convey("Then the expected error is returned", func() {
 				expectedError := errors.Wrap(mockError, fmt.Sprintf("Marshaller.Marshal returned an error: event=%v", completedEvent))
@@ -93,7 +104,7 @@ func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 			})
 
 			Convey("And producer.Output is never called", func() {
-				So(len(kafkaProducerMock.OutputCalls()), ShouldEqual, 0)
+				So(len(kafkaProducerMock.ChannelsCalls()), ShouldEqual, 0)
 			})
 		})
 	})

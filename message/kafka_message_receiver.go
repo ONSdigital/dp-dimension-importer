@@ -1,45 +1,50 @@
 package message
 
 import (
+	"context"
+
 	"github.com/ONSdigital/dp-dimension-importer/event"
-	"github.com/ONSdigital/dp-dimension-importer/logging"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
+	kafka "github.com/ONSdigital/dp-kafka"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	"github.com/ONSdigital/go-ns/kafka"
+	"github.com/ONSdigital/log.go/log"
 )
 
-var loggerR = logging.Logger{Name: "message.KafkaMessageReciever"}
+//go:generate moq -out mock/instance_event_handler.go -pkg mock . InstanceEventHandler
 
 // InstanceEventHandler handles a event.NewInstance
 type InstanceEventHandler interface {
-	Handle(e event.NewInstance) error
+	Handle(ctx context.Context, e event.NewInstance) error
 }
 
-// KafkaMessageReciever is a Receiver for handling incoming kafka messages
-type KafkaMessageReciever struct {
+// KafkaMessageReceiver is a Receiver for handling incoming kafka messages
+type KafkaMessageReceiver struct {
 	InstanceHandler InstanceEventHandler
 	ErrorReporter   reporter.ErrorReporter
 }
 
 // OnMessage unmarshal the kafka message and pass it to the InstanceEventHandler any errors are sent to the ErrorReporter
-func (r KafkaMessageReciever) OnMessage(message kafka.Message) {
+func (r KafkaMessageReceiver) OnMessage(message kafka.Message) {
 	var newInstanceEvent event.NewInstance
+	// This context will come from the received kafka message
+	ctx := context.Background()
+	logData := log.Data{"package": "message.KafkaMessageReceiver"}
 	if err := schema.NewInstanceSchema.Unmarshal(message.GetData(), &newInstanceEvent); err != nil {
-		loggerR.ErrorC("error while attempting to unmarshal kafka message into event.NewInstance", err, nil)
+		log.Event(ctx, "error while attempting to unmarshal kafka message into event new instance", log.ERROR, log.Error(err), logData)
 		return
 	}
 
-	logData := map[string]interface{}{"event": newInstanceEvent}
-	loggerR.Info("successfully unmarshalled kafka message into event.NewInstance", logData)
+	logData["event"] = newInstanceEvent
+	log.Event(ctx, "successfully unmarshalled kafka message into event new instance", log.INFO, logData)
 
-	if err := r.InstanceHandler.Handle(newInstanceEvent); err != nil {
-		loggerR.ErrorC("InstanceHandler.Handle returned an error", err, logData)
+	if err := r.InstanceHandler.Handle(ctx, newInstanceEvent); err != nil {
+		log.Event(ctx, "instance handler handle returned an error", log.ERROR, log.Error(err), logData)
 		if err := r.ErrorReporter.Notify(newInstanceEvent.InstanceID, "InstanceHandler.Handle returned an unexpected error", err); err != nil {
-			loggerR.ErrorC("ErrorReporter.Notify returned an error", err, logData)
+			log.Event(ctx, "error reporter notify returned an error", log.ERROR, log.Error(err), logData)
 		}
 		return
 	}
 
-	loggerR.Info("newInstance event successfully processed", logData)
+	log.Event(ctx, "new instance event successfully processed", log.INFO, logData)
 	message.Commit()
 }

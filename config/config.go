@@ -1,11 +1,12 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"time"
 
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/log.go/log"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -19,16 +20,15 @@ type Config struct {
 	OutgoingInstancesTopic         string        `envconfig:"DIMENSIONS_INSERTED_TOPIC"`
 	EventReporterTopic             string        `envconfig:"EVENT_REPORTER_TOPIC"`
 	DatasetAPIAddr                 string        `envconfig:"DATASET_API_ADDR"`
-	DatasetAPIAuthToken            string        `envconfig:"DATASET_API_AUTH_TOKEN"                 json:"-"`
-	ZebedeeURL                     string        `envconfig:"ZEBEDEE_URL"`
 	GracefulShutdownTimeout        time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval            time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
+	HealthCheckCriticalTimeout     time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
 }
 
 var cfg *Config
 
 // Get configures the application and returns the configuration
-func Get() (*Config, error) {
+func Get(ctx context.Context) (*Config, error) {
 	if cfg != nil {
 		return cfg, nil
 	}
@@ -37,20 +37,19 @@ func Get() (*Config, error) {
 		BindAddr:                       ":23000",
 		ServiceAuthToken:               "4424A9F2-B903-40F4-85F1-240107D1AFAF",
 		DatasetAPIAddr:                 "http://localhost:22000",
-		DatasetAPIAuthToken:            "FD0108EA-825D-411C-9B1D-41EF7727F465",
-		ZebedeeURL:                     "http://localhost:8082",
 		KafkaAddr:                      []string{"localhost:9092"},
 		IncomingInstancesTopic:         "dimensions-extracted",
 		IncomingInstancesConsumerGroup: "dp-dimension-importer",
 		OutgoingInstancesTopic:         "dimensions-inserted",
 		EventReporterTopic:             "report-events",
 		GracefulShutdownTimeout:        time.Second * 5,
-		HealthCheckInterval:            time.Minute,
+		HealthCheckInterval:            30 * time.Second,
+		HealthCheckCriticalTimeout:     90 * time.Second,
 	}
 
 	if len(cfg.ServiceAuthToken) == 0 {
 		err := errors.New("error while attempting to load config. service auth token is required but has not been configured")
-		log.Error(err, nil)
+		log.Event(ctx, "service auth token error", log.ERROR, log.Error(err))
 		return nil, err
 	}
 

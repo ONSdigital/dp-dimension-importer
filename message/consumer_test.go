@@ -1,13 +1,15 @@
-package message
+package message_test
 
 import (
 	"errors"
 	"testing"
 	"time"
 
-	mock "github.com/ONSdigital/dp-dimension-importer/message/message_test"
-	"github.com/ONSdigital/go-ns/kafka"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/dp-dimension-importer/message"
+	mock "github.com/ONSdigital/dp-dimension-importer/message/mock"
+	kafka "github.com/ONSdigital/dp-kafka"
+	"github.com/ONSdigital/dp-kafka/kafkatest"
+	"github.com/ONSdigital/log.go/log"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -28,45 +30,41 @@ const (
 
 func TestConsumer_Listen(t *testing.T) {
 	Convey("Given the Consumer has been configured correctly", t, func() {
-		incoming := make(chan kafka.Message, 1)
+		cgChannels := kafka.CreateConsumerGroupChannels(true)
 		handlerInvoked := make(chan kafka.Message, 1)
 
-		kafkaConsumer := &mock.KafkaConsumerMock{
-			IncomingFunc: func() chan kafka.Message {
-				return incoming
-			},
-			ReleaseFunc: func() {},
+		kafkaConsumer := &kafkatest.IConsumerGroupMock{
+			ChannelsFunc: func() *kafka.ConsumerGroupChannels { return cgChannels },
+			ReleaseFunc:  func() {},
 		}
 
 		handleCalls := []kafka.Message{}
-		recieverMock := mock.MessageReciever{
+		receiverMock := &mock.ReceiverMock{
 			OnMessageFunc: func(message kafka.Message) {
 				handleCalls = append(handleCalls, message)
 				handlerInvoked <- message
 			},
 		}
 
-		msg := &mock.KafkaMessageMock{}
+		msg := &kafkatest.MessageMock{}
 
-		consumer := NewConsumer(kafkaConsumer, recieverMock, time.Second*10)
+		consumer := message.NewConsumer(ctx, kafkaConsumer, receiverMock, time.Second*10)
 		consumer.Listen()
 
-		Convey("When the consumer receieves a valid message", func() {
-			incoming <- msg
+		Convey("When the consumer receives a valid message", func() {
+			cgChannels.Upstream <- msg
 
 			select {
 			case <-handlerInvoked:
-				log.Info("Handler invoked", nil)
+				log.Event(ctx, "handler invoked", log.INFO)
 			case <-time.After(time.Second * 3):
-				log.Info("Test timed out.", nil)
+				log.Event(ctx, "test timed out.", log.INFO)
 				t.FailNow()
 			}
-			consumer.Close(nil)
+			consumer.Close(ctx)
 
-			Convey("Then messageReciever.OnMessage is called 1 time with the expected parameters", func() {
+			Convey("Then messageReceiver.OnMessage is called 1 time with the expected parameters", func() {
 				So(len(handleCalls), ShouldEqual, 1)
-				// IncomingCalls = completed_messages+1 (extra 1 is for getting chan + waiting for next message)
-				So(len(kafkaConsumer.IncomingCalls()), ShouldEqual, 2)
 				So(len(kafkaConsumer.ReleaseCalls()), ShouldEqual, 1)
 			})
 		})
