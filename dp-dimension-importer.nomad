@@ -52,7 +52,7 @@ job "dp-dimension-importer" {
         tags = ["publishing"]
         check {
           type     = "http"
-          path     = "/healthcheck"
+          path     = "/health"
           interval = "10s"
           timeout  = "2s"
         }

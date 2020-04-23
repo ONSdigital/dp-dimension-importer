@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"os"
+	"time"
+
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
-	"github.com/ONSdigital/go-ns/kafka"
-	"time"
+	kafka "github.com/ONSdigital/dp-kafka"
+	"github.com/ONSdigital/log.go/log"
 )
 
 var instanceID = flag.String("instance", "5156253b-e21e-4a73-a783-fb53fabc1211", "")
@@ -17,11 +21,17 @@ var kafkaHost = flag.String("kafka", "localhost:9092", "")
 func main() {
 
 	flag.Parse()
+	ctx := context.Background()
 
 	var brokers []string
 	brokers = append(brokers, *kafkaHost)
 
-	producer, _ := kafka.NewProducer(brokers, *topic, int(2000000))
+	producer, err := kafka.NewProducer(ctx, brokers, *topic, int(2000000), kafka.CreateProducerChannels())
+	if err != nil {
+		log.Event(ctx, "error creating producer", log.FATAL, log.Error(err))
+		os.Exit(1)
+	}
+
 	dimensionsInsertedEvent := event.NewInstance{
 		InstanceID: *instanceID,
 		FileURL:    *file,
@@ -29,9 +39,10 @@ func main() {
 
 	bytes, error := schema.NewInstanceSchema.Marshal(dimensionsInsertedEvent)
 	if error != nil {
-		panic(error)
+		log.Event(ctx, "error marshalling dimensions inserted event", log.FATAL, log.Error(err))
+		os.Exit(1)
 	}
-	producer.Output() <- bytes
+	producer.Channels().Output <- bytes
 
 	// give Kafka time to produce the message before closing the producer
 	time.Sleep(time.Second)

@@ -6,14 +6,14 @@ image_resource:
   type: docker-image
   source:
     repository: golang
-    tag: 1.12.5
+    tag: 1.13.8
 
 inputs:
   - name: dp-dimension-importer
-    path: go/src/github.com/ONSdigital/dp-dimension-importer
+    path: dp-dimension-importer
 
 outputs:
   - name: build
 
 run:
-  path: go/src/github.com/ONSdigital/dp-dimension-importer/ci/scripts/build.sh
+  path: dp-dimension-importer/ci/scripts/build.sh

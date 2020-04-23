@@ -1,4 +1,4 @@
-package handler
+package handler_test
 
 import (
 	"context"
@@ -6,33 +6,42 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-dimension-importer/client"
 	"github.com/ONSdigital/dp-dimension-importer/event"
+	"github.com/ONSdigital/dp-dimension-importer/handler"
 	"github.com/ONSdigital/dp-dimension-importer/mocks"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/dp-dimension-importer/store/storertest"
+	"github.com/ONSdigital/dp-graph/v2/models"
 	. "github.com/smartystreets/goconvey/convey"
 )
+
+var ctx = context.Background()
 
 var (
 	testInstanceID = "1234567890"
 	fileURL        = "/1/2/3"
 
-	d1 = &model.Dimension{
+	d1Api = dataset.Dimension{
 		DimensionID: "1234567890_Geography",
 		Option:      "England",
 		NodeID:      "1",
 	}
+	d1 = model.NewDimension(&d1Api)
 
-	d2 = &model.Dimension{
+	d2Api = dataset.Dimension{
 		DimensionID: "1234567890_Geography",
 		Option:      "Wales",
 		NodeID:      "2",
 	}
+	d2 = model.NewDimension(&d2Api)
 
-	instance = &model.Instance{
-		InstanceID: testInstanceID,
-		CSVHeader:  []string{"the", "CSV", "header"},
-	}
+	instanceApi = dataset.Instance{dataset.Version{
+		ID:        testInstanceID,
+		CSVHeader: []string{"the", "CSV", "header"},
+	}}
+	instance = model.NewInstance(&instanceApi)
 
 	newInstance = event.NewInstance{
 		InstanceID: testInstanceID,
@@ -54,54 +63,54 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		storerMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		Convey("When given a valid event", func() {
-			handler.Handle(newInstance)
+			handler.Handle(ctx, newInstance)
 
-			Convey("Then DatasetAPICli.GetDimensions is called 1 time with the expected parameters", func() {
-				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
-				So(datasetAPIMock.GetDimensionsCalls()[0].InstanceID, ShouldEqual, testInstanceID)
+			Convey("Then DatasetAPICli.GetInstanceDimensions is called 1 time with the expected parameters", func() {
+				So(len(datasetAPIMock.GetInstanceDimensionsCalls()), ShouldEqual, 1)
+				So(datasetAPIMock.GetInstanceDimensionsCalls()[0].InstanceID, ShouldEqual, testInstanceID)
 			})
 
 			Convey("Then DatasetAPICli.GetInstance is called 1 time", func() {
 				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 			})
 
-			Convey("And storerMock.InserDimension is called 2 times with the expected parameters", func() {
+			Convey("And storerMock.InsertDimension is called 2 times with the expected parameters", func() {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 2)
 
-				So(calls[0].Instance, ShouldResemble, instance)
-				So(calls[0].Dimension, ShouldResemble, d1)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
+				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 
-				So(calls[1].Instance, ShouldResemble, instance)
-				So(calls[1].Dimension, ShouldResemble, d2)
+				So(calls[1].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
+				So(calls[1].Dimension, ShouldResemble, d2.DbModel())
 			})
 
 			Convey("And DatasetAPICli.PutDimensionNodeID is called 2 times with the expected parameters", func() {
-				calls := datasetAPIMock.PutDimensionNodeIDCalls()
+				calls := datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()
 				So(len(calls), ShouldEqual, 2)
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
 				So(calls[1].InstanceID, ShouldEqual, testInstanceID)
-				So(calls[0].Dimension, ShouldEqual, d1)
-				So(calls[1].Dimension, ShouldEqual, d2)
+				So(calls[0].DimensionID, ShouldEqual, d1Api.DimensionID)
+				So(calls[1].DimensionID, ShouldEqual, d2Api.DimensionID)
 			})
 
 			Convey("And storer.AddDimensions is called 1 time with the expected parameters", func() {
 				calls := storerMock.AddDimensionsCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				So(calls[0].Instance, ShouldResemble, instance)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And storer.CreateCodeRelationshipCalls is called once with the expected parameters", func() {
 				calls := storerMock.CreateCodeRelationshipCalls()
 				So(len(calls), ShouldEqual, 2)
 
-				So(calls[0].Instance, ShouldResemble, instance)
-				So(calls[0].Code, ShouldResemble, d1.Option)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
+				So(calls[0].Code, ShouldResemble, d1.DbModel().Option)
 
-				So(calls[1].Instance, ShouldResemble, instance)
-				So(calls[1].Code, ShouldResemble, d2.Option)
+				So(calls[1].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
+				So(calls[1].Code, ShouldResemble, d2.DbModel().Option)
 			})
 
 			Convey("And storer is called once to create constraints", func() {
@@ -116,7 +125,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		})
 
 		Convey("When given an invalid event", func() {
-			err := handler.Handle(event.NewInstance{})
+			err := handler.Handle(ctx, event.NewInstance{})
 
 			Convey("Then the appropriate error is returned", func() {
 				So(err.Error(), ShouldResemble, "validation error instance_id required but was empty")
@@ -124,24 +133,24 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 			Convey("And no further processing of the event takes place.", func() {
 				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
-				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
-				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.GetInstanceDimensionsCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()), ShouldEqual, 0)
 				So(len(storerMock.CreateInstanceCalls()), ShouldEqual, 0)
 				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 		})
 
-		Convey("When DatasetAPICli.GetDimensions returns an error", func() {
+		Convey("When DatasetAPICli.GetInstanceDimensions returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			datasetAPIMock.GetDimensionsFunc = func(instanceID string) ([]*model.Dimension, error) {
-				return nil, errorMock
+			datasetAPIMock.GetInstanceDimensionsFunc = func(ctx context.Context, serviceAuthToken string, instanceID string) (dataset.Dimensions, error) {
+				return dataset.Dimensions{}, errorMock
 			}
 
-			err := handler.Handle(event)
+			err := handler.Handle(ctx, event)
 
-			Convey("Then the DatasetAPICli.GetDimensions is called 1 time", func() {
-				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+			Convey("Then the DatasetAPICli.GetInstanceDimensions is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceDimensionsCalls()), ShouldEqual, 1)
 			})
 
 			Convey("Then DatasetAPICli.GetInstance is called 1 time", func() {
@@ -154,7 +163,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 			Convey("And no further processing of the event takes place.", func() {
 				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
-				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()), ShouldEqual, 0)
 				So(len(storerMock.CreateInstanceCalls()), ShouldEqual, 0)
 				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
@@ -163,14 +172,14 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When storer.CreateInstance returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			storerMock.CreateInstanceFunc = func(ctx context.Context, instance *model.Instance) error {
+			storerMock.CreateInstanceFunc = func(ctx context.Context, instanceID string, csvHeaders []string) error {
 				return errorMock
 			}
 
-			err := handler.Handle(event)
+			err := handler.Handle(ctx, event)
 
-			Convey("Then the DatasetAPICli.GetDimensions is called 1 time", func() {
-				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+			Convey("Then the DatasetAPICli.GetInstanceDimensions is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceDimensionsCalls()), ShouldEqual, 1)
 			})
 
 			Convey("Then DatasetAPICli.GetInstance is called 1 time", func() {
@@ -180,12 +189,12 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
 				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
 				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
-				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()), ShouldEqual, 0)
 				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 
@@ -197,14 +206,14 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When storer.CreateCodeRelationship returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			storerMock.CreateCodeRelationshipFunc = func(ctx context.Context, i *model.Instance, codeListID, code string) error {
+			storerMock.CreateCodeRelationshipFunc = func(ctx context.Context, instanceID string, codeListID string, code string) error {
 				return errorMock
 			}
 
-			err := handler.Handle(event)
+			err := handler.Handle(ctx, event)
 
-			Convey("Then the DatasetAPICli.GetDimensions is called 1 time", func() {
-				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+			Convey("Then the DatasetAPICli.GetInstanceDimensions is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceDimensionsCalls()), ShouldEqual, 1)
 			})
 
 			Convey("Then DatasetAPICli.GetInstance is called 1 time", func() {
@@ -214,23 +223,23 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
 				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And storer.InsertDimension is called 2 times with the expected parameters", func() {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 1)
 
-				So(calls[0].Instance, ShouldResemble, instance)
-				So(calls[0].Dimension, ShouldResemble, d1)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
+				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 			})
 
 			Convey("And DatasetAPICli.PutDimensionNodeID is called 2 times with the expected parameters", func() {
-				calls := datasetAPIMock.PutDimensionNodeIDCalls()
+				calls := datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()
 				So(len(calls), ShouldEqual, 1)
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
-				So(calls[0].Dimension, ShouldEqual, d1)
+				So(calls[0].DimensionID, ShouldEqual, d1Api.DimensionID)
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -245,13 +254,13 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When storer.InsertDimension returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
+			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 				return dimension, errorMock
 			}
-			err := handler.Handle(event)
+			err := handler.Handle(ctx, event)
 
-			Convey("Then the DatasetAPICli.GetDimensions is called 1 time", func() {
-				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+			Convey("Then the DatasetAPICli.GetInstanceDimensionsCalls is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceDimensionsCalls()), ShouldEqual, 1)
 			})
 
 			Convey("Then DatasetAPICli.GetInstance is called 1 time", func() {
@@ -261,14 +270,14 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
 				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And storer.InsertDimension is called 1 time with the expected parameters", func() {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance)
-				So(calls[0].Dimension, ShouldResemble, d1)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
+				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 			})
 
 			Convey("And the expected error is returned", func() {
@@ -276,7 +285,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
-				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()), ShouldEqual, 0)
 				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 		})
@@ -284,17 +293,17 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When DatasetAPICli.PutDimensionNodeID returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
+			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 				return dimension, nil
 			}
-			datasetAPIMock.PutDimensionNodeIDFunc = func(instanceID string, dimension *model.Dimension) error {
+			datasetAPIMock.PutInstanceDimensionOptionNodeIDFunc = func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string) error {
 				return errorMock
 			}
 
-			err := handler.Handle(event)
+			err := handler.Handle(ctx, event)
 
-			Convey("Then the DatasetAPICli.GetDimensions is called 1 time", func() {
-				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+			Convey("Then the DatasetAPICli.GetInstanceDimensions is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceDimensionsCalls()), ShouldEqual, 1)
 			})
 
 			Convey("Then DatasetAPICli.GetInstance is called 1 time", func() {
@@ -304,22 +313,22 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
 				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And storer.InsertDimension is called 2 time with the expected parameters", func() {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance)
-				So(calls[0].Dimension, ShouldResemble, d1)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
+				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 			})
 
 			Convey("And DatasetAPICli.PutDimensionNodeID is called 1 time with the expected parameters", func() {
-				calls := datasetAPIMock.PutDimensionNodeIDCalls()
+				calls := datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()
 				So(len(calls), ShouldEqual, 1)
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
-				So(calls[0].Dimension, ShouldEqual, d1)
+				So(calls[0].DimensionID, ShouldEqual, d1Api.DimensionID)
 			})
 
 			Convey("And the expected error is returned", func() {
@@ -334,20 +343,20 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When storer.AddDimensions returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instance *model.Instance, dimension *model.Dimension) (*model.Dimension, error) {
+			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 				return dimension, nil
 			}
-			datasetAPIMock.PutDimensionNodeIDFunc = func(instanceID string, dimension *model.Dimension) error {
+			datasetAPIMock.PutInstanceDimensionOptionNodeIDFunc = func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string) error {
 				return nil
 			}
-			storerMock.AddDimensionsFunc = func(ctx context.Context, instance *model.Instance) error {
+			storerMock.AddDimensionsFunc = func(ctx context.Context, instanceID string, dimensions []interface{}) error {
 				return errorMock
 			}
 
-			err := handler.Handle(event)
+			err := handler.Handle(ctx, event)
 
-			Convey("Then the DatasetAPICli.GetDimensions is called 1 time", func() {
-				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
+			Convey("Then the DatasetAPICli.GetInstanceDimensions is called 1 time", func() {
+				So(len(datasetAPIMock.GetInstanceDimensionsCalls()), ShouldEqual, 1)
 			})
 
 			Convey("Then DatasetAPICli.GetInstance is called 1 time", func() {
@@ -357,28 +366,28 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			Convey("And storer.CreateInstance is called 1 time with the expected parameters", func() {
 				calls := storerMock.CreateInstanceCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And storer.InsertDimension is called 2 time with the expected parameters", func() {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldEqual, 2)
-				So(calls[0].Instance, ShouldResemble, instance)
-				So(calls[0].Dimension, ShouldResemble, d1)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
+				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 
-				So(calls[1].Instance, ShouldResemble, instance)
-				So(calls[1].Dimension, ShouldResemble, d2)
+				So(calls[1].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
+				So(calls[1].Dimension, ShouldResemble, d2.DbModel())
 			})
 
 			Convey("And DatasetAPICli.PutDimensionNodeID is called 1 time with the expected parameters", func() {
-				calls := datasetAPIMock.PutDimensionNodeIDCalls()
+				calls := datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()
 				So(len(calls), ShouldEqual, 2)
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
-				So(calls[0].Dimension, ShouldEqual, d1)
+				So(calls[0].DimensionID, ShouldEqual, d1Api.DimensionID)
 
 				So(calls[1].InstanceID, ShouldEqual, testInstanceID)
-				So(calls[1].Dimension, ShouldEqual, d2)
+				So(calls[1].DimensionID, ShouldEqual, d2Api.DimensionID)
 			})
 
 			Convey("And the expected error is returned", func() {
@@ -390,14 +399,14 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 	Convey("Given handler.DatasetAPICli has not been configured", t, func() {
 		db := &storertest.StorerMock{}
 
-		handler := InstanceEventHandler{
+		handler := handler.InstanceEventHandler{
 			DatasetAPICli: nil,
 			Store:         db,
 		}
 
 		Convey("When Handle is called", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
-			err := handler.Handle(event)
+			err := handler.Handle(ctx, event)
 
 			Convey("Then the expected error is returned", func() {
 				So(err.Error(), ShouldEqual, errors.New("validation error dataset api client required but was nil").Error())
@@ -412,22 +421,27 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 	})
 
 	Convey("Given handler.Store has not been configured", t, func() {
-		datasetAPIMock := &mocks.DatasetAPIClientMock{}
+		datasetAPIMock := &mocks.IClientMock{}
+		datasetAPIClient := &client.DatasetAPI{
+			AuthToken:      "token",
+			DatasetAPIHost: "host",
+			Client:         datasetAPIMock,
+		}
 
-		handler := InstanceEventHandler{
-			DatasetAPICli: datasetAPIMock,
+		handler := handler.InstanceEventHandler{
+			DatasetAPICli: datasetAPIClient,
 			Store:         nil,
 		}
 		Convey("When Handle is called", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
-			err := handler.Handle(event)
+			err := handler.Handle(ctx, event)
 
 			Convey("Then the expected error is returned", func() {
 				So(err.Error(), ShouldEqual, errors.New("validation error datastore required but was nil").Error())
 			})
 			Convey("And the event is not handled", func() {
-				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 0)
-				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.GetInstanceDimensionsCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()), ShouldEqual, 0)
 			})
 		})
 	})
@@ -438,17 +452,17 @@ func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 		storerMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		// override default
-		storerMock.InstanceExistsFunc = func(ctx context.Context, instance *model.Instance) (bool, error) {
+		storerMock.InstanceExistsFunc = func(ctx context.Context, instanceID string) (bool, error) {
 			return true, nil
 		}
 
 		Convey("When Handle is given a NewInstance event with the same instanceID", func() {
-			handler.Handle(newInstance)
+			handler.Handle(ctx, newInstance)
 
 			Convey("Then storer.InstanceExists is called 1 time with expected parameters ", func() {
 				calls := storerMock.InstanceExistsCalls()
 				So(len(calls), ShouldEqual, 1)
-				So(calls[0].Instance, ShouldResemble, instance)
+				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
 			Convey("And storer.CreateInstance is not called", func() {
@@ -460,7 +474,7 @@ func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 			})
 
 			Convey("And DatasetAPICli.PutDimensionNodeID not called", func() {
-				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()), ShouldEqual, 0)
 			})
 
 			Convey("and storer.AddDimensions is not called", func() {
@@ -483,29 +497,29 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 		storerMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		Convey("When storer.InstanceExists returns an error", func() {
-			storerMock.InstanceExistsFunc = func(ctx context.Context, instance *model.Instance) (bool, error) {
+			storerMock.InstanceExistsFunc = func(ctx context.Context, instanceID string) (bool, error) {
 				return false, errorMock
 			}
 
-			err := handler.Handle(newInstance)
+			err := handler.Handle(ctx, newInstance)
 
 			Convey("Then handler returns the expected error", func() {
 				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "instance exists check returned an error").Error())
 			})
 
 			Convey("And datasetAPICli make the expected calls with the expected parameters", func() {
-				So(len(datasetAPIMock.GetDimensionsCalls()), ShouldEqual, 1)
-				So(datasetAPIMock.GetDimensionsCalls()[0].InstanceID, ShouldEqual, testInstanceID)
+				So(len(datasetAPIMock.GetInstanceDimensionsCalls()), ShouldEqual, 1)
+				So(datasetAPIMock.GetInstanceDimensionsCalls()[0].InstanceID, ShouldEqual, testInstanceID)
 
 				So(len(datasetAPIMock.GetInstanceCalls()), ShouldEqual, 1)
 				So(datasetAPIMock.GetInstanceCalls()[0].InstanceID, ShouldEqual, testInstanceID)
 
-				So(len(datasetAPIMock.PutDimensionNodeIDCalls()), ShouldEqual, 0)
+				So(len(datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()), ShouldEqual, 0)
 			})
 
 			Convey("And storer makes the expected called with the expected parameters", func() {
 				So(len(storerMock.InstanceExistsCalls()), ShouldEqual, 1)
-				So(storerMock.InstanceExistsCalls()[0].Instance, ShouldEqual, instance)
+				So(storerMock.InstanceExistsCalls()[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(len(storerMock.CreateInstanceCalls()), ShouldEqual, 0)
 				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
@@ -521,24 +535,24 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 }
 
 // Default set up for the mocks.
-func setUp() (*storertest.StorerMock, *mocks.DatasetAPIClientMock, *mocks.CompletedProducerMock, InstanceEventHandler) {
+func setUp() (*storertest.StorerMock, *mocks.IClientMock, *mocks.CompletedProducerMock, handler.InstanceEventHandler) {
 	storeMock := &storertest.StorerMock{
-		InstanceExistsFunc: func(ctx context.Context, instance *model.Instance) (bool, error) {
+		InstanceExistsFunc: func(ctx context.Context, instanceID string) (bool, error) {
 			return false, nil
 		},
-		AddDimensionsFunc: func(ctx context.Context, instance *model.Instance) error {
+		AddDimensionsFunc: func(ctx context.Context, instanceID string, dimensions []interface{}) error {
 			return nil
 		},
-		CreateInstanceFunc: func(ctx context.Context, instance *model.Instance) error {
+		CreateInstanceFunc: func(ctx context.Context, instanceID string, csvHeaders []string) error {
 			return nil
 		},
-		CreateCodeRelationshipFunc: func(ctx context.Context, i *model.Instance, codeListID, code string) error {
+		CreateCodeRelationshipFunc: func(ctx context.Context, instanceID string, codeListID string, code string) error {
 			return nil
 		},
-		InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instance *model.Instance, d *model.Dimension) (*model.Dimension, error) {
-			return d, nil
+		InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
+			return dimension, nil
 		},
-		CreateInstanceConstraintFunc: func(ctx context.Context, instance *model.Instance) error {
+		CreateInstanceConstraintFunc: func(ctx context.Context, instanceID string) error {
 			return nil
 		},
 		CloseFunc: func(ctx context.Context) error {
@@ -547,27 +561,32 @@ func setUp() (*storertest.StorerMock, *mocks.DatasetAPIClientMock, *mocks.Comple
 		},
 	}
 
-	datasetAPIMock := &mocks.DatasetAPIClientMock{
-		GetDimensionsFunc: func(instanceID string) ([]*model.Dimension, error) {
-			return []*model.Dimension{d1, d2}, nil
+	datasetAPIMock := &mocks.IClientMock{
+		GetInstanceDimensionsFunc: func(ctx context.Context, serviceAuthToken string, instanceID string) (dataset.Dimensions, error) {
+			return dataset.Dimensions{[]dataset.Dimension{d1Api, d2Api}}, nil
 		},
-		PutDimensionNodeIDFunc: func(instanceID string, d *model.Dimension) error {
+		PutInstanceDimensionOptionNodeIDFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string) error {
 			return nil
 		},
-		GetInstanceFunc: func(instanceID string) (*model.Instance, error) {
-			return instance, nil
+		GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string) (dataset.Instance, error) {
+			return instanceApi, nil
 		},
+	}
+	datasetAPIClient := &client.DatasetAPI{
+		AuthToken:      "token",
+		DatasetAPIHost: "host",
+		Client:         datasetAPIMock,
 	}
 
 	completedProducer := &mocks.CompletedProducerMock{
-		CompletedFunc: func(e event.InstanceCompleted) error {
+		CompletedFunc: func(ctx context.Context, e event.InstanceCompleted) error {
 			return nil
 		},
 	}
 
-	handler := InstanceEventHandler{
+	handler := handler.InstanceEventHandler{
 		Store:         storeMock,
-		DatasetAPICli: datasetAPIMock,
+		DatasetAPICli: datasetAPIClient,
 		Producer:      completedProducer,
 	}
 	return storeMock, datasetAPIMock, completedProducer, handler
