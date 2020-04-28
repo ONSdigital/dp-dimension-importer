@@ -109,9 +109,9 @@ func (hdlr *InstanceEventHandler) validate(newInstance event.NewInstance) error 
 func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance *model.Instance, dimensions []*model.Dimension) error {
 
 	cache := make(map[string]string)
-
 	var wg sync.WaitGroup
 	problem := make(chan error, len(dimensions))
+	batchProcessed := make(chan bool)
 	count := 0
 
 	for _, dimension := range dimensions {
@@ -119,45 +119,21 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 		count++
 		go func(d *model.Dimension) {
 			defer wg.Done()
-
-			dbDimension, err := hdlr.Store.InsertDimension(ctx, cache, instance.DbModel().InstanceID, d.DbModel())
-			if err != nil {
-				err = errors.Wrap(err, "error while attempting to insert dimension")
-				log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
-				problem <- err
-				return
-			}
-
-			if err = hdlr.DatasetAPICli.PutDimensionNodeID(ctx, instance.DbModel().InstanceID, dimension); err != nil {
-				err = errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
-				log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
-				problem <- err
-				return
-			}
-
-			// todo: remove this temp hack once the time codelist / input data has been fixed.
-			if dbDimension.DimensionID != "time" {
-				if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance.DbModel().InstanceID, dimension.CodeListID(), dbDimension.Option); err != nil {
-					err = errors.Wrap(err, "error attempting to create relationship to code")
-					log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
-					problem <- err
-					return
-				}
-			}
+			hdlr.insertDimension(ctx, cache, instance, d, problem)
 		}(dimension)
 
 		if count >= hdlr.BatchSize {
-			wg.Wait()
-			if len(problem) > 0 {
-				return <-problem
+			err := waitForBatch(&wg, batchProcessed, problem)
+			if err != nil {
+				return err
 			}
 			count = 0
 		}
 	}
 
-	wg.Wait()
-	if len(problem) > 0 {
-		return <-problem
+	err := waitForBatch(&wg, batchProcessed, problem)
+	if err != nil {
+		return err
 	}
 
 	if err := hdlr.Store.AddDimensions(ctx, instance.DbModel().InstanceID, instance.DbModel().Dimensions); err != nil {
@@ -165,6 +141,49 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 	}
 
 	return nil
+}
+
+func waitForBatch(wg *sync.WaitGroup, batchProcessed chan bool, problem chan error) error {
+
+	go func() {
+		wg.Wait()
+		batchProcessed <- true
+	}()
+
+	select {
+	case <-batchProcessed:
+		return nil
+	case err := <-problem:
+		return err
+	}
+}
+
+func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map[string]string, instance *model.Instance, d *model.Dimension, problem chan error) {
+
+	dbDimension, err := hdlr.Store.InsertDimension(ctx, cache, instance.DbModel().InstanceID, d.DbModel())
+	if err != nil {
+		err = errors.Wrap(err, "error while attempting to insert dimension")
+		log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+		problem <- err
+		return
+	}
+
+	if err = hdlr.DatasetAPICli.PutDimensionNodeID(ctx, instance.DbModel().InstanceID, d); err != nil {
+		err = errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
+		log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+		problem <- err
+		return
+	}
+
+	// todo: remove this temp hack once the time codelist / input data has been fixed.
+	if dbDimension.DimensionID != "time" {
+		if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance.DbModel().InstanceID, d.CodeListID(), dbDimension.Option); err != nil {
+			err = errors.Wrap(err, "error attempting to create relationship to code")
+			log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+			problem <- err
+			return
+		}
+	}
 }
 
 func (hdlr *InstanceEventHandler) createInstanceNode(ctx context.Context, instance *model.Instance) error {
