@@ -226,16 +226,16 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
-			Convey("And storer.InsertDimension is called 2 times with the expected parameters", func() {
+			Convey("And storer.InsertDimension is called at least once with the expected parameters", func() {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldBeGreaterThan, 0) // may be 1 or 2 depending on when go routines run
 				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 			})
 
-			Convey("And DatasetAPICli.PutDimensionNodeID is called 2 times with the expected parameters", func() {
+			Convey("And DatasetAPICli.PutDimensionNodeID is at least once with the expected parameters", func() {
 				calls := datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()
-				So(len(calls), ShouldEqual, 1)
+				So(len(calls), ShouldBeGreaterThan, 0)
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
 				So(calls[0].DimensionID, ShouldEqual, d1Api.DimensionID)
@@ -272,7 +272,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 			})
 
-			Convey("And storer.InsertDimension is called 1 time with the expected parameters", func() {
+			Convey("And storer.InsertDimension is called at least once with the expected parameters", func() {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldBeGreaterThan, 0) // may be 1 or 2 depending on when go routines run
 				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
@@ -322,9 +322,9 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 			})
 
-			Convey("And DatasetAPICli.PutDimensionNodeID is called 1 time with the expected parameters", func() {
+			Convey("And DatasetAPICli.PutDimensionNodeID is called at least once with the expected parameters", func() {
 				calls := datasetAPIMock.PutInstanceDimensionOptionNodeIDCalls()
-				So(len(calls), ShouldEqual, 1)
+				So(len(calls), ShouldBeGreaterThan, 0)
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
 				So(calls[0].DimensionID, ShouldEqual, d1Api.DimensionID)
