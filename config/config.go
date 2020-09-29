@@ -22,6 +22,7 @@ type Config struct {
 	DatasetAPIAddr                 string        `envconfig:"DATASET_API_ADDR"`
 	GracefulShutdownTimeout        time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	HealthCheckInterval            time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
+	BatchSize                      int           `envconfig:"BATCH_SIZE"`
 	HealthCheckCriticalTimeout     time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
 }
 
@@ -45,6 +46,7 @@ func Get(ctx context.Context) (*Config, error) {
 		GracefulShutdownTimeout:        time.Second * 5,
 		HealthCheckInterval:            30 * time.Second,
 		HealthCheckCriticalTimeout:     90 * time.Second,
+		BatchSize:                      1, //not all implementations will allow for batching, so set to a safe default
 	}
 
 	if len(cfg.ServiceAuthToken) == 0 {
