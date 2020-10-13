@@ -12,8 +12,8 @@ GIT_COMMIT=$(shell git rev-parse HEAD)
 VERSION ?= $(shell git tag --points-at HEAD | grep ^v | head -n 1)
 LDFLAGS=-ldflags "-w -s -X 'main.Version=${VERSION}' -X 'main.BuildTime=$(BUILD_TIME)' -X 'main.GitCommit=$(GIT_COMMIT)'"
 
-export GRAPH_DRIVER_TYPE?=neptune
-export GRAPH_ADDR?=ws://localhost:8182/gremlin
+export GRAPH_DRIVER_TYPE?=neo4j
+export GRAPH_ADDR?=bolt://localhost:7687
 
 build:
 	@mkdir -p $(BUILD_ARCH)/$(BIN_DIR)
