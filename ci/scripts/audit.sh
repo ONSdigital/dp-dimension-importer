@@ -2,6 +2,6 @@
 
 export cwd=$(pwd)
 
-pushd $cwd/dp-code-list-api
+pushd $cwd/dp-dimension-importer
   make audit
 popd
