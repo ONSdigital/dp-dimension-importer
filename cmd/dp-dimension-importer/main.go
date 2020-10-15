@@ -263,7 +263,7 @@ func registerCheckers(hc *healthcheck.HealthCheck,
 		log.Event(nil, "error adding check for dataset checker", log.ERROR, log.Error(err))
 	}
 
-	if err = hc.AddCheck("Neo4J", db.Checker); err != nil {
+	if err = hc.AddCheck("Graph DB", db.Checker); err != nil {
 		hasErrors = true
 		log.Event(nil, "error adding check for graph db", log.ERROR, log.Error(err))
 	}
