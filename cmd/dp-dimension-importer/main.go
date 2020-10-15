@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/gorilla/mux"
 	"os"
 
@@ -72,6 +73,11 @@ func main() {
 	graphDB, err := serviceList.GetGraphDB(ctx)
 	if err != nil {
 		os.Exit(1)
+	}
+
+	var graphErrorConsumer *graph.ErrorConsumer
+	if serviceList.GraphDB {
+		graphErrorConsumer = graph.NewLoggingErrorConsumer(ctx, graphDB.Errors)
 	}
 
 	// MessageProducer for instanceComplete events.
@@ -177,6 +183,12 @@ func main() {
 			log.Event(shutdownCtx, "closing graph db")
 			if err := graphDB.Close(shutdownCtx); err != nil {
 				log.Event(ctx, "error closing graph db", log.ERROR, log.Error(err))
+				hasShutdownError = true
+			}
+
+			log.Event(shutdownCtx, "closing graph db error consumer")
+			if err := graphErrorConsumer.Close(shutdownCtx); err != nil {
+				log.Event(ctx, "error closing graph db error consumer", log.ERROR, log.Error(err))
 				hasShutdownError = true
 			}
 		}
