@@ -1,12 +1,9 @@
 package main
 
 import (
-	"errors"
-	"github.com/ONSdigital/dp-graph/v2/graph"
-	"github.com/gorilla/mux"
-	"os"
-
 	"context"
+	"errors"
+	"os"
 	"os/signal"
 	"syscall"
 
@@ -17,11 +14,13 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/dp-dimension-importer/store"
+	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka"
+	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	"github.com/ONSdigital/go-ns/server"
 	"github.com/ONSdigital/log.go/log"
+	"github.com/gorilla/mux"
 )
 
 var (
@@ -216,12 +215,12 @@ func main() {
 }
 
 // StartHealthCheck sets up the Handler, starts the healthcheck and the http server that serves health endpoint
-func startHealthCheck(ctx context.Context, hc *healthcheck.HealthCheck, bindAddr string) *server.Server {
+func startHealthCheck(ctx context.Context, hc *healthcheck.HealthCheck, bindAddr string) *dphttp.Server {
 	router := mux.NewRouter()
 	router.Path("/health").HandlerFunc(hc.Handler)
 	hc.Start(ctx)
 
-	httpServer := server.New(bindAddr, router)
+	httpServer := dphttp.NewServer(bindAddr, router)
 	httpServer.HandleOSSignals = false
 
 	go func() {
