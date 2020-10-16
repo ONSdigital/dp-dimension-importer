@@ -15,13 +15,24 @@ LDFLAGS=-ldflags "-w -s -X 'main.Version=${VERSION}' -X 'main.BuildTime=$(BUILD_
 export GRAPH_DRIVER_TYPE?=neo4j
 export GRAPH_ADDR?=bolt://localhost:7687
 
+.PHONY: all
+all: audit test build
+
+.PHONY: audit
+audit:
+	nancy go.sum
+
+.PHONY: build
 build:
 	@mkdir -p $(BUILD_ARCH)/$(BIN_DIR)
 	go build $(LDFLAGS) -o $(BUILD_ARCH)/$(BIN_DIR)/dp-dimension-importer cmd/dp-dimension-importer/main.go
+
+.PHONY: debug
 debug: build
-	GRAPH_ADDR=$(GRAPH_ADDR) GRAPH_DRIVER_TYPE=$(GRAPH_DRIVER_TYPE) HUMAN_LOG=1 go run $(LDFLAGS) cmd/dp-dimension-importer/main.go
-clean:
-	rm
+	HUMAN_LOG=1 go run $(LDFLAGS) -race cmd/dp-dimension-importer/main.go
+
+.PHONY: test
 test:
 	go test -cover -race $(shell go list ./... | grep -v /vendor/)
+
 .PHONY: build debug test
