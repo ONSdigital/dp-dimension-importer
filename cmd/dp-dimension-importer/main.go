@@ -171,7 +171,7 @@ func main() {
 		}
 
 		if serviceList.InstanceCompleteProducer {
-			log.Event(shutdownCtx, "closing instance complete kafka producer")
+			log.Event(shutdownCtx, "closing instance complete kafka producer", log.INFO)
 			if err := instanceCompleteProducer.Close(shutdownCtx); err != nil {
 				log.Event(ctx, "error closing instance complete kafka consumer", log.ERROR, log.Error(err))
 				hasShutdownError = true
@@ -179,13 +179,13 @@ func main() {
 		}
 
 		if serviceList.GraphDB {
-			log.Event(shutdownCtx, "closing graph db")
+			log.Event(shutdownCtx, "closing graph db", log.INFO)
 			if err := graphDB.Close(shutdownCtx); err != nil {
 				log.Event(ctx, "error closing graph db", log.ERROR, log.Error(err))
 				hasShutdownError = true
 			}
 
-			log.Event(shutdownCtx, "closing graph db error consumer")
+			log.Event(shutdownCtx, "closing graph db error consumer", log.INFO)
 			if err := graphErrorConsumer.Close(shutdownCtx); err != nil {
 				log.Event(ctx, "error closing graph db error consumer", log.ERROR, log.Error(err))
 				hasShutdownError = true
@@ -193,7 +193,7 @@ func main() {
 		}
 
 		if serviceList.ErrorReporterProducer {
-			log.Event(shutdownCtx, "closing error reporter kafka producer")
+			log.Event(shutdownCtx, "closing error reporter kafka producer", log.INFO)
 			if err := errorReporterProducer.Close(shutdownCtx); err != nil {
 				log.Event(ctx, "error closing error reporter kafka producer", log.ERROR, log.Error(err))
 				hasShutdownError = true
