@@ -1,11 +1,9 @@
 package main
 
 import (
-	"errors"
-	"github.com/gorilla/mux"
-	"os"
-
 	"context"
+	"errors"
+	"os"
 	"os/signal"
 	"syscall"
 
@@ -16,11 +14,13 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/dp-dimension-importer/store"
+	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka"
+	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	"github.com/ONSdigital/go-ns/server"
 	"github.com/ONSdigital/log.go/log"
+	"github.com/gorilla/mux"
 )
 
 var (
@@ -72,6 +72,11 @@ func main() {
 	graphDB, err := serviceList.GetGraphDB(ctx)
 	if err != nil {
 		os.Exit(1)
+	}
+
+	var graphErrorConsumer *graph.ErrorConsumer
+	if serviceList.GraphDB {
+		graphErrorConsumer = graph.NewLoggingErrorConsumer(ctx, graphDB.Errors)
 	}
 
 	// MessageProducer for instanceComplete events.
@@ -166,7 +171,7 @@ func main() {
 		}
 
 		if serviceList.InstanceCompleteProducer {
-			log.Event(shutdownCtx, "closing instance complete kafka producer")
+			log.Event(shutdownCtx, "closing instance complete kafka producer", log.INFO)
 			if err := instanceCompleteProducer.Close(shutdownCtx); err != nil {
 				log.Event(ctx, "error closing instance complete kafka consumer", log.ERROR, log.Error(err))
 				hasShutdownError = true
@@ -174,15 +179,21 @@ func main() {
 		}
 
 		if serviceList.GraphDB {
-			log.Event(shutdownCtx, "closing graph db")
+			log.Event(shutdownCtx, "closing graph db", log.INFO)
 			if err := graphDB.Close(shutdownCtx); err != nil {
 				log.Event(ctx, "error closing graph db", log.ERROR, log.Error(err))
+				hasShutdownError = true
+			}
+
+			log.Event(shutdownCtx, "closing graph db error consumer", log.INFO)
+			if err := graphErrorConsumer.Close(shutdownCtx); err != nil {
+				log.Event(ctx, "error closing graph db error consumer", log.ERROR, log.Error(err))
 				hasShutdownError = true
 			}
 		}
 
 		if serviceList.ErrorReporterProducer {
-			log.Event(shutdownCtx, "closing error reporter kafka producer")
+			log.Event(shutdownCtx, "closing error reporter kafka producer", log.INFO)
 			if err := errorReporterProducer.Close(shutdownCtx); err != nil {
 				log.Event(ctx, "error closing error reporter kafka producer", log.ERROR, log.Error(err))
 				hasShutdownError = true
@@ -204,12 +215,12 @@ func main() {
 }
 
 // StartHealthCheck sets up the Handler, starts the healthcheck and the http server that serves health endpoint
-func startHealthCheck(ctx context.Context, hc *healthcheck.HealthCheck, bindAddr string) *server.Server {
+func startHealthCheck(ctx context.Context, hc *healthcheck.HealthCheck, bindAddr string) *dphttp.Server {
 	router := mux.NewRouter()
 	router.Path("/health").HandlerFunc(hc.Handler)
 	hc.Start(ctx)
 
-	httpServer := server.New(bindAddr, router)
+	httpServer := dphttp.NewServer(bindAddr, router)
 	httpServer.HandleOSSignals = false
 
 	go func() {
@@ -251,7 +262,7 @@ func registerCheckers(hc *healthcheck.HealthCheck,
 		log.Event(nil, "error adding check for dataset checker", log.ERROR, log.Error(err))
 	}
 
-	if err = hc.AddCheck("Neo4J", db.Checker); err != nil {
+	if err = hc.AddCheck("Graph DB", db.Checker); err != nil {
 		hasErrors = true
 		log.Event(nil, "error adding check for graph db", log.ERROR, log.Error(err))
 	}
