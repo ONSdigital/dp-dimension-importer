@@ -5,25 +5,10 @@ package storertest
 
 import (
 	"context"
-	"sync"
-
 	"github.com/ONSdigital/dp-dimension-importer/store"
 	"github.com/ONSdigital/dp-graph/v2/models"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-)
-
-var (
-	lockStorerMockAddDimensions               sync.RWMutex
-	lockStorerMockAddVersionDetailsToInstance sync.RWMutex
-	lockStorerMockChecker                     sync.RWMutex
-	lockStorerMockClose                       sync.RWMutex
-	lockStorerMockCountInsertedObservations   sync.RWMutex
-	lockStorerMockCreateCodeRelationship      sync.RWMutex
-	lockStorerMockCreateInstance              sync.RWMutex
-	lockStorerMockCreateInstanceConstraint    sync.RWMutex
-	lockStorerMockInsertDimension             sync.RWMutex
-	lockStorerMockInstanceExists              sync.RWMutex
-	lockStorerMockSetInstanceIsPublished      sync.RWMutex
+	"sync"
 )
 
 // Ensure, that StorerMock does implement store.Storer.
@@ -205,6 +190,17 @@ type StorerMock struct {
 			InstanceID string
 		}
 	}
+	lockAddDimensions               sync.RWMutex
+	lockAddVersionDetailsToInstance sync.RWMutex
+	lockChecker                     sync.RWMutex
+	lockClose                       sync.RWMutex
+	lockCountInsertedObservations   sync.RWMutex
+	lockCreateCodeRelationship      sync.RWMutex
+	lockCreateInstance              sync.RWMutex
+	lockCreateInstanceConstraint    sync.RWMutex
+	lockInsertDimension             sync.RWMutex
+	lockInstanceExists              sync.RWMutex
+	lockSetInstanceIsPublished      sync.RWMutex
 }
 
 // AddDimensions calls AddDimensionsFunc.
@@ -221,9 +217,9 @@ func (mock *StorerMock) AddDimensions(ctx context.Context, instanceID string, di
 		InstanceID: instanceID,
 		Dimensions: dimensions,
 	}
-	lockStorerMockAddDimensions.Lock()
+	mock.lockAddDimensions.Lock()
 	mock.calls.AddDimensions = append(mock.calls.AddDimensions, callInfo)
-	lockStorerMockAddDimensions.Unlock()
+	mock.lockAddDimensions.Unlock()
 	return mock.AddDimensionsFunc(ctx, instanceID, dimensions)
 }
 
@@ -240,9 +236,9 @@ func (mock *StorerMock) AddDimensionsCalls() []struct {
 		InstanceID string
 		Dimensions []interface{}
 	}
-	lockStorerMockAddDimensions.RLock()
+	mock.lockAddDimensions.RLock()
 	calls = mock.calls.AddDimensions
-	lockStorerMockAddDimensions.RUnlock()
+	mock.lockAddDimensions.RUnlock()
 	return calls
 }
 
@@ -264,9 +260,9 @@ func (mock *StorerMock) AddVersionDetailsToInstance(ctx context.Context, instanc
 		Edition:    edition,
 		Version:    version,
 	}
-	lockStorerMockAddVersionDetailsToInstance.Lock()
+	mock.lockAddVersionDetailsToInstance.Lock()
 	mock.calls.AddVersionDetailsToInstance = append(mock.calls.AddVersionDetailsToInstance, callInfo)
-	lockStorerMockAddVersionDetailsToInstance.Unlock()
+	mock.lockAddVersionDetailsToInstance.Unlock()
 	return mock.AddVersionDetailsToInstanceFunc(ctx, instanceID, datasetID, edition, version)
 }
 
@@ -287,9 +283,9 @@ func (mock *StorerMock) AddVersionDetailsToInstanceCalls() []struct {
 		Edition    string
 		Version    int
 	}
-	lockStorerMockAddVersionDetailsToInstance.RLock()
+	mock.lockAddVersionDetailsToInstance.RLock()
 	calls = mock.calls.AddVersionDetailsToInstance
-	lockStorerMockAddVersionDetailsToInstance.RUnlock()
+	mock.lockAddVersionDetailsToInstance.RUnlock()
 	return calls
 }
 
@@ -305,9 +301,9 @@ func (mock *StorerMock) Checker(ctx context.Context, state *healthcheck.CheckSta
 		Ctx:   ctx,
 		State: state,
 	}
-	lockStorerMockChecker.Lock()
+	mock.lockChecker.Lock()
 	mock.calls.Checker = append(mock.calls.Checker, callInfo)
-	lockStorerMockChecker.Unlock()
+	mock.lockChecker.Unlock()
 	return mock.CheckerFunc(ctx, state)
 }
 
@@ -322,9 +318,9 @@ func (mock *StorerMock) CheckerCalls() []struct {
 		Ctx   context.Context
 		State *healthcheck.CheckState
 	}
-	lockStorerMockChecker.RLock()
+	mock.lockChecker.RLock()
 	calls = mock.calls.Checker
-	lockStorerMockChecker.RUnlock()
+	mock.lockChecker.RUnlock()
 	return calls
 }
 
@@ -338,9 +334,9 @@ func (mock *StorerMock) Close(ctx context.Context) error {
 	}{
 		Ctx: ctx,
 	}
-	lockStorerMockClose.Lock()
+	mock.lockClose.Lock()
 	mock.calls.Close = append(mock.calls.Close, callInfo)
-	lockStorerMockClose.Unlock()
+	mock.lockClose.Unlock()
 	return mock.CloseFunc(ctx)
 }
 
@@ -353,9 +349,9 @@ func (mock *StorerMock) CloseCalls() []struct {
 	var calls []struct {
 		Ctx context.Context
 	}
-	lockStorerMockClose.RLock()
+	mock.lockClose.RLock()
 	calls = mock.calls.Close
-	lockStorerMockClose.RUnlock()
+	mock.lockClose.RUnlock()
 	return calls
 }
 
@@ -371,9 +367,9 @@ func (mock *StorerMock) CountInsertedObservations(ctx context.Context, instanceI
 		Ctx:        ctx,
 		InstanceID: instanceID,
 	}
-	lockStorerMockCountInsertedObservations.Lock()
+	mock.lockCountInsertedObservations.Lock()
 	mock.calls.CountInsertedObservations = append(mock.calls.CountInsertedObservations, callInfo)
-	lockStorerMockCountInsertedObservations.Unlock()
+	mock.lockCountInsertedObservations.Unlock()
 	return mock.CountInsertedObservationsFunc(ctx, instanceID)
 }
 
@@ -388,9 +384,9 @@ func (mock *StorerMock) CountInsertedObservationsCalls() []struct {
 		Ctx        context.Context
 		InstanceID string
 	}
-	lockStorerMockCountInsertedObservations.RLock()
+	mock.lockCountInsertedObservations.RLock()
 	calls = mock.calls.CountInsertedObservations
-	lockStorerMockCountInsertedObservations.RUnlock()
+	mock.lockCountInsertedObservations.RUnlock()
 	return calls
 }
 
@@ -410,9 +406,9 @@ func (mock *StorerMock) CreateCodeRelationship(ctx context.Context, instanceID s
 		CodeListID: codeListID,
 		Code:       code,
 	}
-	lockStorerMockCreateCodeRelationship.Lock()
+	mock.lockCreateCodeRelationship.Lock()
 	mock.calls.CreateCodeRelationship = append(mock.calls.CreateCodeRelationship, callInfo)
-	lockStorerMockCreateCodeRelationship.Unlock()
+	mock.lockCreateCodeRelationship.Unlock()
 	return mock.CreateCodeRelationshipFunc(ctx, instanceID, codeListID, code)
 }
 
@@ -431,9 +427,9 @@ func (mock *StorerMock) CreateCodeRelationshipCalls() []struct {
 		CodeListID string
 		Code       string
 	}
-	lockStorerMockCreateCodeRelationship.RLock()
+	mock.lockCreateCodeRelationship.RLock()
 	calls = mock.calls.CreateCodeRelationship
-	lockStorerMockCreateCodeRelationship.RUnlock()
+	mock.lockCreateCodeRelationship.RUnlock()
 	return calls
 }
 
@@ -451,9 +447,9 @@ func (mock *StorerMock) CreateInstance(ctx context.Context, instanceID string, c
 		InstanceID: instanceID,
 		CsvHeaders: csvHeaders,
 	}
-	lockStorerMockCreateInstance.Lock()
+	mock.lockCreateInstance.Lock()
 	mock.calls.CreateInstance = append(mock.calls.CreateInstance, callInfo)
-	lockStorerMockCreateInstance.Unlock()
+	mock.lockCreateInstance.Unlock()
 	return mock.CreateInstanceFunc(ctx, instanceID, csvHeaders)
 }
 
@@ -470,9 +466,9 @@ func (mock *StorerMock) CreateInstanceCalls() []struct {
 		InstanceID string
 		CsvHeaders []string
 	}
-	lockStorerMockCreateInstance.RLock()
+	mock.lockCreateInstance.RLock()
 	calls = mock.calls.CreateInstance
-	lockStorerMockCreateInstance.RUnlock()
+	mock.lockCreateInstance.RUnlock()
 	return calls
 }
 
@@ -488,9 +484,9 @@ func (mock *StorerMock) CreateInstanceConstraint(ctx context.Context, instanceID
 		Ctx:        ctx,
 		InstanceID: instanceID,
 	}
-	lockStorerMockCreateInstanceConstraint.Lock()
+	mock.lockCreateInstanceConstraint.Lock()
 	mock.calls.CreateInstanceConstraint = append(mock.calls.CreateInstanceConstraint, callInfo)
-	lockStorerMockCreateInstanceConstraint.Unlock()
+	mock.lockCreateInstanceConstraint.Unlock()
 	return mock.CreateInstanceConstraintFunc(ctx, instanceID)
 }
 
@@ -505,9 +501,9 @@ func (mock *StorerMock) CreateInstanceConstraintCalls() []struct {
 		Ctx        context.Context
 		InstanceID string
 	}
-	lockStorerMockCreateInstanceConstraint.RLock()
+	mock.lockCreateInstanceConstraint.RLock()
 	calls = mock.calls.CreateInstanceConstraint
-	lockStorerMockCreateInstanceConstraint.RUnlock()
+	mock.lockCreateInstanceConstraint.RUnlock()
 	return calls
 }
 
@@ -527,9 +523,9 @@ func (mock *StorerMock) InsertDimension(ctx context.Context, cache map[string]st
 		InstanceID: instanceID,
 		Dimension:  dimension,
 	}
-	lockStorerMockInsertDimension.Lock()
+	mock.lockInsertDimension.Lock()
 	mock.calls.InsertDimension = append(mock.calls.InsertDimension, callInfo)
-	lockStorerMockInsertDimension.Unlock()
+	mock.lockInsertDimension.Unlock()
 	return mock.InsertDimensionFunc(ctx, cache, instanceID, dimension)
 }
 
@@ -548,9 +544,9 @@ func (mock *StorerMock) InsertDimensionCalls() []struct {
 		InstanceID string
 		Dimension  *models.Dimension
 	}
-	lockStorerMockInsertDimension.RLock()
+	mock.lockInsertDimension.RLock()
 	calls = mock.calls.InsertDimension
-	lockStorerMockInsertDimension.RUnlock()
+	mock.lockInsertDimension.RUnlock()
 	return calls
 }
 
@@ -566,9 +562,9 @@ func (mock *StorerMock) InstanceExists(ctx context.Context, instanceID string) (
 		Ctx:        ctx,
 		InstanceID: instanceID,
 	}
-	lockStorerMockInstanceExists.Lock()
+	mock.lockInstanceExists.Lock()
 	mock.calls.InstanceExists = append(mock.calls.InstanceExists, callInfo)
-	lockStorerMockInstanceExists.Unlock()
+	mock.lockInstanceExists.Unlock()
 	return mock.InstanceExistsFunc(ctx, instanceID)
 }
 
@@ -583,9 +579,9 @@ func (mock *StorerMock) InstanceExistsCalls() []struct {
 		Ctx        context.Context
 		InstanceID string
 	}
-	lockStorerMockInstanceExists.RLock()
+	mock.lockInstanceExists.RLock()
 	calls = mock.calls.InstanceExists
-	lockStorerMockInstanceExists.RUnlock()
+	mock.lockInstanceExists.RUnlock()
 	return calls
 }
 
@@ -601,9 +597,9 @@ func (mock *StorerMock) SetInstanceIsPublished(ctx context.Context, instanceID s
 		Ctx:        ctx,
 		InstanceID: instanceID,
 	}
-	lockStorerMockSetInstanceIsPublished.Lock()
+	mock.lockSetInstanceIsPublished.Lock()
 	mock.calls.SetInstanceIsPublished = append(mock.calls.SetInstanceIsPublished, callInfo)
-	lockStorerMockSetInstanceIsPublished.Unlock()
+	mock.lockSetInstanceIsPublished.Unlock()
 	return mock.SetInstanceIsPublishedFunc(ctx, instanceID)
 }
 
@@ -618,8 +614,8 @@ func (mock *StorerMock) SetInstanceIsPublishedCalls() []struct {
 		Ctx        context.Context
 		InstanceID string
 	}
-	lockStorerMockSetInstanceIsPublished.RLock()
+	mock.lockSetInstanceIsPublished.RLock()
 	calls = mock.calls.SetInstanceIsPublished
-	lockStorerMockSetInstanceIsPublished.RUnlock()
+	mock.lockSetInstanceIsPublished.RUnlock()
 	return calls
 }

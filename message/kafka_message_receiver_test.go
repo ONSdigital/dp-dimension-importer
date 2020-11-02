@@ -8,7 +8,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	mock "github.com/ONSdigital/dp-dimension-importer/message/mock"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
-	"github.com/ONSdigital/dp-kafka/kafkatest"
+	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/ONSdigital/dp-reporter-client/reporter/reportertest"
 	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"

@@ -16,7 +16,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/dp-dimension-importer/store"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/ONSdigital/log.go/log"

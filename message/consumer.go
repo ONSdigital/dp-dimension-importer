@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
 )
 
@@ -58,7 +58,7 @@ func (c Consumer) Listen() {
 			case consumedMessage := <-c.consumer.Channels().Upstream:
 				log.Event(c.ctx, "consumer received a message", log.INFO, logData)
 				c.messageReceiver.OnMessage(consumedMessage)
-				c.consumer.Release()
+				consumedMessage.Commit()
 			case <-c.ctx.Done():
 				log.Event(c.ctx, "loggercontext done received event, attempting to close consumer", log.INFO, logData)
 				return
