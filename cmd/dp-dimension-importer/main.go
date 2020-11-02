@@ -1,10 +1,9 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"os"
-
-	"context"
 	"os/signal"
 	"syscall"
 
@@ -15,10 +14,11 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/dp-dimension-importer/store"
+	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
+	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	"github.com/ONSdigital/go-ns/server"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 )
@@ -72,6 +72,11 @@ func main() {
 	graphDB, err := serviceList.GetGraphDB(ctx)
 	if err != nil {
 		os.Exit(1)
+	}
+
+	var graphErrorConsumer *graph.ErrorConsumer
+	if serviceList.GraphDB {
+		graphErrorConsumer = graph.NewLoggingErrorConsumer(ctx, graphDB.Errors)
 	}
 
 	// MessageProducer for instanceComplete events.
@@ -128,55 +133,94 @@ func main() {
 	log.Event(ctx, "os signal received, attempting graceful shutdown", log.INFO, log.Data{"signal": signal.String()})
 
 	shutdownCtx, cancel := context.WithTimeout(ctx, cfg.GracefulShutdownTimeout)
+	hasShutdownError := false
 
-	if serviceList.HealthCheck {
-		log.Event(shutdownCtx, "stopping healthcheck", log.INFO)
-		hc.Stop()
+	go func() {
+
+		defer cancel() // cancel shutdown context timer
+
+		if serviceList.HealthCheck {
+			log.Event(ctx, "stopping health check", log.INFO)
+			hc.Stop()
+		}
+
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			log.Event(ctx, "error shutting down http server", log.ERROR, log.Error(err))
+			hasShutdownError = true
+		}
+
+		if serviceList.InstanceConsumer {
+			log.Event(shutdownCtx, "stop listening to instance kafka consumer", log.INFO)
+			if err := instanceConsumer.StopListeningToConsumer(shutdownCtx); err != nil {
+				log.Event(ctx, "error on stop listening to instance kafka consumer", log.ERROR, log.Error(err))
+				hasShutdownError = true
+			}
+		}
+
+		if serviceList.Consumer {
+			log.Event(ctx, "closing event consumer", log.INFO)
+			consumer.Close(shutdownCtx)
+		}
+
+		if serviceList.InstanceConsumer {
+			log.Event(shutdownCtx, "closing instance kafka consumer", log.INFO)
+			if err := instanceConsumer.Close(shutdownCtx); err != nil {
+				log.Event(ctx, "error closing instance kafka consumer", log.ERROR, log.Error(err))
+				hasShutdownError = true
+			}
+		}
+
+		if serviceList.InstanceCompleteProducer {
+			log.Event(shutdownCtx, "closing instance complete kafka producer", log.INFO)
+			if err := instanceCompleteProducer.Close(shutdownCtx); err != nil {
+				log.Event(ctx, "error closing instance complete kafka consumer", log.ERROR, log.Error(err))
+				hasShutdownError = true
+			}
+		}
+
+		if serviceList.GraphDB {
+			log.Event(shutdownCtx, "closing graph db", log.INFO)
+			if err := graphDB.Close(shutdownCtx); err != nil {
+				log.Event(ctx, "error closing graph db", log.ERROR, log.Error(err))
+				hasShutdownError = true
+			}
+
+			log.Event(shutdownCtx, "closing graph db error consumer", log.INFO)
+			if err := graphErrorConsumer.Close(shutdownCtx); err != nil {
+				log.Event(ctx, "error closing graph db error consumer", log.ERROR, log.Error(err))
+				hasShutdownError = true
+			}
+		}
+
+		if serviceList.ErrorReporterProducer {
+			log.Event(shutdownCtx, "closing error reporter kafka producer", log.INFO)
+			if err := errorReporterProducer.Close(shutdownCtx); err != nil {
+				log.Event(ctx, "error closing error reporter kafka producer", log.ERROR, log.Error(err))
+				hasShutdownError = true
+			}
+		}
+	}()
+
+	// wait for timeout or success (cancel)
+	<-shutdownCtx.Done()
+
+	if hasShutdownError {
+		err = errors.New("failed to shutdown gracefully")
+		log.Event(ctx, "failed to shutdown gracefully ", log.ERROR, log.Error(err))
+		os.Exit(1)
 	}
-	logIfError(shutdownCtx, httpServer.Shutdown(shutdownCtx))
 
-	if serviceList.InstanceConsumer {
-		log.Event(shutdownCtx, "stop listening to instance kafka consumer", log.INFO)
-		logIfError(shutdownCtx, instanceConsumer.StopListeningToConsumer(shutdownCtx))
-	}
-
-	if serviceList.Consumer {
-		log.Event(shutdownCtx, "closing event consumer", log.INFO)
-		consumer.Close(shutdownCtx)
-	}
-
-	if serviceList.InstanceConsumer {
-		log.Event(shutdownCtx, "closing instance kafka consumer", log.INFO)
-		logIfError(shutdownCtx, instanceConsumer.Close(shutdownCtx))
-	}
-
-	if serviceList.InstanceCompleteProducer {
-		log.Event(shutdownCtx, "closing instance complete kafka producer")
-		logIfError(shutdownCtx, instanceCompleteProducer.Close(shutdownCtx))
-	}
-
-	if serviceList.GraphDB {
-		log.Event(shutdownCtx, "closing graphDB")
-		logIfError(shutdownCtx, graphDB.Close(shutdownCtx))
-	}
-
-	if serviceList.ErrorReporterProducer {
-		log.Event(shutdownCtx, "closing error reporter kafka producer")
-		logIfError(shutdownCtx, errorReporterProducer.Close(shutdownCtx))
-	}
-
-	cancel() // stop timer
 	log.Event(ctx, "graceful shutdown complete", log.INFO)
 	os.Exit(0)
 }
 
 // StartHealthCheck sets up the Handler, starts the healthcheck and the http server that serves health endpoint
-func startHealthCheck(ctx context.Context, hc *healthcheck.HealthCheck, bindAddr string) *server.Server {
+func startHealthCheck(ctx context.Context, hc *healthcheck.HealthCheck, bindAddr string) *dphttp.Server {
 	router := mux.NewRouter()
 	router.Path("/health").HandlerFunc(hc.Handler)
 	hc.Start(ctx)
 
-	httpServer := server.New(bindAddr, router)
+	httpServer := dphttp.NewServer(bindAddr, router)
 	httpServer.HandleOSSignals = false
 
 	go func() {
@@ -218,7 +262,7 @@ func registerCheckers(hc *healthcheck.HealthCheck,
 		log.Event(nil, "error adding check for dataset checker", log.ERROR, log.Error(err))
 	}
 
-	if err = hc.AddCheck("Neo4J", db.Checker); err != nil {
+	if err = hc.AddCheck("Graph DB", db.Checker); err != nil {
 		hasErrors = true
 		log.Event(nil, "error adding check for graph db", log.ERROR, log.Error(err))
 	}
@@ -227,11 +271,4 @@ func registerCheckers(hc *healthcheck.HealthCheck,
 		return errors.New("Error(s) registering checkers for healthcheck")
 	}
 	return nil
-}
-
-func logIfError(ctx context.Context, err error) {
-	if err != nil {
-		log.Event(ctx, "error", log.ERROR, log.Error(err))
-		return
-	}
 }
