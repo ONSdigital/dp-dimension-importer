@@ -45,7 +45,8 @@ func (k KafkaProducerName) String() string {
 func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer *kafka.ConsumerGroup, err error) {
 	cgChannels := kafka.CreateConsumerGroupChannels(1)
 	cgConfig := &kafka.ConsumerGroupConfig{
-		Offset: &kafkaOffset,
+		Offset:       &kafkaOffset,
+		KafkaVersion: &cfg.KafkaVersion,
 	}
 	consumer, err := kafka.NewConsumerGroup(
 		ctx, cfg.KafkaAddr, cfg.IncomingInstancesTopic, cfg.IncomingInstancesConsumerGroup, cgChannels, cgConfig)
@@ -64,9 +65,12 @@ func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Confi
 }
 
 // GetProducer returns a kafka producer, which might not be initialised
-func (e *ExternalServiceList) GetProducer(ctx context.Context, brokers []string, topic string, name KafkaProducerName) (kafkaProducer *kafka.Producer, err error) {
+func (e *ExternalServiceList) GetProducer(ctx context.Context, brokers []string, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer *kafka.Producer, err error) {
 	pChannels := kafka.CreateProducerChannels()
-	producer, err := kafka.NewProducer(ctx, brokers, topic, pChannels, nil)
+	pConfig := &kafka.ProducerConfig{
+		KafkaVersion: &cfg.KafkaVersion,
+	}
+	producer, err := kafka.NewProducer(ctx, brokers, topic, pChannels, pConfig)
 	if err != nil {
 		log.Event(ctx, "new kafka producer returned an error", log.FATAL, log.Error(err), log.Data{"topic": topic})
 		return nil, err
