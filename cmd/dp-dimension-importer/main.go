@@ -57,13 +57,13 @@ func main() {
 	}
 
 	// Outgoing topic for instances that have completed processing
-	instanceCompleteProducer, err := serviceList.GetProducer(ctx, cfg.KafkaAddr, cfg.OutgoingInstancesTopic, initialise.InstanceComplete)
+	instanceCompleteProducer, err := serviceList.GetProducer(ctx, cfg.OutgoingInstancesTopic, initialise.InstanceComplete, cfg)
 	if err != nil {
 		os.Exit(1)
 	}
 
 	// Outgoing topic for any errors while processing an instance
-	errorReporterProducer, err := serviceList.GetProducer(ctx, cfg.KafkaAddr, cfg.EventReporterTopic, initialise.ErrorReporter)
+	errorReporterProducer, err := serviceList.GetProducer(ctx, cfg.EventReporterTopic, initialise.ErrorReporter, cfg)
 	if err != nil {
 		os.Exit(1)
 	}
