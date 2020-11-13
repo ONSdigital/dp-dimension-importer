@@ -46,5 +46,5 @@ func (r KafkaMessageReceiver) OnMessage(message kafka.Message) {
 	}
 
 	log.Event(ctx, "new instance event successfully processed", log.INFO, logData)
-	message.Commit()
+	message.CommitAndRelease()
 }

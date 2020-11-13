@@ -46,8 +46,10 @@ func TestKafkaMessageHandler_Handle(t *testing.T) {
 			So(len(fixture.errorReporter.NotifyCalls()), ShouldEqual, 0)
 		})
 
-		Convey("And message.Commit is called 1 time", func() {
-			So(len(fixture.message.CommitCalls()), ShouldEqual, 1)
+		Convey("And message.CommitAndRelease is called 1 time", func() {
+			So(fixture.message.IsMarked(), ShouldBeTrue)
+			So(fixture.message.IsCommitted(), ShouldBeTrue)
+			So(len(fixture.message.CommitAndReleaseCalls()), ShouldEqual, 1)
 		})
 	})
 }
@@ -76,8 +78,10 @@ func TestKafkaMessageHandler_Handle_InvalidKafkaMessage(t *testing.T) {
 				So(len(fix.instanceHdlrCalls), ShouldEqual, 0)
 			})
 
-			Convey("And message.Commit is never called", func() {
-				So(len(fix.message.CommitCalls()), ShouldEqual, 0)
+			Convey("And message.CommitAndRelease is never called", func() {
+				So(fix.message.IsMarked(), ShouldBeFalse)
+				So(fix.message.IsCommitted(), ShouldBeFalse)
+				So(len(fix.message.CommitAndReleaseCalls()), ShouldEqual, 0)
 			})
 		})
 
@@ -118,8 +122,10 @@ func TestKafkaMessageHandler_Handle_InstanceHandlerError(t *testing.T) {
 			So(fix.errorReporter.NotifyCalls()[0].ErrContext, ShouldEqual, "InstanceHandler.Handle returned an unexpected error")
 		})
 
-		Convey("And message.Commit is never called", func() {
-			So(len(fix.message.CommitCalls()), ShouldEqual, 0)
+		Convey("And message.CommitAndRelease is never called", func() {
+			So(fix.message.IsMarked(), ShouldBeFalse)
+			So(fix.message.IsCommitted(), ShouldBeFalse)
+			So(len(fix.message.CommitAndReleaseCalls()), ShouldEqual, 0)
 		})
 	})
 }
