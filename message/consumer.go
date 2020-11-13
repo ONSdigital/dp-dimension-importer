@@ -58,7 +58,6 @@ func (c Consumer) Listen() {
 			case consumedMessage := <-c.consumer.Channels().Upstream:
 				log.Event(c.ctx, "consumer received a message", log.INFO, logData)
 				c.messageReceiver.OnMessage(consumedMessage)
-				consumedMessage.Commit()
 			case <-c.ctx.Done():
 				log.Event(c.ctx, "loggercontext done received event, attempting to close consumer", log.INFO, logData)
 				return

@@ -68,9 +68,7 @@ func TestConsumer_Listen(t *testing.T) {
 
 			Convey("Then messageReceiver.OnMessage is called 1 time with the expected parameters", func() {
 				So(len(handleCalls), ShouldEqual, 1)
-				So(len(msg.CommitCalls()), ShouldEqual, 1)
 			})
 		})
-
 	})
 }
