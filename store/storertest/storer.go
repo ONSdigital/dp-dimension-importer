@@ -33,9 +33,6 @@ var _ store.Storer = &StorerMock{}
 //             CloseFunc: func(ctx context.Context) error {
 // 	               panic("mock out the Close method")
 //             },
-//             CountInsertedObservationsFunc: func(ctx context.Context, instanceID string) (int64, error) {
-// 	               panic("mock out the CountInsertedObservations method")
-//             },
 //             CreateCodeRelationshipFunc: func(ctx context.Context, instanceID string, codeListID string, code string) error {
 // 	               panic("mock out the CreateCodeRelationship method")
 //             },
@@ -45,14 +42,14 @@ var _ store.Storer = &StorerMock{}
 //             CreateInstanceConstraintFunc: func(ctx context.Context, instanceID string) error {
 // 	               panic("mock out the CreateInstanceConstraint method")
 //             },
+//             ErrorChanFunc: func() chan error {
+// 	               panic("mock out the ErrorChan method")
+//             },
 //             InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 // 	               panic("mock out the InsertDimension method")
 //             },
 //             InstanceExistsFunc: func(ctx context.Context, instanceID string) (bool, error) {
 // 	               panic("mock out the InstanceExists method")
-//             },
-//             SetInstanceIsPublishedFunc: func(ctx context.Context, instanceID string) error {
-// 	               panic("mock out the SetInstanceIsPublished method")
 //             },
 //         }
 //
@@ -73,9 +70,6 @@ type StorerMock struct {
 	// CloseFunc mocks the Close method.
 	CloseFunc func(ctx context.Context) error
 
-	// CountInsertedObservationsFunc mocks the CountInsertedObservations method.
-	CountInsertedObservationsFunc func(ctx context.Context, instanceID string) (int64, error)
-
 	// CreateCodeRelationshipFunc mocks the CreateCodeRelationship method.
 	CreateCodeRelationshipFunc func(ctx context.Context, instanceID string, codeListID string, code string) error
 
@@ -85,14 +79,14 @@ type StorerMock struct {
 	// CreateInstanceConstraintFunc mocks the CreateInstanceConstraint method.
 	CreateInstanceConstraintFunc func(ctx context.Context, instanceID string) error
 
+	// ErrorChanFunc mocks the ErrorChan method.
+	ErrorChanFunc func() chan error
+
 	// InsertDimensionFunc mocks the InsertDimension method.
 	InsertDimensionFunc func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error)
 
 	// InstanceExistsFunc mocks the InstanceExists method.
 	InstanceExistsFunc func(ctx context.Context, instanceID string) (bool, error)
-
-	// SetInstanceIsPublishedFunc mocks the SetInstanceIsPublished method.
-	SetInstanceIsPublishedFunc func(ctx context.Context, instanceID string) error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -130,13 +124,6 @@ type StorerMock struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 		}
-		// CountInsertedObservations holds details about calls to the CountInsertedObservations method.
-		CountInsertedObservations []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// InstanceID is the instanceID argument value.
-			InstanceID string
-		}
 		// CreateCodeRelationship holds details about calls to the CreateCodeRelationship method.
 		CreateCodeRelationship []struct {
 			// Ctx is the ctx argument value.
@@ -164,6 +151,9 @@ type StorerMock struct {
 			// InstanceID is the instanceID argument value.
 			InstanceID string
 		}
+		// ErrorChan holds details about calls to the ErrorChan method.
+		ErrorChan []struct {
+		}
 		// InsertDimension holds details about calls to the InsertDimension method.
 		InsertDimension []struct {
 			// Ctx is the ctx argument value.
@@ -182,25 +172,17 @@ type StorerMock struct {
 			// InstanceID is the instanceID argument value.
 			InstanceID string
 		}
-		// SetInstanceIsPublished holds details about calls to the SetInstanceIsPublished method.
-		SetInstanceIsPublished []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// InstanceID is the instanceID argument value.
-			InstanceID string
-		}
 	}
 	lockAddDimensions               sync.RWMutex
 	lockAddVersionDetailsToInstance sync.RWMutex
 	lockChecker                     sync.RWMutex
 	lockClose                       sync.RWMutex
-	lockCountInsertedObservations   sync.RWMutex
 	lockCreateCodeRelationship      sync.RWMutex
 	lockCreateInstance              sync.RWMutex
 	lockCreateInstanceConstraint    sync.RWMutex
+	lockErrorChan                   sync.RWMutex
 	lockInsertDimension             sync.RWMutex
 	lockInstanceExists              sync.RWMutex
-	lockSetInstanceIsPublished      sync.RWMutex
 }
 
 // AddDimensions calls AddDimensionsFunc.
@@ -355,41 +337,6 @@ func (mock *StorerMock) CloseCalls() []struct {
 	return calls
 }
 
-// CountInsertedObservations calls CountInsertedObservationsFunc.
-func (mock *StorerMock) CountInsertedObservations(ctx context.Context, instanceID string) (int64, error) {
-	if mock.CountInsertedObservationsFunc == nil {
-		panic("StorerMock.CountInsertedObservationsFunc: method is nil but Storer.CountInsertedObservations was just called")
-	}
-	callInfo := struct {
-		Ctx        context.Context
-		InstanceID string
-	}{
-		Ctx:        ctx,
-		InstanceID: instanceID,
-	}
-	mock.lockCountInsertedObservations.Lock()
-	mock.calls.CountInsertedObservations = append(mock.calls.CountInsertedObservations, callInfo)
-	mock.lockCountInsertedObservations.Unlock()
-	return mock.CountInsertedObservationsFunc(ctx, instanceID)
-}
-
-// CountInsertedObservationsCalls gets all the calls that were made to CountInsertedObservations.
-// Check the length with:
-//     len(mockedStorer.CountInsertedObservationsCalls())
-func (mock *StorerMock) CountInsertedObservationsCalls() []struct {
-	Ctx        context.Context
-	InstanceID string
-} {
-	var calls []struct {
-		Ctx        context.Context
-		InstanceID string
-	}
-	mock.lockCountInsertedObservations.RLock()
-	calls = mock.calls.CountInsertedObservations
-	mock.lockCountInsertedObservations.RUnlock()
-	return calls
-}
-
 // CreateCodeRelationship calls CreateCodeRelationshipFunc.
 func (mock *StorerMock) CreateCodeRelationship(ctx context.Context, instanceID string, codeListID string, code string) error {
 	if mock.CreateCodeRelationshipFunc == nil {
@@ -507,6 +454,32 @@ func (mock *StorerMock) CreateInstanceConstraintCalls() []struct {
 	return calls
 }
 
+// ErrorChan calls ErrorChanFunc.
+func (mock *StorerMock) ErrorChan() chan error {
+	if mock.ErrorChanFunc == nil {
+		panic("StorerMock.ErrorChanFunc: method is nil but Storer.ErrorChan was just called")
+	}
+	callInfo := struct {
+	}{}
+	mock.lockErrorChan.Lock()
+	mock.calls.ErrorChan = append(mock.calls.ErrorChan, callInfo)
+	mock.lockErrorChan.Unlock()
+	return mock.ErrorChanFunc()
+}
+
+// ErrorChanCalls gets all the calls that were made to ErrorChan.
+// Check the length with:
+//     len(mockedStorer.ErrorChanCalls())
+func (mock *StorerMock) ErrorChanCalls() []struct {
+} {
+	var calls []struct {
+	}
+	mock.lockErrorChan.RLock()
+	calls = mock.calls.ErrorChan
+	mock.lockErrorChan.RUnlock()
+	return calls
+}
+
 // InsertDimension calls InsertDimensionFunc.
 func (mock *StorerMock) InsertDimension(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 	if mock.InsertDimensionFunc == nil {
@@ -582,40 +555,5 @@ func (mock *StorerMock) InstanceExistsCalls() []struct {
 	mock.lockInstanceExists.RLock()
 	calls = mock.calls.InstanceExists
 	mock.lockInstanceExists.RUnlock()
-	return calls
-}
-
-// SetInstanceIsPublished calls SetInstanceIsPublishedFunc.
-func (mock *StorerMock) SetInstanceIsPublished(ctx context.Context, instanceID string) error {
-	if mock.SetInstanceIsPublishedFunc == nil {
-		panic("StorerMock.SetInstanceIsPublishedFunc: method is nil but Storer.SetInstanceIsPublished was just called")
-	}
-	callInfo := struct {
-		Ctx        context.Context
-		InstanceID string
-	}{
-		Ctx:        ctx,
-		InstanceID: instanceID,
-	}
-	mock.lockSetInstanceIsPublished.Lock()
-	mock.calls.SetInstanceIsPublished = append(mock.calls.SetInstanceIsPublished, callInfo)
-	mock.lockSetInstanceIsPublished.Unlock()
-	return mock.SetInstanceIsPublishedFunc(ctx, instanceID)
-}
-
-// SetInstanceIsPublishedCalls gets all the calls that were made to SetInstanceIsPublished.
-// Check the length with:
-//     len(mockedStorer.SetInstanceIsPublishedCalls())
-func (mock *StorerMock) SetInstanceIsPublishedCalls() []struct {
-	Ctx        context.Context
-	InstanceID string
-} {
-	var calls []struct {
-		Ctx        context.Context
-		InstanceID string
-	}
-	mock.lockSetInstanceIsPublished.RLock()
-	calls = mock.calls.SetInstanceIsPublished
-	mock.lockSetInstanceIsPublished.RUnlock()
 	return calls
 }

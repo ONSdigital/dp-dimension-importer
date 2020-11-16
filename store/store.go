@@ -16,10 +16,8 @@ type Storer interface {
 	AddDimensions(ctx context.Context, instanceID string, dimensions []interface{}) error
 	CreateCodeRelationship(ctx context.Context, instanceID, codeListID, code string) error
 	InstanceExists(ctx context.Context, instanceID string) (bool, error)
-	CountInsertedObservations(ctx context.Context, instanceID string) (count int64, err error)
-	AddVersionDetailsToInstance(ctx context.Context, instanceID, datasetID, edition string, version int) error
-	SetInstanceIsPublished(ctx context.Context, instanceID string) error
 	InsertDimension(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error)
 	Checker(ctx context.Context, state *healthcheck.CheckState) error
 	Close(ctx context.Context) error
+	ErrorChan() chan error
 }
