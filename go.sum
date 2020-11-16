@@ -3,8 +3,8 @@ github.com/ONSdigital/dp-api-clients-go v1.28.0/go.mod h1:iyJy6uRL4B6OYOJA0XMr5U
 github.com/ONSdigital/dp-api-clients-go v1.30.0 h1:TA3LHTccG4GHlUqDHGSrJRZEq15Wd1q1thE4Yxdv8H8=
 github.com/ONSdigital/dp-api-clients-go v1.30.0/go.mod h1:iyJy6uRL4B6OYOJA0XMr5UHt6+Q8XmN9uwmURO+9Oj4=
 github.com/ONSdigital/dp-frontend-models v1.1.0/go.mod h1:TT96P7Mi69N3Tc/jFNdbjiwG4GAaMjP26HLotFQ6BPw=
-github.com/ONSdigital/dp-graph/v2 v2.2.2 h1:hqA+BCHdxsDw3KawdiemRmtWBQhAxDHP+DXhhFpk3H8=
-github.com/ONSdigital/dp-graph/v2 v2.2.2/go.mod h1:K4LIhFcyxB8g7nUG5I5I8x6QVf89x82dCEFBbE0mmaQ=
+github.com/ONSdigital/dp-graph/v2 v2.5.0 h1:4hQLXdZyiXBaFDTofsICfVuXqm1Sxkh8DIt9dGksh/c=
+github.com/ONSdigital/dp-graph/v2 v2.5.0/go.mod h1:wpBSdQi6KrY5lK76APeRR3Na/cqIpJMEZloc+/KOP/k=
 github.com/ONSdigital/dp-healthcheck v0.0.0-20200131122546-9db6d3f0494e/go.mod h1:zighxZ/0m5u7zo0eAr8XFlA+Dz2ic7A1vna6YXvhCjQ=
 github.com/ONSdigital/dp-healthcheck v1.0.5 h1:DXnohGIqXaLLeYGdaGOhgkZjAbWMNoLAjQ3EgZeMT3M=
 github.com/ONSdigital/dp-healthcheck v1.0.5/go.mod h1:2wbVAUHMl9+4tWhUlxYUuA1dnf2+NrwzC+So5f5BMLk=
@@ -30,6 +30,8 @@ github.com/ONSdigital/golang-neo4j-bolt-driver v0.0.0-20190228153339-da534111531
 github.com/ONSdigital/golang-neo4j-bolt-driver v0.0.0-20190228153339-da534111531d/go.mod h1:75Sxr59AMz2RiPskqSymLFxdeaIEhnkNaJE5lonMS3M=
 github.com/ONSdigital/graphson v0.0.0-20190718134034-c13ceacd109d h1:yrCtEGlohmA3OnXtke0nOOp/m9O83orpSnTGOfYOw1Q=
 github.com/ONSdigital/graphson v0.0.0-20190718134034-c13ceacd109d/go.mod h1:zQ+8pTnCLGuy4eUek81pWUxZo4/f71ri3VYz97Wby+4=
+github.com/ONSdigital/graphson v0.1.0 h1:Z+9l9RGnSG5OU5sx/QanLEfhrHGqY+hni+7NJ2TLFAY=
+github.com/ONSdigital/graphson v0.1.0/go.mod h1:IRS8d1ydh1oczDKbLhTcqc/BNfgZyzhrrjr21SQOkjA=
 github.com/ONSdigital/gremgo-neptune v1.0.0 h1:l0Pizt2goXK5oCFeqs2sOkosZbF4sva0RpcR150VvNE=
 github.com/ONSdigital/gremgo-neptune v1.0.0/go.mod h1:GZz/N6xjNY+EN0x4FmfBDrM73R+Pr3aI5iCwYbY1oYQ=
 github.com/ONSdigital/log.go v0.0.0-20191127134126-2a610b254f20/go.mod h1:BD7D8FWP1fzwUWsrCopEG72jl9cchCaVNIGSz6YvL+Y=

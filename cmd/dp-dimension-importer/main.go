@@ -76,7 +76,7 @@ func main() {
 
 	var graphErrorConsumer *graph.ErrorConsumer
 	if serviceList.GraphDB {
-		graphErrorConsumer = graph.NewLoggingErrorConsumer(ctx, graphDB.Errors)
+		graphErrorConsumer = graph.NewLoggingErrorConsumer(ctx, graphDB.ErrorChan())
 	}
 
 	// MessageProducer for instanceComplete events.
