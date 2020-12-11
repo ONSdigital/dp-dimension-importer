@@ -8,7 +8,7 @@ import (
 
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
 )
 
@@ -17,6 +17,7 @@ var file = flag.String("file", "s3://dp-frontend-florence-file-uploads/159-coico
 
 var topic = flag.String("topic", "dimensions-extracted", "")
 var kafkaHost = flag.String("kafka", "localhost:9092", "")
+var maxBytes = int(2000000)
 
 func main() {
 
@@ -26,7 +27,11 @@ func main() {
 	var brokers []string
 	brokers = append(brokers, *kafkaHost)
 
-	producer, err := kafka.NewProducer(ctx, brokers, *topic, int(2000000), kafka.CreateProducerChannels())
+	pConfig := &kafka.ProducerConfig{
+		MaxMessageBytes: &maxBytes,
+	}
+
+	producer, err := kafka.NewProducer(ctx, brokers, *topic, kafka.CreateProducerChannels(), pConfig)
 	if err != nil {
 		log.Event(ctx, "error creating producer", log.FATAL, log.Error(err))
 		os.Exit(1)

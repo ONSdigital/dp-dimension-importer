@@ -7,8 +7,8 @@ import (
 
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	mock "github.com/ONSdigital/dp-dimension-importer/message/mock"
-	kafka "github.com/ONSdigital/dp-kafka"
-	"github.com/ONSdigital/dp-kafka/kafkatest"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
+	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/ONSdigital/log.go/log"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -30,12 +30,11 @@ const (
 
 func TestConsumer_Listen(t *testing.T) {
 	Convey("Given the Consumer has been configured correctly", t, func() {
-		cgChannels := kafka.CreateConsumerGroupChannels(true)
+		cgChannels := kafka.CreateConsumerGroupChannels(1)
 		handlerInvoked := make(chan kafka.Message, 1)
 
 		kafkaConsumer := &kafkatest.IConsumerGroupMock{
 			ChannelsFunc: func() *kafka.ConsumerGroupChannels { return cgChannels },
-			ReleaseFunc:  func() {},
 		}
 
 		handleCalls := []kafka.Message{}
@@ -46,7 +45,11 @@ func TestConsumer_Listen(t *testing.T) {
 			},
 		}
 
-		msg := &kafkatest.MessageMock{}
+		msg := &kafkatest.MessageMock{
+			CommitFunc: func() {
+
+			},
+		}
 
 		consumer := message.NewConsumer(ctx, kafkaConsumer, receiverMock, time.Second*10)
 		consumer.Listen()
@@ -65,9 +68,7 @@ func TestConsumer_Listen(t *testing.T) {
 
 			Convey("Then messageReceiver.OnMessage is called 1 time with the expected parameters", func() {
 				So(len(handleCalls), ShouldEqual, 1)
-				So(len(kafkaConsumer.ReleaseCalls()), ShouldEqual, 1)
 			})
 		})
-
 	})
 }

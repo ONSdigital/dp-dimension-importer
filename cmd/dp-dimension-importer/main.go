@@ -16,7 +16,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/store"
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/log.go/log"
@@ -57,13 +57,13 @@ func main() {
 	}
 
 	// Outgoing topic for instances that have completed processing
-	instanceCompleteProducer, err := serviceList.GetProducer(ctx, cfg.KafkaAddr, cfg.OutgoingInstancesTopic, initialise.InstanceComplete)
+	instanceCompleteProducer, err := serviceList.GetProducer(ctx, cfg.OutgoingInstancesTopic, initialise.InstanceComplete, cfg)
 	if err != nil {
 		os.Exit(1)
 	}
 
 	// Outgoing topic for any errors while processing an instance
-	errorReporterProducer, err := serviceList.GetProducer(ctx, cfg.KafkaAddr, cfg.EventReporterTopic, initialise.ErrorReporter)
+	errorReporterProducer, err := serviceList.GetProducer(ctx, cfg.EventReporterTopic, initialise.ErrorReporter, cfg)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -76,7 +76,7 @@ func main() {
 
 	var graphErrorConsumer *graph.ErrorConsumer
 	if serviceList.GraphDB {
-		graphErrorConsumer = graph.NewLoggingErrorConsumer(ctx, graphDB.Errors)
+		graphErrorConsumer = graph.NewLoggingErrorConsumer(ctx, graphDB.ErrorChan())
 	}
 
 	// MessageProducer for instanceComplete events.

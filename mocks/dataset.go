@@ -11,13 +11,6 @@ import (
 	"sync"
 )
 
-var (
-	lockIClientMockChecker                          sync.RWMutex
-	lockIClientMockGetInstance                      sync.RWMutex
-	lockIClientMockGetInstanceDimensions            sync.RWMutex
-	lockIClientMockPutInstanceDimensionOptionNodeID sync.RWMutex
-)
-
 // Ensure, that IClientMock does implement client.IClient.
 // If this is not the case, regenerate this file with moq.
 var _ client.IClient = &IClientMock{}
@@ -106,6 +99,10 @@ type IClientMock struct {
 			NodeID string
 		}
 	}
+	lockChecker                          sync.RWMutex
+	lockGetInstance                      sync.RWMutex
+	lockGetInstanceDimensions            sync.RWMutex
+	lockPutInstanceDimensionOptionNodeID sync.RWMutex
 }
 
 // Checker calls CheckerFunc.
@@ -120,9 +117,9 @@ func (mock *IClientMock) Checker(ctx context.Context, state *healthcheck.CheckSt
 		Ctx:   ctx,
 		State: state,
 	}
-	lockIClientMockChecker.Lock()
+	mock.lockChecker.Lock()
 	mock.calls.Checker = append(mock.calls.Checker, callInfo)
-	lockIClientMockChecker.Unlock()
+	mock.lockChecker.Unlock()
 	return mock.CheckerFunc(ctx, state)
 }
 
@@ -137,9 +134,9 @@ func (mock *IClientMock) CheckerCalls() []struct {
 		Ctx   context.Context
 		State *healthcheck.CheckState
 	}
-	lockIClientMockChecker.RLock()
+	mock.lockChecker.RLock()
 	calls = mock.calls.Checker
-	lockIClientMockChecker.RUnlock()
+	mock.lockChecker.RUnlock()
 	return calls
 }
 
@@ -161,9 +158,9 @@ func (mock *IClientMock) GetInstance(ctx context.Context, userAuthToken string, 
 		CollectionID:     collectionID,
 		InstanceID:       instanceID,
 	}
-	lockIClientMockGetInstance.Lock()
+	mock.lockGetInstance.Lock()
 	mock.calls.GetInstance = append(mock.calls.GetInstance, callInfo)
-	lockIClientMockGetInstance.Unlock()
+	mock.lockGetInstance.Unlock()
 	return mock.GetInstanceFunc(ctx, userAuthToken, serviceAuthToken, collectionID, instanceID)
 }
 
@@ -184,9 +181,9 @@ func (mock *IClientMock) GetInstanceCalls() []struct {
 		CollectionID     string
 		InstanceID       string
 	}
-	lockIClientMockGetInstance.RLock()
+	mock.lockGetInstance.RLock()
 	calls = mock.calls.GetInstance
-	lockIClientMockGetInstance.RUnlock()
+	mock.lockGetInstance.RUnlock()
 	return calls
 }
 
@@ -204,9 +201,9 @@ func (mock *IClientMock) GetInstanceDimensions(ctx context.Context, serviceAuthT
 		ServiceAuthToken: serviceAuthToken,
 		InstanceID:       instanceID,
 	}
-	lockIClientMockGetInstanceDimensions.Lock()
+	mock.lockGetInstanceDimensions.Lock()
 	mock.calls.GetInstanceDimensions = append(mock.calls.GetInstanceDimensions, callInfo)
-	lockIClientMockGetInstanceDimensions.Unlock()
+	mock.lockGetInstanceDimensions.Unlock()
 	return mock.GetInstanceDimensionsFunc(ctx, serviceAuthToken, instanceID)
 }
 
@@ -223,9 +220,9 @@ func (mock *IClientMock) GetInstanceDimensionsCalls() []struct {
 		ServiceAuthToken string
 		InstanceID       string
 	}
-	lockIClientMockGetInstanceDimensions.RLock()
+	mock.lockGetInstanceDimensions.RLock()
 	calls = mock.calls.GetInstanceDimensions
-	lockIClientMockGetInstanceDimensions.RUnlock()
+	mock.lockGetInstanceDimensions.RUnlock()
 	return calls
 }
 
@@ -249,9 +246,9 @@ func (mock *IClientMock) PutInstanceDimensionOptionNodeID(ctx context.Context, s
 		OptionID:         optionID,
 		NodeID:           nodeID,
 	}
-	lockIClientMockPutInstanceDimensionOptionNodeID.Lock()
+	mock.lockPutInstanceDimensionOptionNodeID.Lock()
 	mock.calls.PutInstanceDimensionOptionNodeID = append(mock.calls.PutInstanceDimensionOptionNodeID, callInfo)
-	lockIClientMockPutInstanceDimensionOptionNodeID.Unlock()
+	mock.lockPutInstanceDimensionOptionNodeID.Unlock()
 	return mock.PutInstanceDimensionOptionNodeIDFunc(ctx, serviceAuthToken, instanceID, dimensionID, optionID, nodeID)
 }
 
@@ -274,8 +271,8 @@ func (mock *IClientMock) PutInstanceDimensionOptionNodeIDCalls() []struct {
 		OptionID         string
 		NodeID           string
 	}
-	lockIClientMockPutInstanceDimensionOptionNodeID.RLock()
+	mock.lockPutInstanceDimensionOptionNodeID.RLock()
 	calls = mock.calls.PutInstanceDimensionOptionNodeID
-	lockIClientMockPutInstanceDimensionOptionNodeID.RUnlock()
+	mock.lockPutInstanceDimensionOptionNodeID.RUnlock()
 	return calls
 }

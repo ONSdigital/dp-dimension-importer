@@ -5,7 +5,7 @@ import (
 
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/log.go/log"
 )
@@ -46,5 +46,5 @@ func (r KafkaMessageReceiver) OnMessage(message kafka.Message) {
 	}
 
 	log.Event(ctx, "new instance event successfully processed", log.INFO, logData)
-	message.Commit()
+	message.CommitAndRelease()
 }

@@ -5,7 +5,7 @@ Handles inserting of dimensions into database after input file becomes available
 and creates an event by sending a message to a dimension-imported kafka topic so further processing of the input file can take place.
 
 Requirements
------------------
+------------------
 In order to run the service locally you will need the following:
 - [Go](https://golang.org/doc/install)
 - [Git](https://git-scm.com/downloads)
@@ -57,6 +57,7 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 See [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ### License
+
 
 Copyright © 2016-2017, Office for National Statistics (https://www.ons.gov.uk)
 

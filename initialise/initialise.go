@@ -3,13 +3,14 @@ package initialise
 import (
 	"context"
 	"fmt"
+	"github.com/ONSdigital/dp-dimension-importer/store"
 	"time"
 
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
 )
 
@@ -34,6 +35,8 @@ const (
 
 var kafkaProducerNames = []string{"InstanceComplete", "ErrorReporter"}
 
+var kafkaOffset = kafka.OffsetOldest
+
 // Values of the kafka producers names
 func (k KafkaProducerName) String() string {
 	return kafkaProducerNames[k]
@@ -41,9 +44,14 @@ func (k KafkaProducerName) String() string {
 
 // GetConsumer returns a kafka consumer, which might not be initialised
 func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer *kafka.ConsumerGroup, err error) {
-	cgChannels := kafka.CreateConsumerGroupChannels(true)
+	cgChannels := kafka.CreateConsumerGroupChannels(1)
+	cgConfig := &kafka.ConsumerGroupConfig{
+		Offset:       &kafkaOffset,
+		KafkaVersion: &cfg.KafkaVersion,
+	}
 	consumer, err := kafka.NewConsumerGroup(
-		ctx, cfg.KafkaAddr, cfg.IncomingInstancesTopic, cfg.IncomingInstancesConsumerGroup, kafka.OffsetNewest, true, cgChannels)
+		ctx, cfg.KafkaAddr, cfg.IncomingInstancesTopic, cfg.IncomingInstancesConsumerGroup, cgChannels, cgConfig)
+
 	if err != nil {
 		log.Event(ctx, "new kafka consumer group returned an error", log.FATAL, log.Error(err), log.Data{
 			"brokers":        cfg.KafkaAddr,
@@ -58,9 +66,12 @@ func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Confi
 }
 
 // GetProducer returns a kafka producer, which might not be initialised
-func (e *ExternalServiceList) GetProducer(ctx context.Context, brokers []string, topic string, name KafkaProducerName) (kafkaProducer *kafka.Producer, err error) {
+func (e *ExternalServiceList) GetProducer(ctx context.Context, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer *kafka.Producer, err error) {
 	pChannels := kafka.CreateProducerChannels()
-	producer, err := kafka.NewProducer(ctx, brokers, topic, 0, pChannels)
+	pConfig := &kafka.ProducerConfig{
+		KafkaVersion: &cfg.KafkaVersion,
+	}
+	producer, err := kafka.NewProducer(ctx, cfg.KafkaAddr, topic, pChannels, pConfig)
 	if err != nil {
 		log.Event(ctx, "new kafka producer returned an error", log.FATAL, log.Error(err), log.Data{"topic": topic})
 		return nil, err
@@ -79,7 +90,7 @@ func (e *ExternalServiceList) GetProducer(ctx context.Context, brokers []string,
 }
 
 // GetGraphDB returns a connection to the graph DB
-func (e *ExternalServiceList) GetGraphDB(ctx context.Context) (*graph.DB, error) {
+func (e *ExternalServiceList) GetGraphDB(ctx context.Context) (store.Storer, error) {
 	graphDB, err := graph.New(ctx, graph.Subsets{Instance: true, Dimension: true})
 	if err != nil {
 		log.Event(ctx, "new graph db returned an error", log.FATAL, log.Error(err))
