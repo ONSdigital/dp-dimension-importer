@@ -12,6 +12,7 @@ require (
 	github.com/ONSdigital/go-ns v0.0.0-20200205115900-a11716f93bad
 	github.com/ONSdigital/log.go v1.0.1
 	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/pkg/errors v0.9.1
