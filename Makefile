@@ -20,7 +20,7 @@ all: audit test build
 
 .PHONY: audit
 audit:
-	nancy go.sum
+	go list -m all | nancy sleuth
 
 .PHONY: build
 build:
