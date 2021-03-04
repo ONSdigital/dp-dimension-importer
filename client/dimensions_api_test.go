@@ -26,7 +26,7 @@ var errMock = errors.New("broken")
 // Dimensions returned by dataset API mock
 var datasetDimensionOne = dataset.Dimension{DimensionID: "666_SEX_MALE", NodeID: "1111", Option: "Male"}
 var datasetDimensionTwo = dataset.Dimension{DimensionID: "666_SEX_FEMALE", NodeID: "1112", Option: "Female"}
-var datasetDimensions = dataset.Dimensions{[]dataset.Dimension{datasetDimensionOne, datasetDimensionTwo}}
+var datasetDimensions = dataset.Dimensions{Items: []dataset.Dimension{datasetDimensionOne, datasetDimensionTwo}}
 
 // Expected dimensions in dp-dimension-importer
 
@@ -36,7 +36,7 @@ var dimensionTwo = model.NewDimension(&datasetDimensionTwo)
 var expectedDimensions = []*model.Dimension{dimensionOne, dimensionTwo}
 
 // Instance returned by dataset API mock
-var datasetInstance = dataset.Instance{dataset.Version{ID: instanceID, CSVHeader: []string{"the", "csv", "header"}}}
+var datasetInstance = dataset.Instance{Version: dataset.Version{ID: instanceID, CSVHeader: []string{"the", "csv", "header"}}}
 
 // Instance in dp-dimension-importer
 var expectedInstance = model.NewInstance(&datasetInstance)
@@ -288,7 +288,7 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 
 	Convey("Given dataset.PutInstanceDimensionOptionNodeID will return an error", t, func() {
 		clientMock := &mocks.IClientMock{
-			PutInstanceDimensionOptionNodeIDFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string) error {
+			PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int) error {
 				return errMock
 			},
 		}
@@ -307,19 +307,20 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 			})
 
 			Convey("And dataset.PutInstanceDimensionOptionNodeID is called exactly once with the right parameters", func() {
-				So(len(clientMock.PutInstanceDimensionOptionNodeIDCalls()), ShouldEqual, 1)
-				So(clientMock.PutInstanceDimensionOptionNodeIDCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
-				So(clientMock.PutInstanceDimensionOptionNodeIDCalls()[0].DimensionID, ShouldEqual, dimensionOne.DbModel().DimensionID)
-				So(clientMock.PutInstanceDimensionOptionNodeIDCalls()[0].InstanceID, ShouldEqual, instanceID)
-				So(clientMock.PutInstanceDimensionOptionNodeIDCalls()[0].NodeID, ShouldEqual, dimensionOne.DbModel().NodeID)
-				So(clientMock.PutInstanceDimensionOptionNodeIDCalls()[0].OptionID, ShouldEqual, dimensionOne.DbModel().Option)
+				So(len(clientMock.PatchInstanceDimensionOptionCalls()), ShouldEqual, 1)
+				So(clientMock.PatchInstanceDimensionOptionCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
+				So(clientMock.PatchInstanceDimensionOptionCalls()[0].DimensionID, ShouldEqual, dimensionOne.DbModel().DimensionID)
+				So(clientMock.PatchInstanceDimensionOptionCalls()[0].InstanceID, ShouldEqual, instanceID)
+				So(clientMock.PatchInstanceDimensionOptionCalls()[0].OptionID, ShouldEqual, dimensionOne.DbModel().Option)
+				So(clientMock.PatchInstanceDimensionOptionCalls()[0].NodeID, ShouldEqual, dimensionOne.DbModel().NodeID)
+				So(clientMock.PatchInstanceDimensionOptionCalls()[0].Order, ShouldBeNil)
 			})
 		})
 	})
 
 	Convey("Given dataset.PutInstanceDimensionOptionNodeID succeeds", t, func() {
 		clientMock := &mocks.IClientMock{
-			PutInstanceDimensionOptionNodeIDFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string) error {
+			PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int) error {
 				return nil
 			},
 		}
@@ -338,12 +339,13 @@ func TestDatasetAPI_PutDimensionNodeID(t *testing.T) {
 			})
 
 			Convey("And dataset.PutInstanceDimensionOptionNodeID is called exactly once with the right parameters", func() {
-				So(len(clientMock.PutInstanceDimensionOptionNodeIDCalls()), ShouldEqual, 1)
-				So(clientMock.PutInstanceDimensionOptionNodeIDCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
-				So(clientMock.PutInstanceDimensionOptionNodeIDCalls()[0].DimensionID, ShouldEqual, dimensionOne.DbModel().DimensionID)
-				So(clientMock.PutInstanceDimensionOptionNodeIDCalls()[0].InstanceID, ShouldEqual, instanceID)
-				So(clientMock.PutInstanceDimensionOptionNodeIDCalls()[0].NodeID, ShouldEqual, dimensionOne.DbModel().NodeID)
-				So(clientMock.PutInstanceDimensionOptionNodeIDCalls()[0].OptionID, ShouldEqual, dimensionOne.DbModel().Option)
+				So(len(clientMock.PatchInstanceDimensionOptionCalls()), ShouldEqual, 1)
+				So(clientMock.PatchInstanceDimensionOptionCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
+				So(clientMock.PatchInstanceDimensionOptionCalls()[0].DimensionID, ShouldEqual, dimensionOne.DbModel().DimensionID)
+				So(clientMock.PatchInstanceDimensionOptionCalls()[0].InstanceID, ShouldEqual, instanceID)
+				So(clientMock.PatchInstanceDimensionOptionCalls()[0].OptionID, ShouldEqual, dimensionOne.DbModel().Option)
+				So(clientMock.PatchInstanceDimensionOptionCalls()[0].NodeID, ShouldEqual, dimensionOne.DbModel().NodeID)
+				So(clientMock.PatchInstanceDimensionOptionCalls()[0].Order, ShouldBeNil)
 			})
 		})
 	})

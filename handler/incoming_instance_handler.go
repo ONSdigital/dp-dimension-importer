@@ -168,6 +168,8 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 		return
 	}
 
+	// TODO get order
+
 	if err = hdlr.DatasetAPICli.PutDimensionNodeID(ctx, instance.DbModel().InstanceID, d); err != nil {
 		err = errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
 		log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})

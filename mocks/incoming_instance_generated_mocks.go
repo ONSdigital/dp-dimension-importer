@@ -10,6 +10,10 @@ import (
 	"sync"
 )
 
+var (
+	lockCompletedProducerMockCompleted sync.RWMutex
+)
+
 // Ensure, that CompletedProducerMock does implement handler.CompletedProducer.
 // If this is not the case, regenerate this file with moq.
 var _ handler.CompletedProducer = &CompletedProducerMock{}
@@ -43,7 +47,6 @@ type CompletedProducerMock struct {
 			E event.InstanceCompleted
 		}
 	}
-	lockCompleted sync.RWMutex
 }
 
 // Completed calls CompletedFunc.
@@ -58,9 +61,9 @@ func (mock *CompletedProducerMock) Completed(ctx context.Context, e event.Instan
 		Ctx: ctx,
 		E:   e,
 	}
-	mock.lockCompleted.Lock()
+	lockCompletedProducerMockCompleted.Lock()
 	mock.calls.Completed = append(mock.calls.Completed, callInfo)
-	mock.lockCompleted.Unlock()
+	lockCompletedProducerMockCompleted.Unlock()
 	return mock.CompletedFunc(ctx, e)
 }
 
@@ -75,8 +78,8 @@ func (mock *CompletedProducerMock) CompletedCalls() []struct {
 		Ctx context.Context
 		E   event.InstanceCompleted
 	}
-	mock.lockCompleted.RLock()
+	lockCompletedProducerMockCompleted.RLock()
 	calls = mock.calls.Completed
-	mock.lockCompleted.RUnlock()
+	lockCompletedProducerMockCompleted.RUnlock()
 	return calls
 }
