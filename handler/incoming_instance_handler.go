@@ -28,10 +28,11 @@ type CompletedProducer interface {
 
 // InstanceEventHandler provides functions for handling DimensionsExtractedEvents.
 type InstanceEventHandler struct {
-	Store         store.Storer
-	DatasetAPICli *client.DatasetAPI
-	Producer      CompletedProducer
-	BatchSize     int
+	Store                 store.Storer
+	DatasetAPICli         *client.DatasetAPI
+	Producer              CompletedProducer
+	BatchSize             int
+	StoreGraphDimensionID bool
 }
 
 // Handle retrieves the dimensions for specified instanceID from the Import API, creates an MyInstance entity for
@@ -168,11 +169,13 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 		return
 	}
 
-	if err = hdlr.DatasetAPICli.PutDimensionNodeID(ctx, instance.DbModel().InstanceID, d); err != nil {
-		err = errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
-		log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
-		problem <- err
-		return
+	if hdlr.StoreGraphDimensionID {
+		if err = hdlr.DatasetAPICli.PutDimensionNodeID(ctx, instance.DbModel().InstanceID, d); err != nil {
+			err = errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
+			log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+			problem <- err
+			return
+		}
 	}
 
 	// todo: remove this temp hack once the time codelist / input data has been fixed.
