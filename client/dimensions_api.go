@@ -85,8 +85,8 @@ func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID string) ([]*
 	return ret, nil
 }
 
-// PutDimensionNodeID make a HTTP put request to update the node_id of the specified dimension.
-func (api DatasetAPI) PutDimensionNodeID(ctx context.Context, instanceID string, d *model.Dimension) error {
+// PatchDimensionOption make a HTTP patch request to update the node_id and/or order of the specified dimension.
+func (api DatasetAPI) PatchDimensionOption(ctx context.Context, instanceID string, d *model.Dimension, order *int) error {
 	if len(instanceID) == 0 {
 		return ErrInstanceIDEmpty
 	}
@@ -101,5 +101,5 @@ func (api DatasetAPI) PutDimensionNodeID(ctx context.Context, instanceID string,
 		return ErrDimensionIDEmpty
 	}
 
-	return api.Client.PatchInstanceDimensionOption(ctx, api.AuthToken, instanceID, dim.DimensionID, url.PathEscape(dim.Option), dim.NodeID, nil)
+	return api.Client.PatchInstanceDimensionOption(ctx, api.AuthToken, instanceID, dim.DimensionID, url.PathEscape(dim.Option), dim.NodeID, order)
 }

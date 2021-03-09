@@ -19,6 +19,7 @@ var (
 	lockStorerMockCreateInstance           sync.RWMutex
 	lockStorerMockCreateInstanceConstraint sync.RWMutex
 	lockStorerMockErrorChan                sync.RWMutex
+	lockStorerMockGetCodeOrder             sync.RWMutex
 	lockStorerMockInsertDimension          sync.RWMutex
 	lockStorerMockInstanceExists           sync.RWMutex
 )
@@ -54,6 +55,9 @@ var _ store.Storer = &StorerMock{}
 //             ErrorChanFunc: func() chan error {
 // 	               panic("mock out the ErrorChan method")
 //             },
+//             GetCodeOrderFunc: func(ctx context.Context, codeListID string, code string) (*int, error) {
+// 	               panic("mock out the GetCodeOrder method")
+//             },
 //             InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 // 	               panic("mock out the InsertDimension method")
 //             },
@@ -87,6 +91,9 @@ type StorerMock struct {
 
 	// ErrorChanFunc mocks the ErrorChan method.
 	ErrorChanFunc func() chan error
+
+	// GetCodeOrderFunc mocks the GetCodeOrder method.
+	GetCodeOrderFunc func(ctx context.Context, codeListID string, code string) (*int, error)
 
 	// InsertDimensionFunc mocks the InsertDimension method.
 	InsertDimensionFunc func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error)
@@ -146,6 +153,15 @@ type StorerMock struct {
 		}
 		// ErrorChan holds details about calls to the ErrorChan method.
 		ErrorChan []struct {
+		}
+		// GetCodeOrder holds details about calls to the GetCodeOrder method.
+		GetCodeOrder []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// CodeListID is the codeListID argument value.
+			CodeListID string
+			// Code is the code argument value.
+			Code string
 		}
 		// InsertDimension holds details about calls to the InsertDimension method.
 		InsertDimension []struct {
@@ -413,6 +429,45 @@ func (mock *StorerMock) ErrorChanCalls() []struct {
 	lockStorerMockErrorChan.RLock()
 	calls = mock.calls.ErrorChan
 	lockStorerMockErrorChan.RUnlock()
+	return calls
+}
+
+// GetCodeOrder calls GetCodeOrderFunc.
+func (mock *StorerMock) GetCodeOrder(ctx context.Context, codeListID string, code string) (*int, error) {
+	if mock.GetCodeOrderFunc == nil {
+		panic("StorerMock.GetCodeOrderFunc: method is nil but Storer.GetCodeOrder was just called")
+	}
+	callInfo := struct {
+		Ctx        context.Context
+		CodeListID string
+		Code       string
+	}{
+		Ctx:        ctx,
+		CodeListID: codeListID,
+		Code:       code,
+	}
+	lockStorerMockGetCodeOrder.Lock()
+	mock.calls.GetCodeOrder = append(mock.calls.GetCodeOrder, callInfo)
+	lockStorerMockGetCodeOrder.Unlock()
+	return mock.GetCodeOrderFunc(ctx, codeListID, code)
+}
+
+// GetCodeOrderCalls gets all the calls that were made to GetCodeOrder.
+// Check the length with:
+//     len(mockedStorer.GetCodeOrderCalls())
+func (mock *StorerMock) GetCodeOrderCalls() []struct {
+	Ctx        context.Context
+	CodeListID string
+	Code       string
+} {
+	var calls []struct {
+		Ctx        context.Context
+		CodeListID string
+		Code       string
+	}
+	lockStorerMockGetCodeOrder.RLock()
+	calls = mock.calls.GetCodeOrder
+	lockStorerMockGetCodeOrder.RUnlock()
 	return calls
 }
 
