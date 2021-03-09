@@ -9,6 +9,7 @@ import (
 
 	dataset "github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-dimension-importer/client"
+	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/mocks"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/pkg/errors"
@@ -46,7 +47,10 @@ var ctx = context.Background()
 func TestNewClient(t *testing.T) {
 
 	Convey("Given that NewDatasetAPIClient is called with an empty host", t, func() {
-		datasetAPI, err := client.NewDatasetAPIClient(authToken, "")
+		datasetAPI, err := client.NewDatasetAPIClient(&config.Config{
+			ServiceAuthToken: authToken,
+			DatasetAPIAddr:   "",
+		})
 
 		Convey("Then a nil instance and ErrHostEmpty is returned", func() {
 			So(datasetAPI, ShouldEqual, nil)
@@ -235,13 +239,14 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		clientMock := &mocks.IClientMock{}
 
 		datasetAPI := client.DatasetAPI{
-			AuthToken:      authToken,
-			DatasetAPIHost: host,
-			Client:         clientMock,
+			AuthToken:             authToken,
+			DatasetAPIHost:        host,
+			Client:                clientMock,
+			StoreGraphDimensionID: true,
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
-			err := datasetAPI.PatchDimensionOption(ctx, true, "", dimensionOne, nil)
+			err := datasetAPI.PatchDimensionOption(ctx, "", dimensionOne, nil)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, client.ErrInstanceIDEmpty)
@@ -253,13 +258,14 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		clientMock := &mocks.IClientMock{}
 
 		datasetAPI := client.DatasetAPI{
-			AuthToken:      authToken,
-			DatasetAPIHost: host,
-			Client:         clientMock,
+			AuthToken:             authToken,
+			DatasetAPIHost:        host,
+			Client:                clientMock,
+			StoreGraphDimensionID: true,
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
-			err := datasetAPI.PatchDimensionOption(ctx, true, instanceID, nil, nil)
+			err := datasetAPI.PatchDimensionOption(ctx, instanceID, nil, nil)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, client.ErrDimensionNil)
@@ -271,14 +277,15 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		clientMock := &mocks.IClientMock{}
 
 		datasetAPI := client.DatasetAPI{
-			AuthToken:      authToken,
-			DatasetAPIHost: host,
-			Client:         clientMock,
+			AuthToken:             authToken,
+			DatasetAPIHost:        host,
+			Client:                clientMock,
+			StoreGraphDimensionID: true,
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
 			emptyDimension := model.NewDimension(&dataset.Dimension{})
-			err := datasetAPI.PatchDimensionOption(ctx, true, instanceID, emptyDimension, nil)
+			err := datasetAPI.PatchDimensionOption(ctx, instanceID, emptyDimension, nil)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, client.ErrDimensionIDEmpty)
@@ -294,13 +301,14 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		}
 
 		datasetAPI := client.DatasetAPI{
-			AuthToken:      authToken,
-			DatasetAPIHost: host,
-			Client:         clientMock,
+			AuthToken:             authToken,
+			DatasetAPIHost:        host,
+			Client:                clientMock,
+			StoreGraphDimensionID: true,
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
-			err := datasetAPI.PatchDimensionOption(ctx, true, instanceID, dimensionOne, nil)
+			err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errMock)
@@ -326,13 +334,14 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		}
 
 		datasetAPI := client.DatasetAPI{
-			AuthToken:      authToken,
-			DatasetAPIHost: host,
-			Client:         clientMock,
+			AuthToken:             authToken,
+			DatasetAPIHost:        host,
+			Client:                clientMock,
+			StoreGraphDimensionID: true,
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
-			err := datasetAPI.PatchDimensionOption(ctx, true, instanceID, dimensionOne, nil)
+			err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldEqual, nil)
@@ -350,7 +359,8 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		})
 
 		Convey("When PatchDimensionOption is called forcing the NodeID to be ignored", func() {
-			err := datasetAPI.PatchDimensionOption(ctx, false, instanceID, dimensionOne, nil)
+			datasetAPI.StoreGraphDimensionID = false
+			err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldEqual, nil)

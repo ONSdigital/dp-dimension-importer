@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	dataset "github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
@@ -45,14 +46,15 @@ type DatasetAPI struct {
 }
 
 // NewDatasetAPIClient validates the parameters and creates a new dataset API client from dp-api-clients-go library.
-func NewDatasetAPIClient(authToken, datasetAPIHost string) (*DatasetAPI, error) {
-	if len(datasetAPIHost) == 0 {
+func NewDatasetAPIClient(cfg *config.Config) (*DatasetAPI, error) {
+	if len(cfg.DatasetAPIAddr) == 0 {
 		return nil, ErrHostEmpty
 	}
 	return &DatasetAPI{
-		AuthToken:      authToken,
-		DatasetAPIHost: datasetAPIHost,
-		Client:         dataset.NewAPIClient(datasetAPIHost),
+		AuthToken:             cfg.ServiceAuthToken,
+		DatasetAPIHost:        cfg.DatasetAPIAddr,
+		Client:                dataset.NewAPIClient(cfg.DatasetAPIAddr),
+		StoreGraphDimensionID: cfg.EnableStoreGraphDimensionID,
 	}, nil
 }
 
@@ -87,7 +89,7 @@ func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID string) ([]*
 }
 
 // PatchDimensionOption make a HTTP patch request to update the node_id and/or order of the specified dimension.
-func (api DatasetAPI) PatchDimensionOption(ctx context.Context, storeGraphDimensionID bool, instanceID string, d *model.Dimension, order *int) error {
+func (api DatasetAPI) PatchDimensionOption(ctx context.Context, instanceID string, d *model.Dimension, order *int) error {
 	if len(instanceID) == 0 {
 		return ErrInstanceIDEmpty
 	}
@@ -103,7 +105,7 @@ func (api DatasetAPI) PatchDimensionOption(ctx context.Context, storeGraphDimens
 	}
 
 	nodeID := ""
-	if storeGraphDimensionID {
+	if api.StoreGraphDimensionID {
 		nodeID = dim.NodeID
 	}
 

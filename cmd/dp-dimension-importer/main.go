@@ -86,15 +86,14 @@ func main() {
 	}
 
 	// Dataset Client wrapper.
-	datasetAPICli, err := client.NewDatasetAPIClient(cfg.ServiceAuthToken, cfg.DatasetAPIAddr)
+	datasetAPICli, err := client.NewDatasetAPIClient(cfg)
 
 	// Receiver for NewInstance events.
 	instanceEventHandler := &handler.InstanceEventHandler{
-		Store:                 graphDB,
-		DatasetAPICli:         datasetAPICli,
-		Producer:              instanceCompletedProducer,
-		BatchSize:             cfg.BatchSize,
-		StoreGraphDimensionID: cfg.EnableStoreGraphDimensionID,
+		Store:         graphDB,
+		DatasetAPICli: datasetAPICli,
+		Producer:      instanceCompletedProducer,
+		BatchSize:     cfg.BatchSize,
 	}
 
 	// Errors handler

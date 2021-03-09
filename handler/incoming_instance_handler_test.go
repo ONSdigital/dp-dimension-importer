@@ -73,7 +73,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 	Convey("Given the handler has been configured", t, func() {
 		// Set up mocks
-		storerMock, datasetAPIMock, completedProducer, handler := setUp(true)
+		storerMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		Convey("When given a valid event", func() {
 			handler.Handle(ctx, newInstance)
@@ -532,9 +532,8 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		}
 
 		handler := handler.InstanceEventHandler{
-			DatasetAPICli:         datasetAPIClient,
-			Store:                 nil,
-			StoreGraphDimensionID: true,
+			DatasetAPICli: datasetAPIClient,
+			Store:         nil,
 		}
 		Convey("When Handle is called", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
@@ -553,7 +552,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 	Convey("Given an instance with the event ID already exists", t, func() {
-		storerMock, datasetAPIMock, completedProducer, handler := setUp(true)
+		storerMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		// override default
 		storerMock.InstanceExistsFunc = func(ctx context.Context, instanceID string) (bool, error) {
@@ -598,7 +597,7 @@ func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 
 func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 	Convey("Given handler has been configured correctly", t, func() {
-		storerMock, datasetAPIMock, completedProducer, handler := setUp(true)
+		storerMock, datasetAPIMock, completedProducer, handler := setUp()
 
 		Convey("When storer.InstanceExists returns an error", func() {
 			storerMock.InstanceExistsFunc = func(ctx context.Context, instanceID string) (bool, error) {
@@ -640,7 +639,7 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 }
 
 // Default set up for the mocks.
-func setUp(storeGraphDimensionID bool) (*storertest.StorerMock, *mocks.IClientMock, *mocks.CompletedProducerMock, handler.InstanceEventHandler) {
+func setUp() (*storertest.StorerMock, *mocks.IClientMock, *mocks.CompletedProducerMock, handler.InstanceEventHandler) {
 	storeMock := &storertest.StorerMock{
 		InstanceExistsFunc: func(ctx context.Context, instanceID string) (bool, error) {
 			return false, nil
@@ -693,10 +692,9 @@ func setUp(storeGraphDimensionID bool) (*storertest.StorerMock, *mocks.IClientMo
 	}
 
 	handler := handler.InstanceEventHandler{
-		Store:                 storeMock,
-		DatasetAPICli:         datasetAPIClient,
-		Producer:              completedProducer,
-		StoreGraphDimensionID: storeGraphDimensionID,
+		Store:         storeMock,
+		DatasetAPICli: datasetAPIClient,
+		Producer:      completedProducer,
 	}
 	return storeMock, datasetAPIMock, completedProducer, handler
 }
