@@ -169,13 +169,24 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 		return
 	}
 
-	if hdlr.StoreGraphDimensionID {
-		if err = hdlr.DatasetAPICli.PutDimensionNodeID(ctx, instance.DbModel().InstanceID, d); err != nil {
-			err = errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
-			log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
-			problem <- err
-			return
-		}
+	order, err := hdlr.Store.GetCodeOrder(ctx, d.CodeListID(), d.DbModel().Option)
+	if err != nil {
+		err = errors.Wrap(err, "error while attempting to get dimension order")
+		log.Event(ctx, err.Error(), log.Error(err), log.Data{
+			"instance_id":  instance.DbModel().InstanceID,
+			"dimension_id": dbDimension.DimensionID,
+			"code_list_id": d.CodeListID(),
+			"code":         d.DbModel().Option,
+		})
+		problem <- err
+		return
+	}
+
+	if err = hdlr.DatasetAPICli.PatchDimensionOption(ctx, hdlr.StoreGraphDimensionID, instance.DbModel().InstanceID, d, order); err != nil {
+		err = errors.Wrap(err, "DatasetAPICli.PatchDimensionOption returned an error")
+		log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+		problem <- err
+		return
 	}
 
 	// todo: remove this temp hack once the time codelist / input data has been fixed.

@@ -3,8 +3,9 @@ package initialise
 import (
 	"context"
 	"fmt"
-	"github.com/ONSdigital/dp-dimension-importer/store"
 	"time"
+
+	"github.com/ONSdigital/dp-dimension-importer/store"
 
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/message"
@@ -91,7 +92,7 @@ func (e *ExternalServiceList) GetProducer(ctx context.Context, topic string, nam
 
 // GetGraphDB returns a connection to the graph DB
 func (e *ExternalServiceList) GetGraphDB(ctx context.Context) (store.Storer, error) {
-	graphDB, err := graph.New(ctx, graph.Subsets{Instance: true, Dimension: true})
+	graphDB, err := graph.New(ctx, graph.Subsets{Instance: true, Dimension: true, CodeList: true})
 	if err != nil {
 		log.Event(ctx, "new graph db returned an error", log.FATAL, log.Error(err))
 		return nil, err

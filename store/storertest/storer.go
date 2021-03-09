@@ -11,6 +11,19 @@ import (
 	"sync"
 )
 
+var (
+	lockStorerMockAddDimensions            sync.RWMutex
+	lockStorerMockChecker                  sync.RWMutex
+	lockStorerMockClose                    sync.RWMutex
+	lockStorerMockCreateCodeRelationship   sync.RWMutex
+	lockStorerMockCreateInstance           sync.RWMutex
+	lockStorerMockCreateInstanceConstraint sync.RWMutex
+	lockStorerMockErrorChan                sync.RWMutex
+	lockStorerMockGetCodeOrder             sync.RWMutex
+	lockStorerMockInsertDimension          sync.RWMutex
+	lockStorerMockInstanceExists           sync.RWMutex
+)
+
 // Ensure, that StorerMock does implement store.Storer.
 // If this is not the case, regenerate this file with moq.
 var _ store.Storer = &StorerMock{}
@@ -23,9 +36,6 @@ var _ store.Storer = &StorerMock{}
 //         mockedStorer := &StorerMock{
 //             AddDimensionsFunc: func(ctx context.Context, instanceID string, dimensions []interface{}) error {
 // 	               panic("mock out the AddDimensions method")
-//             },
-//             AddVersionDetailsToInstanceFunc: func(ctx context.Context, instanceID string, datasetID string, edition string, version int) error {
-// 	               panic("mock out the AddVersionDetailsToInstance method")
 //             },
 //             CheckerFunc: func(ctx context.Context, state *healthcheck.CheckState) error {
 // 	               panic("mock out the Checker method")
@@ -45,6 +55,9 @@ var _ store.Storer = &StorerMock{}
 //             ErrorChanFunc: func() chan error {
 // 	               panic("mock out the ErrorChan method")
 //             },
+//             GetCodeOrderFunc: func(ctx context.Context, codeListID string, code string) (*int, error) {
+// 	               panic("mock out the GetCodeOrder method")
+//             },
 //             InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 // 	               panic("mock out the InsertDimension method")
 //             },
@@ -60,9 +73,6 @@ var _ store.Storer = &StorerMock{}
 type StorerMock struct {
 	// AddDimensionsFunc mocks the AddDimensions method.
 	AddDimensionsFunc func(ctx context.Context, instanceID string, dimensions []interface{}) error
-
-	// AddVersionDetailsToInstanceFunc mocks the AddVersionDetailsToInstance method.
-	AddVersionDetailsToInstanceFunc func(ctx context.Context, instanceID string, datasetID string, edition string, version int) error
 
 	// CheckerFunc mocks the Checker method.
 	CheckerFunc func(ctx context.Context, state *healthcheck.CheckState) error
@@ -82,6 +92,9 @@ type StorerMock struct {
 	// ErrorChanFunc mocks the ErrorChan method.
 	ErrorChanFunc func() chan error
 
+	// GetCodeOrderFunc mocks the GetCodeOrder method.
+	GetCodeOrderFunc func(ctx context.Context, codeListID string, code string) (*int, error)
+
 	// InsertDimensionFunc mocks the InsertDimension method.
 	InsertDimensionFunc func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error)
 
@@ -98,19 +111,6 @@ type StorerMock struct {
 			InstanceID string
 			// Dimensions is the dimensions argument value.
 			Dimensions []interface{}
-		}
-		// AddVersionDetailsToInstance holds details about calls to the AddVersionDetailsToInstance method.
-		AddVersionDetailsToInstance []struct {
-			// Ctx is the ctx argument value.
-			Ctx context.Context
-			// InstanceID is the instanceID argument value.
-			InstanceID string
-			// DatasetID is the datasetID argument value.
-			DatasetID string
-			// Edition is the edition argument value.
-			Edition string
-			// Version is the version argument value.
-			Version int
 		}
 		// Checker holds details about calls to the Checker method.
 		Checker []struct {
@@ -154,6 +154,15 @@ type StorerMock struct {
 		// ErrorChan holds details about calls to the ErrorChan method.
 		ErrorChan []struct {
 		}
+		// GetCodeOrder holds details about calls to the GetCodeOrder method.
+		GetCodeOrder []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+			// CodeListID is the codeListID argument value.
+			CodeListID string
+			// Code is the code argument value.
+			Code string
+		}
 		// InsertDimension holds details about calls to the InsertDimension method.
 		InsertDimension []struct {
 			// Ctx is the ctx argument value.
@@ -173,16 +182,6 @@ type StorerMock struct {
 			InstanceID string
 		}
 	}
-	lockAddDimensions               sync.RWMutex
-	lockAddVersionDetailsToInstance sync.RWMutex
-	lockChecker                     sync.RWMutex
-	lockClose                       sync.RWMutex
-	lockCreateCodeRelationship      sync.RWMutex
-	lockCreateInstance              sync.RWMutex
-	lockCreateInstanceConstraint    sync.RWMutex
-	lockErrorChan                   sync.RWMutex
-	lockInsertDimension             sync.RWMutex
-	lockInstanceExists              sync.RWMutex
 }
 
 // AddDimensions calls AddDimensionsFunc.
@@ -199,9 +198,9 @@ func (mock *StorerMock) AddDimensions(ctx context.Context, instanceID string, di
 		InstanceID: instanceID,
 		Dimensions: dimensions,
 	}
-	mock.lockAddDimensions.Lock()
+	lockStorerMockAddDimensions.Lock()
 	mock.calls.AddDimensions = append(mock.calls.AddDimensions, callInfo)
-	mock.lockAddDimensions.Unlock()
+	lockStorerMockAddDimensions.Unlock()
 	return mock.AddDimensionsFunc(ctx, instanceID, dimensions)
 }
 
@@ -218,56 +217,9 @@ func (mock *StorerMock) AddDimensionsCalls() []struct {
 		InstanceID string
 		Dimensions []interface{}
 	}
-	mock.lockAddDimensions.RLock()
+	lockStorerMockAddDimensions.RLock()
 	calls = mock.calls.AddDimensions
-	mock.lockAddDimensions.RUnlock()
-	return calls
-}
-
-// AddVersionDetailsToInstance calls AddVersionDetailsToInstanceFunc.
-func (mock *StorerMock) AddVersionDetailsToInstance(ctx context.Context, instanceID string, datasetID string, edition string, version int) error {
-	if mock.AddVersionDetailsToInstanceFunc == nil {
-		panic("StorerMock.AddVersionDetailsToInstanceFunc: method is nil but Storer.AddVersionDetailsToInstance was just called")
-	}
-	callInfo := struct {
-		Ctx        context.Context
-		InstanceID string
-		DatasetID  string
-		Edition    string
-		Version    int
-	}{
-		Ctx:        ctx,
-		InstanceID: instanceID,
-		DatasetID:  datasetID,
-		Edition:    edition,
-		Version:    version,
-	}
-	mock.lockAddVersionDetailsToInstance.Lock()
-	mock.calls.AddVersionDetailsToInstance = append(mock.calls.AddVersionDetailsToInstance, callInfo)
-	mock.lockAddVersionDetailsToInstance.Unlock()
-	return mock.AddVersionDetailsToInstanceFunc(ctx, instanceID, datasetID, edition, version)
-}
-
-// AddVersionDetailsToInstanceCalls gets all the calls that were made to AddVersionDetailsToInstance.
-// Check the length with:
-//     len(mockedStorer.AddVersionDetailsToInstanceCalls())
-func (mock *StorerMock) AddVersionDetailsToInstanceCalls() []struct {
-	Ctx        context.Context
-	InstanceID string
-	DatasetID  string
-	Edition    string
-	Version    int
-} {
-	var calls []struct {
-		Ctx        context.Context
-		InstanceID string
-		DatasetID  string
-		Edition    string
-		Version    int
-	}
-	mock.lockAddVersionDetailsToInstance.RLock()
-	calls = mock.calls.AddVersionDetailsToInstance
-	mock.lockAddVersionDetailsToInstance.RUnlock()
+	lockStorerMockAddDimensions.RUnlock()
 	return calls
 }
 
@@ -283,9 +235,9 @@ func (mock *StorerMock) Checker(ctx context.Context, state *healthcheck.CheckSta
 		Ctx:   ctx,
 		State: state,
 	}
-	mock.lockChecker.Lock()
+	lockStorerMockChecker.Lock()
 	mock.calls.Checker = append(mock.calls.Checker, callInfo)
-	mock.lockChecker.Unlock()
+	lockStorerMockChecker.Unlock()
 	return mock.CheckerFunc(ctx, state)
 }
 
@@ -300,9 +252,9 @@ func (mock *StorerMock) CheckerCalls() []struct {
 		Ctx   context.Context
 		State *healthcheck.CheckState
 	}
-	mock.lockChecker.RLock()
+	lockStorerMockChecker.RLock()
 	calls = mock.calls.Checker
-	mock.lockChecker.RUnlock()
+	lockStorerMockChecker.RUnlock()
 	return calls
 }
 
@@ -316,9 +268,9 @@ func (mock *StorerMock) Close(ctx context.Context) error {
 	}{
 		Ctx: ctx,
 	}
-	mock.lockClose.Lock()
+	lockStorerMockClose.Lock()
 	mock.calls.Close = append(mock.calls.Close, callInfo)
-	mock.lockClose.Unlock()
+	lockStorerMockClose.Unlock()
 	return mock.CloseFunc(ctx)
 }
 
@@ -331,9 +283,9 @@ func (mock *StorerMock) CloseCalls() []struct {
 	var calls []struct {
 		Ctx context.Context
 	}
-	mock.lockClose.RLock()
+	lockStorerMockClose.RLock()
 	calls = mock.calls.Close
-	mock.lockClose.RUnlock()
+	lockStorerMockClose.RUnlock()
 	return calls
 }
 
@@ -353,9 +305,9 @@ func (mock *StorerMock) CreateCodeRelationship(ctx context.Context, instanceID s
 		CodeListID: codeListID,
 		Code:       code,
 	}
-	mock.lockCreateCodeRelationship.Lock()
+	lockStorerMockCreateCodeRelationship.Lock()
 	mock.calls.CreateCodeRelationship = append(mock.calls.CreateCodeRelationship, callInfo)
-	mock.lockCreateCodeRelationship.Unlock()
+	lockStorerMockCreateCodeRelationship.Unlock()
 	return mock.CreateCodeRelationshipFunc(ctx, instanceID, codeListID, code)
 }
 
@@ -374,9 +326,9 @@ func (mock *StorerMock) CreateCodeRelationshipCalls() []struct {
 		CodeListID string
 		Code       string
 	}
-	mock.lockCreateCodeRelationship.RLock()
+	lockStorerMockCreateCodeRelationship.RLock()
 	calls = mock.calls.CreateCodeRelationship
-	mock.lockCreateCodeRelationship.RUnlock()
+	lockStorerMockCreateCodeRelationship.RUnlock()
 	return calls
 }
 
@@ -394,9 +346,9 @@ func (mock *StorerMock) CreateInstance(ctx context.Context, instanceID string, c
 		InstanceID: instanceID,
 		CsvHeaders: csvHeaders,
 	}
-	mock.lockCreateInstance.Lock()
+	lockStorerMockCreateInstance.Lock()
 	mock.calls.CreateInstance = append(mock.calls.CreateInstance, callInfo)
-	mock.lockCreateInstance.Unlock()
+	lockStorerMockCreateInstance.Unlock()
 	return mock.CreateInstanceFunc(ctx, instanceID, csvHeaders)
 }
 
@@ -413,9 +365,9 @@ func (mock *StorerMock) CreateInstanceCalls() []struct {
 		InstanceID string
 		CsvHeaders []string
 	}
-	mock.lockCreateInstance.RLock()
+	lockStorerMockCreateInstance.RLock()
 	calls = mock.calls.CreateInstance
-	mock.lockCreateInstance.RUnlock()
+	lockStorerMockCreateInstance.RUnlock()
 	return calls
 }
 
@@ -431,9 +383,9 @@ func (mock *StorerMock) CreateInstanceConstraint(ctx context.Context, instanceID
 		Ctx:        ctx,
 		InstanceID: instanceID,
 	}
-	mock.lockCreateInstanceConstraint.Lock()
+	lockStorerMockCreateInstanceConstraint.Lock()
 	mock.calls.CreateInstanceConstraint = append(mock.calls.CreateInstanceConstraint, callInfo)
-	mock.lockCreateInstanceConstraint.Unlock()
+	lockStorerMockCreateInstanceConstraint.Unlock()
 	return mock.CreateInstanceConstraintFunc(ctx, instanceID)
 }
 
@@ -448,9 +400,9 @@ func (mock *StorerMock) CreateInstanceConstraintCalls() []struct {
 		Ctx        context.Context
 		InstanceID string
 	}
-	mock.lockCreateInstanceConstraint.RLock()
+	lockStorerMockCreateInstanceConstraint.RLock()
 	calls = mock.calls.CreateInstanceConstraint
-	mock.lockCreateInstanceConstraint.RUnlock()
+	lockStorerMockCreateInstanceConstraint.RUnlock()
 	return calls
 }
 
@@ -461,9 +413,9 @@ func (mock *StorerMock) ErrorChan() chan error {
 	}
 	callInfo := struct {
 	}{}
-	mock.lockErrorChan.Lock()
+	lockStorerMockErrorChan.Lock()
 	mock.calls.ErrorChan = append(mock.calls.ErrorChan, callInfo)
-	mock.lockErrorChan.Unlock()
+	lockStorerMockErrorChan.Unlock()
 	return mock.ErrorChanFunc()
 }
 
@@ -474,9 +426,48 @@ func (mock *StorerMock) ErrorChanCalls() []struct {
 } {
 	var calls []struct {
 	}
-	mock.lockErrorChan.RLock()
+	lockStorerMockErrorChan.RLock()
 	calls = mock.calls.ErrorChan
-	mock.lockErrorChan.RUnlock()
+	lockStorerMockErrorChan.RUnlock()
+	return calls
+}
+
+// GetCodeOrder calls GetCodeOrderFunc.
+func (mock *StorerMock) GetCodeOrder(ctx context.Context, codeListID string, code string) (*int, error) {
+	if mock.GetCodeOrderFunc == nil {
+		panic("StorerMock.GetCodeOrderFunc: method is nil but Storer.GetCodeOrder was just called")
+	}
+	callInfo := struct {
+		Ctx        context.Context
+		CodeListID string
+		Code       string
+	}{
+		Ctx:        ctx,
+		CodeListID: codeListID,
+		Code:       code,
+	}
+	lockStorerMockGetCodeOrder.Lock()
+	mock.calls.GetCodeOrder = append(mock.calls.GetCodeOrder, callInfo)
+	lockStorerMockGetCodeOrder.Unlock()
+	return mock.GetCodeOrderFunc(ctx, codeListID, code)
+}
+
+// GetCodeOrderCalls gets all the calls that were made to GetCodeOrder.
+// Check the length with:
+//     len(mockedStorer.GetCodeOrderCalls())
+func (mock *StorerMock) GetCodeOrderCalls() []struct {
+	Ctx        context.Context
+	CodeListID string
+	Code       string
+} {
+	var calls []struct {
+		Ctx        context.Context
+		CodeListID string
+		Code       string
+	}
+	lockStorerMockGetCodeOrder.RLock()
+	calls = mock.calls.GetCodeOrder
+	lockStorerMockGetCodeOrder.RUnlock()
 	return calls
 }
 
@@ -496,9 +487,9 @@ func (mock *StorerMock) InsertDimension(ctx context.Context, cache map[string]st
 		InstanceID: instanceID,
 		Dimension:  dimension,
 	}
-	mock.lockInsertDimension.Lock()
+	lockStorerMockInsertDimension.Lock()
 	mock.calls.InsertDimension = append(mock.calls.InsertDimension, callInfo)
-	mock.lockInsertDimension.Unlock()
+	lockStorerMockInsertDimension.Unlock()
 	return mock.InsertDimensionFunc(ctx, cache, instanceID, dimension)
 }
 
@@ -517,9 +508,9 @@ func (mock *StorerMock) InsertDimensionCalls() []struct {
 		InstanceID string
 		Dimension  *models.Dimension
 	}
-	mock.lockInsertDimension.RLock()
+	lockStorerMockInsertDimension.RLock()
 	calls = mock.calls.InsertDimension
-	mock.lockInsertDimension.RUnlock()
+	lockStorerMockInsertDimension.RUnlock()
 	return calls
 }
 
@@ -535,9 +526,9 @@ func (mock *StorerMock) InstanceExists(ctx context.Context, instanceID string) (
 		Ctx:        ctx,
 		InstanceID: instanceID,
 	}
-	mock.lockInstanceExists.Lock()
+	lockStorerMockInstanceExists.Lock()
 	mock.calls.InstanceExists = append(mock.calls.InstanceExists, callInfo)
-	mock.lockInstanceExists.Unlock()
+	lockStorerMockInstanceExists.Unlock()
 	return mock.InstanceExistsFunc(ctx, instanceID)
 }
 
@@ -552,8 +543,8 @@ func (mock *StorerMock) InstanceExistsCalls() []struct {
 		Ctx        context.Context
 		InstanceID string
 	}
-	mock.lockInstanceExists.RLock()
+	lockStorerMockInstanceExists.RLock()
 	calls = mock.calls.InstanceExists
-	mock.lockInstanceExists.RUnlock()
+	lockStorerMockInstanceExists.RUnlock()
 	return calls
 }
