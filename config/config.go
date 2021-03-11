@@ -25,7 +25,7 @@ type Config struct {
 	HealthCheckInterval            time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	BatchSize                      int           `envconfig:"BATCH_SIZE"`
 	HealthCheckCriticalTimeout     time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
-	EnableStoreGraphDimensionID    bool          `envconfig:"ENABLE_STORE_GRAPH_DIMENSION_ID"`
+	EnablePatchNodeID              bool          `envconfig:"ENABLE_PATCH_NODE_ID"`
 }
 
 var cfg *Config
@@ -50,7 +50,7 @@ func Get(ctx context.Context) (*Config, error) {
 		HealthCheckInterval:            30 * time.Second,
 		HealthCheckCriticalTimeout:     90 * time.Second,
 		BatchSize:                      1, //not all implementations will allow for batching, so set to a safe default
-		EnableStoreGraphDimensionID:    true,
+		EnablePatchNodeID:              true,
 	}
 
 	if len(cfg.ServiceAuthToken) == 0 {

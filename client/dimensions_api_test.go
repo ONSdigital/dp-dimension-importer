@@ -239,10 +239,10 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		clientMock := &mocks.IClientMock{}
 
 		datasetAPI := client.DatasetAPI{
-			AuthToken:             authToken,
-			DatasetAPIHost:        host,
-			Client:                clientMock,
-			StoreGraphDimensionID: true,
+			AuthToken:         authToken,
+			DatasetAPIHost:    host,
+			Client:            clientMock,
+			EnablePatchNodeID: true,
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
@@ -258,10 +258,10 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		clientMock := &mocks.IClientMock{}
 
 		datasetAPI := client.DatasetAPI{
-			AuthToken:             authToken,
-			DatasetAPIHost:        host,
-			Client:                clientMock,
-			StoreGraphDimensionID: true,
+			AuthToken:         authToken,
+			DatasetAPIHost:    host,
+			Client:            clientMock,
+			EnablePatchNodeID: true,
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
@@ -277,10 +277,10 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		clientMock := &mocks.IClientMock{}
 
 		datasetAPI := client.DatasetAPI{
-			AuthToken:             authToken,
-			DatasetAPIHost:        host,
-			Client:                clientMock,
-			StoreGraphDimensionID: true,
+			AuthToken:         authToken,
+			DatasetAPIHost:    host,
+			Client:            clientMock,
+			EnablePatchNodeID: true,
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
@@ -301,10 +301,10 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		}
 
 		datasetAPI := client.DatasetAPI{
-			AuthToken:             authToken,
-			DatasetAPIHost:        host,
-			Client:                clientMock,
-			StoreGraphDimensionID: true,
+			AuthToken:         authToken,
+			DatasetAPIHost:    host,
+			Client:            clientMock,
+			EnablePatchNodeID: true,
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
@@ -334,10 +334,10 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		}
 
 		datasetAPI := client.DatasetAPI{
-			AuthToken:             authToken,
-			DatasetAPIHost:        host,
-			Client:                clientMock,
-			StoreGraphDimensionID: true,
+			AuthToken:         authToken,
+			DatasetAPIHost:    host,
+			Client:            clientMock,
+			EnablePatchNodeID: true,
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
@@ -359,7 +359,7 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		})
 
 		Convey("When PatchDimensionOption is called forcing the NodeID to be ignored", func() {
-			datasetAPI.StoreGraphDimensionID = false
+			datasetAPI.EnablePatchNodeID = false
 			err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
 
 			Convey("Then no error is returned", func() {

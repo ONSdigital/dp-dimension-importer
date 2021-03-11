@@ -39,10 +39,10 @@ type IClient interface {
 
 // DatasetAPI provides methods for getting dimensions for a given instanceID and updating the node_id of a specific dimension.
 type DatasetAPI struct {
-	AuthToken             string
-	DatasetAPIHost        string
-	Client                IClient
-	StoreGraphDimensionID bool
+	AuthToken         string
+	DatasetAPIHost    string
+	Client            IClient
+	EnablePatchNodeID bool
 }
 
 // NewDatasetAPIClient validates the parameters and creates a new dataset API client from dp-api-clients-go library.
@@ -51,10 +51,10 @@ func NewDatasetAPIClient(cfg *config.Config) (*DatasetAPI, error) {
 		return nil, ErrHostEmpty
 	}
 	return &DatasetAPI{
-		AuthToken:             cfg.ServiceAuthToken,
-		DatasetAPIHost:        cfg.DatasetAPIAddr,
-		Client:                dataset.NewAPIClient(cfg.DatasetAPIAddr),
-		StoreGraphDimensionID: cfg.EnableStoreGraphDimensionID,
+		AuthToken:         cfg.ServiceAuthToken,
+		DatasetAPIHost:    cfg.DatasetAPIAddr,
+		Client:            dataset.NewAPIClient(cfg.DatasetAPIAddr),
+		EnablePatchNodeID: cfg.EnablePatchNodeID,
 	}, nil
 }
 
@@ -105,7 +105,7 @@ func (api DatasetAPI) PatchDimensionOption(ctx context.Context, instanceID strin
 	}
 
 	nodeID := ""
-	if api.StoreGraphDimensionID {
+	if api.EnablePatchNodeID {
 		nodeID = dim.NodeID
 	}
 
