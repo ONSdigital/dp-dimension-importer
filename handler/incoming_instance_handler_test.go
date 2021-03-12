@@ -104,8 +104,8 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 				So(calls[0].CodeListID, ShouldEqual, testCodeListID)
 				So(calls[1].CodeListID, ShouldEqual, testCodeListID)
-				So(calls[0].Code, ShouldEqual, d1Api.Option)
-				So(calls[1].Code, ShouldEqual, d2Api.Option)
+				So(calls[0].CodeLabel, ShouldEqual, d1Api.Option)
+				So(calls[1].CodeLabel, ShouldEqual, d2Api.Option)
 			})
 
 			Convey("And DatasetAPICli.PatchDimensionOption is called 2 times with the expected parameters", func() {
@@ -264,7 +264,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(len(calls), ShouldBeGreaterThan, 0)
 
 				So(calls[0].CodeListID, ShouldEqual, testCodeListID)
-				So(calls[0].Code, ShouldEqual, d1Api.Option)
+				So(calls[0].CodeLabel, ShouldEqual, d1Api.Option)
 			})
 
 			Convey("And DatasetAPICli.PatchDimensionOption is at least once with the expected parameters", func() {
@@ -362,7 +362,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(len(calls), ShouldBeGreaterThan, 0)
 
 				So(calls[0].CodeListID, ShouldEqual, testCodeListID)
-				So(calls[0].Code, ShouldEqual, d1Api.Option)
+				So(calls[0].CodeLabel, ShouldEqual, d1Api.Option)
 			})
 
 			Convey("And the expected error is returned", func() {
@@ -413,7 +413,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(len(calls), ShouldBeGreaterThan, 0)
 
 				So(calls[0].CodeListID, ShouldEqual, testCodeListID)
-				So(calls[0].Code, ShouldEqual, d1Api.Option)
+				So(calls[0].CodeLabel, ShouldEqual, d1Api.Option)
 			})
 
 			Convey("And DatasetAPICli.PatchDimensionOption is called at least once with the expected parameters", func() {
@@ -478,8 +478,8 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 				So(calls[0].CodeListID, ShouldEqual, testCodeListID)
 				So(calls[1].CodeListID, ShouldEqual, testCodeListID)
-				So(calls[0].Code, ShouldEqual, d1Api.Option)
-				So(calls[1].Code, ShouldEqual, d2Api.Option)
+				So(calls[0].CodeLabel, ShouldEqual, d1Api.Option)
+				So(calls[1].CodeLabel, ShouldEqual, d2Api.Option)
 			})
 
 			Convey("And DatasetAPICli.PatchDimensionOption is called 1 time with the expected parameters", func() {

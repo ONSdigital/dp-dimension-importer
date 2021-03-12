@@ -17,7 +17,7 @@ type Storer interface {
 	CreateCodeRelationship(ctx context.Context, instanceID, codeListID, code string) error
 	InstanceExists(ctx context.Context, instanceID string) (bool, error)
 	InsertDimension(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error)
-	GetCodeOrder(ctx context.Context, codeListID, code string) (order *int, err error)
+	GetCodeOrder(ctx context.Context, codeListID, codeLabel string) (order *int, err error)
 	Checker(ctx context.Context, state *healthcheck.CheckState) error
 	Close(ctx context.Context) error
 	ErrorChan() chan error
