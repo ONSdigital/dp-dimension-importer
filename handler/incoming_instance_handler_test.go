@@ -333,6 +333,9 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			storerMock.GetCodesOrderFunc = func(ctx context.Context, codeListID string, codes []string) (map[string]*int, error) {
 				return nil, errorMock
 			}
+			storerMock.GetCodeOrderFunc = func(ctx context.Context, codeListID string, codeLabel string) (*int, error) {
+				return nil, errorMock
+			}
 
 			err := handler.Handle(ctx, event)
 
@@ -366,7 +369,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "error while attempting to get dimension order").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "error while attempting to get dimension order using label").Error())
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
