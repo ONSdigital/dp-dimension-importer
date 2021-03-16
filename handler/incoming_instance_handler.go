@@ -168,7 +168,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 		return
 	}
 
-	order, err := hdlr.Store.GetCodeOrder(ctx, d.CodeListID(), d.DbModel().Option)
+	orderMap, err := hdlr.Store.GetCodesOrder(ctx, d.CodeListID(), []string{d.DbModel().Option})
 	if err != nil {
 		err = errors.Wrap(err, "error while attempting to get dimension order")
 		log.Event(ctx, err.Error(), log.Error(err), log.Data{
@@ -181,7 +181,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 		return
 	}
 
-	if err = hdlr.DatasetAPICli.PatchDimensionOption(ctx, instance.DbModel().InstanceID, d, order); err != nil {
+	if err = hdlr.DatasetAPICli.PatchDimensionOption(ctx, instance.DbModel().InstanceID, d, orderMap[d.DbModel().Option]); err != nil {
 		err = errors.Wrap(err, "DatasetAPICli.PatchDimensionOption returned an error")
 		log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 		problem <- err

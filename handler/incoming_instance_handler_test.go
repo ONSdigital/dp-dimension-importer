@@ -99,13 +99,13 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And storerMock.GetCodeOrder is called 2 times with the expected paramters", func() {
-				calls := storerMock.GetCodeOrderCalls()
+				calls := storerMock.GetCodesOrderCalls()
 				So(len(calls), ShouldEqual, 2)
 
 				So(calls[0].CodeListID, ShouldEqual, testCodeListID)
 				So(calls[1].CodeListID, ShouldEqual, testCodeListID)
-				So(calls[0].CodeLabel, ShouldEqual, d1Api.Option)
-				So(calls[1].CodeLabel, ShouldEqual, d2Api.Option)
+				So(calls[0].Codes, ShouldResemble, []string{d1Api.Option})
+				So(calls[1].Codes, ShouldResemble, []string{d2Api.Option})
 			})
 
 			Convey("And DatasetAPICli.PatchDimensionOption is called 2 times with the expected parameters", func() {
@@ -156,7 +156,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 			Convey("And no further processing of the event takes place.", func() {
 				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
-				So(len(storerMock.GetCodeOrderCalls()), ShouldEqual, 0)
+				So(len(storerMock.GetCodesOrderCalls()), ShouldEqual, 0)
 				So(len(datasetAPIMock.GetInstanceDimensionsCalls()), ShouldEqual, 0)
 				So(len(datasetAPIMock.PatchInstanceDimensionOptionCalls()), ShouldEqual, 0)
 				So(len(storerMock.CreateInstanceCalls()), ShouldEqual, 0)
@@ -187,7 +187,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 			Convey("And no further processing of the event takes place.", func() {
 				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
-				So(len(storerMock.GetCodeOrderCalls()), ShouldEqual, 0)
+				So(len(storerMock.GetCodesOrderCalls()), ShouldEqual, 0)
 				So(len(datasetAPIMock.PatchInstanceDimensionOptionCalls()), ShouldEqual, 0)
 				So(len(storerMock.CreateInstanceCalls()), ShouldEqual, 0)
 				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
@@ -219,7 +219,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 			Convey("And no further processing of the event takes place.", func() {
 				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
-				So(len(storerMock.GetCodeOrderCalls()), ShouldEqual, 0)
+				So(len(storerMock.GetCodesOrderCalls()), ShouldEqual, 0)
 				So(len(datasetAPIMock.PatchInstanceDimensionOptionCalls()), ShouldEqual, 0)
 				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
@@ -260,11 +260,11 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And storerMock.GetCodeOrder is called 2 times with the expected paramters", func() {
-				calls := storerMock.GetCodeOrderCalls()
+				calls := storerMock.GetCodesOrderCalls()
 				So(len(calls), ShouldBeGreaterThan, 0)
 
 				So(calls[0].CodeListID, ShouldEqual, testCodeListID)
-				So(calls[0].CodeLabel, ShouldEqual, d1Api.Option)
+				So(calls[0].Codes, ShouldResemble, []string{d1Api.Option})
 			})
 
 			Convey("And DatasetAPICli.PatchDimensionOption is at least once with the expected parameters", func() {
@@ -318,19 +318,19 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
-				So(len(storerMock.GetCodeOrderCalls()), ShouldEqual, 0)
+				So(len(storerMock.GetCodesOrderCalls()), ShouldEqual, 0)
 				So(len(datasetAPIMock.PatchInstanceDimensionOptionCalls()), ShouldEqual, 0)
 				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
 			})
 		})
 
-		Convey("When storer.GetCodeOrder returns an error", func() {
+		Convey("When storer.GetCodesOrder returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
 			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 				return dimension, nil
 			}
-			storerMock.GetCodeOrderFunc = func(ctx context.Context, codeListID string, code string) (*int, error) {
+			storerMock.GetCodesOrderFunc = func(ctx context.Context, codeListID string, codes []string) (map[string]*int, error) {
 				return nil, errorMock
 			}
 
@@ -357,12 +357,12 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
 			})
 
-			Convey("And storerMock.GetCodeOrder is called 2 times with the expected paramters", func() {
-				calls := storerMock.GetCodeOrderCalls()
+			Convey("And storerMock.GetCodesOrder is called 2 times with the expected paramters", func() {
+				calls := storerMock.GetCodesOrderCalls()
 				So(len(calls), ShouldBeGreaterThan, 0)
 
 				So(calls[0].CodeListID, ShouldEqual, testCodeListID)
-				So(calls[0].CodeLabel, ShouldEqual, d1Api.Option)
+				So(calls[0].Codes, ShouldResemble, []string{d1Api.Option})
 			})
 
 			Convey("And the expected error is returned", func() {
@@ -409,11 +409,11 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And storerMock.GetCodeOrder is called 2 times with the expected paramters", func() {
-				calls := storerMock.GetCodeOrderCalls()
+				calls := storerMock.GetCodesOrderCalls()
 				So(len(calls), ShouldBeGreaterThan, 0)
 
 				So(calls[0].CodeListID, ShouldEqual, testCodeListID)
-				So(calls[0].CodeLabel, ShouldEqual, d1Api.Option)
+				So(calls[0].Codes, ShouldResemble, []string{d1Api.Option})
 			})
 
 			Convey("And DatasetAPICli.PatchDimensionOption is called at least once with the expected parameters", func() {
@@ -473,13 +473,13 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And storerMock.GetCodeOrder is called 2 times with the expected paramters", func() {
-				calls := storerMock.GetCodeOrderCalls()
+				calls := storerMock.GetCodesOrderCalls()
 				So(len(calls), ShouldEqual, 2)
 
 				So(calls[0].CodeListID, ShouldEqual, testCodeListID)
 				So(calls[1].CodeListID, ShouldEqual, testCodeListID)
-				So(calls[0].CodeLabel, ShouldEqual, d1Api.Option)
-				So(calls[1].CodeLabel, ShouldEqual, d2Api.Option)
+				So(calls[0].Codes, ShouldResemble, []string{d1Api.Option})
+				So(calls[1].Codes, ShouldResemble, []string{d2Api.Option})
 			})
 
 			Convey("And DatasetAPICli.PatchDimensionOption is called 1 time with the expected parameters", func() {
@@ -625,7 +625,7 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 				So(storerMock.InstanceExistsCalls()[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
 				So(len(storerMock.CreateInstanceCalls()), ShouldEqual, 0)
 				So(len(storerMock.AddDimensionsCalls()), ShouldEqual, 0)
-				So(len(storerMock.GetCodeOrderCalls()), ShouldEqual, 0)
+				So(len(storerMock.GetCodesOrderCalls()), ShouldEqual, 0)
 				So(len(storerMock.InsertDimensionCalls()), ShouldEqual, 0)
 				So(len(storerMock.CreateInstanceConstraintCalls()), ShouldEqual, 0)
 			})
@@ -661,6 +661,9 @@ func setUp() (*storertest.StorerMock, *mocks.IClientMock, *mocks.CompletedProduc
 		},
 		GetCodeOrderFunc: func(ctx context.Context, codeListID string, code string) (*int, error) {
 			return nil, nil
+		},
+		GetCodesOrderFunc: func(ctx context.Context, codeListID string, codes []string) (map[string]*int, error) {
+			return map[string]*int{}, nil
 		},
 		CloseFunc: func(ctx context.Context) error {
 			// Do nothing.
