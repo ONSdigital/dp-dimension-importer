@@ -3,8 +3,8 @@ github.com/ONSdigital/dp-api-clients-go v1.28.0/go.mod h1:iyJy6uRL4B6OYOJA0XMr5U
 github.com/ONSdigital/dp-api-clients-go v1.34.2 h1:4oVv0YbpxZn4V1H/X7RFQqlAPdXBlthKTarvrDq+tbU=
 github.com/ONSdigital/dp-api-clients-go v1.34.2/go.mod h1:kX+YKuoLYLfkeLHMvQKRRydZVxO7ZEYyYiwG2xhV51E=
 github.com/ONSdigital/dp-frontend-models v1.1.0/go.mod h1:TT96P7Mi69N3Tc/jFNdbjiwG4GAaMjP26HLotFQ6BPw=
-github.com/ONSdigital/dp-graph/v2 v2.7.3-0.20210317134336-6842b583aef5 h1:zo5en2C13FF3sPjYzydGNKBDM+B4mu0SGUdHMEOu0DU=
-github.com/ONSdigital/dp-graph/v2 v2.7.3-0.20210317134336-6842b583aef5/go.mod h1:+m3RdJJj3MsqcufyalJVuzI5rhPmlvw6Tto/ppi4AEQ=
+github.com/ONSdigital/dp-graph/v2 v2.7.3-0.20210318094659-fdf21a061938 h1:KV4EGVyuZmgLXwXjCs20X8YjUNuBuKTgah6uLnFAHR8=
+github.com/ONSdigital/dp-graph/v2 v2.7.3-0.20210318094659-fdf21a061938/go.mod h1:HqPhOmhl65ApBfbILV+mgMtAh0/45BowpZWKVzxe8tM=
 github.com/ONSdigital/dp-healthcheck v0.0.0-20200131122546-9db6d3f0494e/go.mod h1:zighxZ/0m5u7zo0eAr8XFlA+Dz2ic7A1vna6YXvhCjQ=
 github.com/ONSdigital/dp-healthcheck v1.0.5 h1:DXnohGIqXaLLeYGdaGOhgkZjAbWMNoLAjQ3EgZeMT3M=
 github.com/ONSdigital/dp-healthcheck v1.0.5/go.mod h1:2wbVAUHMl9+4tWhUlxYUuA1dnf2+NrwzC+So5f5BMLk=
@@ -32,8 +32,8 @@ github.com/ONSdigital/golang-neo4j-bolt-driver v0.0.0-20190228153339-da534111531
 github.com/ONSdigital/golang-neo4j-bolt-driver v0.0.0-20190228153339-da534111531d/go.mod h1:75Sxr59AMz2RiPskqSymLFxdeaIEhnkNaJE5lonMS3M=
 github.com/ONSdigital/graphson v0.0.0-20190718134034-c13ceacd109d h1:yrCtEGlohmA3OnXtke0nOOp/m9O83orpSnTGOfYOw1Q=
 github.com/ONSdigital/graphson v0.0.0-20190718134034-c13ceacd109d/go.mod h1:zQ+8pTnCLGuy4eUek81pWUxZo4/f71ri3VYz97Wby+4=
-github.com/ONSdigital/graphson v0.1.1-0.20210315170650-a0fc5edb3d84 h1:XBt89d+PWDKD3VK9EGe6JRPD9vxSR4sLRb0lpDQNTlI=
-github.com/ONSdigital/graphson v0.1.1-0.20210315170650-a0fc5edb3d84/go.mod h1:IRS8d1ydh1oczDKbLhTcqc/BNfgZyzhrrjr21SQOkjA=
+github.com/ONSdigital/graphson v0.1.1-0.20210317162900-dbbc920ad87a h1:K1Wu0HnkacG4HieNqEkLg8z7Nv2zz0PCbXDVQAojd7s=
+github.com/ONSdigital/graphson v0.1.1-0.20210317162900-dbbc920ad87a/go.mod h1:IRS8d1ydh1oczDKbLhTcqc/BNfgZyzhrrjr21SQOkjA=
 github.com/ONSdigital/gremgo-neptune v1.0.1 h1:2IFocPqHsWZhlzFBsXpBEYfDaw3zQiGjRajVfQ+b2A4=
 github.com/ONSdigital/gremgo-neptune v1.0.1/go.mod h1:GZz/N6xjNY+EN0x4FmfBDrM73R+Pr3aI5iCwYbY1oYQ=
 github.com/ONSdigital/log.go v0.0.0-20191127134126-2a610b254f20/go.mod h1:BD7D8FWP1fzwUWsrCopEG72jl9cchCaVNIGSz6YvL+Y=
