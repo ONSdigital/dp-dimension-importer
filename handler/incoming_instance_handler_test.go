@@ -48,6 +48,9 @@ var (
 	}
 	d2 = model.NewDimension(&d2Api)
 
+	d1Order = 0
+	d2Order = 1
+
 	instanceApi = dataset.Instance{
 		Version: dataset.Version{
 			ID:        testInstanceID,
@@ -113,9 +116,16 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(len(calls), ShouldEqual, 2)
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
-				So(calls[1].InstanceID, ShouldEqual, testInstanceID)
 				So(calls[0].DimensionID, ShouldEqual, d1Api.DimensionID)
+				So(calls[0].OptionID, ShouldEqual, d1Api.Option)
+				So(calls[0].NodeID, ShouldEqual, d1Api.NodeID)
+				So(*calls[0].Order, ShouldEqual, d1Order)
+
+				So(calls[1].InstanceID, ShouldEqual, testInstanceID)
 				So(calls[1].DimensionID, ShouldEqual, d2Api.DimensionID)
+				So(calls[1].OptionID, ShouldEqual, d2Api.Option)
+				So(calls[1].NodeID, ShouldEqual, d2Api.NodeID)
+				So(*calls[1].Order, ShouldEqual, d2Order)
 			})
 
 			Convey("And storer.AddDimensions is called 1 time with the expected parameters", func() {
@@ -273,6 +283,9 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
 				So(calls[0].DimensionID, ShouldEqual, d1Api.DimensionID)
+				So(calls[0].OptionID, ShouldEqual, d1Api.Option)
+				So(calls[0].NodeID, ShouldEqual, d1Api.NodeID)
+				So(*calls[0].Order, ShouldEqual, d1Order)
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -333,9 +346,6 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			storerMock.GetCodesOrderFunc = func(ctx context.Context, codeListID string, codes []string) (map[string]*int, error) {
 				return nil, errorMock
 			}
-			storerMock.GetCodeOrderFunc = func(ctx context.Context, codeListID string, codeLabel string) (*int, error) {
-				return nil, errorMock
-			}
 
 			err := handler.Handle(ctx, event)
 
@@ -369,7 +379,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "error while attempting to get dimension order using label").Error())
+				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "error while attempting to get dimension order using code").Error())
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -425,6 +435,9 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
 				So(calls[0].DimensionID, ShouldEqual, d1Api.DimensionID)
+				So(calls[0].OptionID, ShouldEqual, d1Api.Option)
+				So(calls[0].NodeID, ShouldEqual, d1Api.NodeID)
+				So(*calls[0].Order, ShouldEqual, d1Order)
 			})
 
 			Convey("And the expected error is returned", func() {
@@ -485,15 +498,21 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				So(calls[1].Codes, ShouldResemble, []string{d2Api.Option})
 			})
 
-			Convey("And DatasetAPICli.PatchDimensionOption is called 1 time with the expected parameters", func() {
+			Convey("And DatasetAPICli.PatchDimensionOption is called 2 times with the expected parameters", func() {
 				calls := datasetAPIMock.PatchInstanceDimensionOptionCalls()
 				So(len(calls), ShouldEqual, 2)
 
 				So(calls[0].InstanceID, ShouldEqual, testInstanceID)
 				So(calls[0].DimensionID, ShouldEqual, d1Api.DimensionID)
+				So(calls[0].OptionID, ShouldEqual, d1Api.Option)
+				So(calls[0].NodeID, ShouldEqual, d1Api.NodeID)
+				So(*calls[0].Order, ShouldEqual, d1Order)
 
 				So(calls[1].InstanceID, ShouldEqual, testInstanceID)
 				So(calls[1].DimensionID, ShouldEqual, d2Api.DimensionID)
+				So(calls[1].OptionID, ShouldEqual, d2Api.Option)
+				So(calls[1].NodeID, ShouldEqual, d2Api.NodeID)
+				So(*calls[1].Order, ShouldEqual, d2Order)
 			})
 
 			Convey("And the expected error is returned", func() {
@@ -662,11 +681,11 @@ func setUp() (*storertest.StorerMock, *mocks.IClientMock, *mocks.CompletedProduc
 		CreateInstanceConstraintFunc: func(ctx context.Context, instanceID string) error {
 			return nil
 		},
-		GetCodeOrderFunc: func(ctx context.Context, codeListID string, code string) (*int, error) {
-			return nil, nil
-		},
 		GetCodesOrderFunc: func(ctx context.Context, codeListID string, codes []string) (map[string]*int, error) {
-			return map[string]*int{}, nil
+			return map[string]*int{
+				"England": &d1Order,
+				"Wales":   &d2Order,
+			}, nil
 		},
 		CloseFunc: func(ctx context.Context) error {
 			// Do nothing.
@@ -686,9 +705,10 @@ func setUp() (*storertest.StorerMock, *mocks.IClientMock, *mocks.CompletedProduc
 		},
 	}
 	datasetAPIClient := &client.DatasetAPI{
-		AuthToken:      "token",
-		DatasetAPIHost: "host",
-		Client:         datasetAPIMock,
+		AuthToken:         "token",
+		DatasetAPIHost:    "host",
+		Client:            datasetAPIMock,
+		EnablePatchNodeID: true,
 	}
 
 	completedProducer := &mocks.CompletedProducerMock{
