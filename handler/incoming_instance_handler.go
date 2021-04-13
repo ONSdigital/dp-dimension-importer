@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -168,8 +169,27 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 		return
 	}
 
-	if err = hdlr.DatasetAPICli.PutDimensionNodeID(ctx, instance.DbModel().InstanceID, d); err != nil {
-		err = errors.Wrap(err, "DatasetAPICli.PutDimensionNodeID returned an error")
+	orderMap, err := hdlr.Store.GetCodesOrder(ctx, d.CodeListID(), []string{d.DbModel().Option})
+	if err != nil {
+		err = errors.Wrap(err, "error while attempting to get dimension order using code")
+		log.Event(ctx, err.Error(), log.Error(err), log.Data{
+			"instance_id":  instance.DbModel().InstanceID,
+			"dimension_id": dbDimension.DimensionID,
+			"code_list_id": d.CodeListID(),
+			"code":         d.DbModel().Option,
+		})
+		problem <- err
+		return
+	}
+
+	order, ok := orderMap[d.DbModel().Option]
+	if !ok {
+		problem <- fmt.Errorf("no order was found for option %s", d.DbModel().Option)
+		return
+	}
+
+	if err = hdlr.DatasetAPICli.PatchDimensionOption(ctx, instance.DbModel().InstanceID, d, order); err != nil {
+		err = errors.Wrap(err, "DatasetAPICli.PatchDimensionOption returned an error")
 		log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 		problem <- err
 		return

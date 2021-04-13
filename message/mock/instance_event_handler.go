@@ -10,6 +10,10 @@ import (
 	"sync"
 )
 
+var (
+	lockInstanceEventHandlerMockHandle sync.RWMutex
+)
+
 // Ensure, that InstanceEventHandlerMock does implement message.InstanceEventHandler.
 // If this is not the case, regenerate this file with moq.
 var _ message.InstanceEventHandler = &InstanceEventHandlerMock{}
@@ -43,7 +47,6 @@ type InstanceEventHandlerMock struct {
 			E event.NewInstance
 		}
 	}
-	lockHandle sync.RWMutex
 }
 
 // Handle calls HandleFunc.
@@ -58,9 +61,9 @@ func (mock *InstanceEventHandlerMock) Handle(ctx context.Context, e event.NewIns
 		Ctx: ctx,
 		E:   e,
 	}
-	mock.lockHandle.Lock()
+	lockInstanceEventHandlerMockHandle.Lock()
 	mock.calls.Handle = append(mock.calls.Handle, callInfo)
-	mock.lockHandle.Unlock()
+	lockInstanceEventHandlerMockHandle.Unlock()
 	return mock.HandleFunc(ctx, e)
 }
 
@@ -75,8 +78,8 @@ func (mock *InstanceEventHandlerMock) HandleCalls() []struct {
 		Ctx context.Context
 		E   event.NewInstance
 	}
-	mock.lockHandle.RLock()
+	lockInstanceEventHandlerMockHandle.RLock()
 	calls = mock.calls.Handle
-	mock.lockHandle.RUnlock()
+	lockInstanceEventHandlerMockHandle.RUnlock()
 	return calls
 }

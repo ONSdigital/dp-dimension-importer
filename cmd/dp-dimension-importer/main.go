@@ -86,7 +86,7 @@ func main() {
 	}
 
 	// Dataset Client wrapper.
-	datasetAPICli, err := client.NewDatasetAPIClient(cfg.ServiceAuthToken, cfg.DatasetAPIAddr)
+	datasetAPICli, err := client.NewDatasetAPIClient(cfg)
 
 	// Receiver for NewInstance events.
 	instanceEventHandler := &handler.InstanceEventHandler{

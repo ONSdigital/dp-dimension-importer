@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	dataset "github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 )
@@ -30,7 +31,7 @@ var ErrDimensionIDEmpty = errors.New("dimension.id is required but is empty")
 
 // IClient is an interface that represents the required functionality from dataset client from dp-api-clients-go
 type IClient interface {
-	PutInstanceDimensionOptionNodeID(ctx context.Context, serviceAuthToken, instanceID, dimensionID, optionID, nodeID string) error
+	PatchInstanceDimensionOption(ctx context.Context, serviceAuthToken, instanceID, dimensionID, optionID, nodeID string, order *int) error
 	GetInstanceDimensions(ctx context.Context, serviceAuthToken, instanceID string) (m dataset.Dimensions, err error)
 	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID string) (m dataset.Instance, err error)
 	Checker(ctx context.Context, state *healthcheck.CheckState) error
@@ -38,20 +39,22 @@ type IClient interface {
 
 // DatasetAPI provides methods for getting dimensions for a given instanceID and updating the node_id of a specific dimension.
 type DatasetAPI struct {
-	AuthToken      string
-	DatasetAPIHost string
-	Client         IClient
+	AuthToken         string
+	DatasetAPIHost    string
+	Client            IClient
+	EnablePatchNodeID bool
 }
 
 // NewDatasetAPIClient validates the parameters and creates a new dataset API client from dp-api-clients-go library.
-func NewDatasetAPIClient(authToken, datasetAPIHost string) (*DatasetAPI, error) {
-	if len(datasetAPIHost) == 0 {
+func NewDatasetAPIClient(cfg *config.Config) (*DatasetAPI, error) {
+	if len(cfg.DatasetAPIAddr) == 0 {
 		return nil, ErrHostEmpty
 	}
 	return &DatasetAPI{
-		AuthToken:      authToken,
-		DatasetAPIHost: datasetAPIHost,
-		Client:         dataset.NewAPIClient(datasetAPIHost),
+		AuthToken:         cfg.ServiceAuthToken,
+		DatasetAPIHost:    cfg.DatasetAPIAddr,
+		Client:            dataset.NewAPIClient(cfg.DatasetAPIAddr),
+		EnablePatchNodeID: cfg.EnablePatchNodeID,
 	}, nil
 }
 
@@ -85,8 +88,8 @@ func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID string) ([]*
 	return ret, nil
 }
 
-// PutDimensionNodeID make a HTTP put request to update the node_id of the specified dimension.
-func (api DatasetAPI) PutDimensionNodeID(ctx context.Context, instanceID string, d *model.Dimension) error {
+// PatchDimensionOption make a HTTP patch request to update the node_id and/or order of the specified dimension.
+func (api DatasetAPI) PatchDimensionOption(ctx context.Context, instanceID string, d *model.Dimension, order *int) error {
 	if len(instanceID) == 0 {
 		return ErrInstanceIDEmpty
 	}
@@ -101,5 +104,10 @@ func (api DatasetAPI) PutDimensionNodeID(ctx context.Context, instanceID string,
 		return ErrDimensionIDEmpty
 	}
 
-	return api.Client.PutInstanceDimensionOptionNodeID(ctx, api.AuthToken, instanceID, dim.DimensionID, url.PathEscape(dim.Option), dim.NodeID)
+	nodeID := ""
+	if api.EnablePatchNodeID {
+		nodeID = dim.NodeID
+	}
+
+	return api.Client.PatchInstanceDimensionOption(ctx, api.AuthToken, instanceID, dim.DimensionID, url.PathEscape(dim.Option), nodeID, order)
 }
