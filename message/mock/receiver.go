@@ -9,10 +9,6 @@ import (
 	"sync"
 )
 
-var (
-	lockReceiverMockOnMessage sync.RWMutex
-)
-
 // Ensure, that ReceiverMock does implement message.Receiver.
 // If this is not the case, regenerate this file with moq.
 var _ message.Receiver = &ReceiverMock{}
@@ -44,6 +40,7 @@ type ReceiverMock struct {
 			Message kafka.Message
 		}
 	}
+	lockOnMessage sync.RWMutex
 }
 
 // OnMessage calls OnMessageFunc.
@@ -56,9 +53,9 @@ func (mock *ReceiverMock) OnMessage(message kafka.Message) {
 	}{
 		Message: message,
 	}
-	lockReceiverMockOnMessage.Lock()
+	mock.lockOnMessage.Lock()
 	mock.calls.OnMessage = append(mock.calls.OnMessage, callInfo)
-	lockReceiverMockOnMessage.Unlock()
+	mock.lockOnMessage.Unlock()
 	mock.OnMessageFunc(message)
 }
 
@@ -71,8 +68,8 @@ func (mock *ReceiverMock) OnMessageCalls() []struct {
 	var calls []struct {
 		Message kafka.Message
 	}
-	lockReceiverMockOnMessage.RLock()
+	mock.lockOnMessage.RLock()
 	calls = mock.calls.OnMessage
-	lockReceiverMockOnMessage.RUnlock()
+	mock.lockOnMessage.RUnlock()
 	return calls
 }

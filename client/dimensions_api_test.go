@@ -152,7 +152,7 @@ func TestGetDimensions(t *testing.T) {
 	Convey("Given a valid client configuration", t, func() {
 
 		clientMock := &mocks.IClientMock{
-			GetInstanceDimensionsFunc: func(ctx context.Context, serviceAuthToken string, instanceID string) (dataset.Dimensions, error) {
+			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, userAuthToken, serviceAuthToken string, instanceID string, bacthSize, maxWorkers int) (dataset.Dimensions, error) {
 				return datasetDimensions, nil
 			},
 		}
@@ -173,9 +173,9 @@ func TestGetDimensions(t *testing.T) {
 			})
 
 			Convey("And dataset.GetInstanceDimensions is called exactly once with the right parameters", func() {
-				So(len(clientMock.GetInstanceDimensionsCalls()), ShouldEqual, 1)
-				So(clientMock.GetInstanceDimensionsCalls()[0].InstanceID, ShouldEqual, instanceID)
-				So(clientMock.GetInstanceDimensionsCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
+				So(len(clientMock.GetInstanceDimensionsInBatchesCalls()), ShouldEqual, 1)
+				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].InstanceID, ShouldEqual, instanceID)
+				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].UserAuthToken, ShouldEqual, authToken)
 			})
 		})
 	})
@@ -204,7 +204,7 @@ func TestGetDimensions(t *testing.T) {
 	Convey("Given dataset.GetInstanceDimensions will return an error", t, func() {
 
 		clientMock := &mocks.IClientMock{
-			GetInstanceDimensionsFunc: func(ctx context.Context, serviceAuthToken string, instanceID string) (dataset.Dimensions, error) {
+			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, userAuthToken, serviceAuthToken string, instanceID string, bacthSize, maxWorkers int) (dataset.Dimensions, error) {
 				return dataset.Dimensions{}, errMock
 			},
 		}
@@ -225,9 +225,9 @@ func TestGetDimensions(t *testing.T) {
 			})
 
 			Convey("And dataset.GetInstanceDimensions is called exactly once with the right parameters", func() {
-				So(len(clientMock.GetInstanceDimensionsCalls()), ShouldEqual, 1)
-				So(clientMock.GetInstanceDimensionsCalls()[0].InstanceID, ShouldEqual, instanceID)
-				So(clientMock.GetInstanceDimensionsCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
+				So(len(clientMock.GetInstanceDimensionsInBatchesCalls()), ShouldEqual, 1)
+				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].InstanceID, ShouldEqual, instanceID)
+				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].UserAuthToken, ShouldEqual, authToken)
 			})
 		})
 	})
