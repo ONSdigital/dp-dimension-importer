@@ -1,10 +1,8 @@
 github.com/ONSdigital/dp-api-clients-go v1.1.0/go.mod h1:9lqor0I7caCnRWr04gU/r7x5dqxgoODob8L48q+cE4E=
 github.com/ONSdigital/dp-api-clients-go v1.28.0/go.mod h1:iyJy6uRL4B6OYOJA0XMr5UHt6+Q8XmN9uwmURO+9Oj4=
-github.com/ONSdigital/dp-api-clients-go v1.34.2 h1:4oVv0YbpxZn4V1H/X7RFQqlAPdXBlthKTarvrDq+tbU=
-github.com/ONSdigital/dp-api-clients-go v1.34.2/go.mod h1:kX+YKuoLYLfkeLHMvQKRRydZVxO7ZEYyYiwG2xhV51E=
+github.com/ONSdigital/dp-api-clients-go v1.36.0 h1:bAxGiC2rgmtvLTa5YAKJw6OyO9kZSSCDbvwUDg5r5Oc=
+github.com/ONSdigital/dp-api-clients-go v1.36.0/go.mod h1:kX+YKuoLYLfkeLHMvQKRRydZVxO7ZEYyYiwG2xhV51E=
 github.com/ONSdigital/dp-frontend-models v1.1.0/go.mod h1:TT96P7Mi69N3Tc/jFNdbjiwG4GAaMjP26HLotFQ6BPw=
-github.com/ONSdigital/dp-graph/v2 v2.9.0 h1:S3zNRfzjApPRV23EC/EhclaLZ02u5V/RVSdO3q3rdgA=
-github.com/ONSdigital/dp-graph/v2 v2.9.0/go.mod h1:bhiKBX0l62HWaYMN4d6vjldayPTGB3fd7W4kVqNsiwU=
 github.com/ONSdigital/dp-graph/v2 v2.11.1 h1:E8w/ZKkN61CY3luP9iFGEqiZfbuboLBchD+JqFf/M7I=
 github.com/ONSdigital/dp-graph/v2 v2.11.1/go.mod h1:bhiKBX0l62HWaYMN4d6vjldayPTGB3fd7W4kVqNsiwU=
 github.com/ONSdigital/dp-healthcheck v0.0.0-20200131122546-9db6d3f0494e/go.mod h1:zighxZ/0m5u7zo0eAr8XFlA+Dz2ic7A1vna6YXvhCjQ=

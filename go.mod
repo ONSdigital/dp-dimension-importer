@@ -3,7 +3,7 @@ module github.com/ONSdigital/dp-dimension-importer
 go 1.16
 
 require (
-	github.com/ONSdigital/dp-api-clients-go v1.34.2
+	github.com/ONSdigital/dp-api-clients-go v1.36.0
 	github.com/ONSdigital/dp-graph/v2 v2.11.1
 	github.com/ONSdigital/dp-healthcheck v1.0.5
 	github.com/ONSdigital/dp-kafka/v2 v2.1.2
@@ -17,5 +17,3 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/smartystreets/goconvey v1.6.4
 )
-
-replace github.com/ONSdigital/dp-api-clients-go =>  /Users/andreurbani/Development/ons/dp-api-clients-go
