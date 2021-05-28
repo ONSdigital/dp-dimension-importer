@@ -78,7 +78,7 @@ func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID string) ([]*
 		return nil, ErrInstanceIDEmpty
 	}
 
-	dimensions, err := api.Client.GetInstanceDimensionsInBatches(ctx, api.AuthToken, "", instanceID, api.BatchSize, api.MaxWorkers)
+	dimensions, err := api.Client.GetInstanceDimensionsInBatches(ctx, "", api.AuthToken, instanceID, api.BatchSize, api.MaxWorkers)
 	if err != nil {
 		return nil, err
 	}

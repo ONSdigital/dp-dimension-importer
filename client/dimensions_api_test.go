@@ -175,7 +175,7 @@ func TestGetDimensions(t *testing.T) {
 			Convey("And dataset.GetInstanceDimensions is called exactly once with the right parameters", func() {
 				So(len(clientMock.GetInstanceDimensionsInBatchesCalls()), ShouldEqual, 1)
 				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].InstanceID, ShouldEqual, instanceID)
-				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].UserAuthToken, ShouldEqual, authToken)
+				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
 			})
 		})
 	})
@@ -227,7 +227,7 @@ func TestGetDimensions(t *testing.T) {
 			Convey("And dataset.GetInstanceDimensions is called exactly once with the right parameters", func() {
 				So(len(clientMock.GetInstanceDimensionsInBatchesCalls()), ShouldEqual, 1)
 				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].InstanceID, ShouldEqual, instanceID)
-				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].UserAuthToken, ShouldEqual, authToken)
+				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
 			})
 		})
 	})
