@@ -7,7 +7,6 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
-	"github.com/pkg/errors"
 )
 
 //go:generate moq -out ./mock/producer.go -pkg mock . Marshaller
@@ -27,7 +26,7 @@ type InstanceCompletedProducer struct {
 func (p InstanceCompletedProducer) Completed(ctx context.Context, e event.InstanceCompleted) error {
 	bytes, avroError := p.Marshaller.Marshal(e)
 	if avroError != nil {
-		return errors.Wrap(avroError, fmt.Sprintf("Marshaller.Marshal returned an error: event=%v", e))
+		return fmt.Errorf(fmt.Sprintf("Marshaller.Marshal returned an error: event=%v: %%w", e), avroError)
 	}
 	p.Producer.Channels().Output <- bytes
 	log.Event(ctx, "completed successfully", log.INFO, log.Data{"event": e, "package": "message.InstanceCompletedProducer"})

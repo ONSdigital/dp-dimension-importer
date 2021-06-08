@@ -2,9 +2,9 @@ package handler_test
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
-
-	"github.com/pkg/errors"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-dimension-importer/client"
@@ -192,7 +192,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "DatasetAPICli.GetDimensions returned an error").Error())
+				So(err.Error(), ShouldEqual, fmt.Errorf("DatasetAPICli.GetDimensions returned an error: %w", errorMock).Error())
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -235,7 +235,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "create instance returned an error").Error())
+				So(err.Error(), ShouldEqual, fmt.Errorf("create instance returned an error: %w", errorMock).Error())
 			})
 		})
 
@@ -293,7 +293,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "error attempting to create relationship to code").Error())
+				So(err.Error(), ShouldEqual, fmt.Errorf("error attempting to create relationship to code: %w", errorMock).Error())
 			})
 		})
 
@@ -327,7 +327,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "error while attempting to insert dimension").Error())
+				So(err.Error(), ShouldEqual, fmt.Errorf("error while attempting to insert dimension: %w", errorMock).Error())
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -379,7 +379,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "error while attempting to get dimension order using code").Error())
+				So(err.Error(), ShouldEqual, fmt.Errorf("error while attempting to get dimension order using code: %w", errorMock).Error())
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -441,7 +441,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "DatasetAPICli.PatchDimensionOption returned an error").Error())
+				So(err.Error(), ShouldEqual, fmt.Errorf("DatasetAPICli.PatchDimensionOption returned an error: %w", errorMock).Error())
 			})
 
 			Convey("And no further processing of the event takes place.", func() {
@@ -516,7 +516,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "AddDimensions returned an error").Error())
+				So(err.Error(), ShouldEqual, fmt.Errorf("AddDimensions returned an error: %w", errorMock).Error())
 			})
 		})
 	})
@@ -534,7 +534,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			err := handler.Handle(ctx, event)
 
 			Convey("Then the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.New("validation error dataset api client required but was nil").Error())
+				So(err.Error(), ShouldEqual, "validation error dataset api client required but was nil")
 			})
 
 			Convey("And the event is not handled", func() {
@@ -562,7 +562,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			err := handler.Handle(ctx, event)
 
 			Convey("Then the expected error is returned", func() {
-				So(err.Error(), ShouldEqual, errors.New("validation error datastore required but was nil").Error())
+				So(err.Error(), ShouldEqual, "validation error datastore required but was nil")
 			})
 			Convey("And the event is not handled", func() {
 				So(len(datasetAPIMock.GetInstanceDimensionsInBatchesCalls()), ShouldEqual, 0)
@@ -629,7 +629,7 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 			err := handler.Handle(ctx, newInstance)
 
 			Convey("Then handler returns the expected error", func() {
-				So(err.Error(), ShouldEqual, errors.Wrap(errorMock, "instance exists check returned an error").Error())
+				So(err.Error(), ShouldEqual, fmt.Errorf("instance exists check returned an error: %w", errorMock).Error())
 			})
 
 			Convey("And datasetAPICli make the expected calls with the expected parameters", func() {

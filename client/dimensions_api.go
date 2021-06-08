@@ -2,8 +2,7 @@ package client
 
 import (
 	"context"
-
-	"github.com/pkg/errors"
+	"errors"
 
 	"net/url"
 

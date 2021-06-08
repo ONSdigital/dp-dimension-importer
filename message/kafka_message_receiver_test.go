@@ -2,6 +2,7 @@ package message_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/ONSdigital/dp-dimension-importer/event"
@@ -10,7 +11,6 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/ONSdigital/dp-reporter-client/reporter/reportertest"
-	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

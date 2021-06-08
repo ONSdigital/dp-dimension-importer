@@ -3,6 +3,7 @@ package client_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -12,7 +13,6 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/mocks"
 	"github.com/ONSdigital/dp-dimension-importer/model"
-	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
