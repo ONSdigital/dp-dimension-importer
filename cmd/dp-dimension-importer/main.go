@@ -120,9 +120,8 @@ func main() {
 		ErrorReporter:   errorReporter,
 	}
 
-	// Create Consumer with kafkaConsmer
-	consumer := serviceList.NewConsumer(ctx, instanceConsumer, messageReceiver, cfg.GracefulShutdownTimeout)
-	consumer.Listen()
+	// Start consuming messages from Kafka instanceConsumer
+	message.Consume(ctx, instanceConsumer, messageReceiver, cfg)
 
 	instanceConsumer.Channels().LogErrors(ctx, "incoming instance kafka consumer received an error")
 	instanceCompleteProducer.Channels().LogErrors(ctx, "completed instance kafka producer received an error")
@@ -155,11 +154,6 @@ func main() {
 				log.Event(ctx, "error on stop listening to instance kafka consumer", log.ERROR, log.Error(err))
 				hasShutdownError = true
 			}
-		}
-
-		if serviceList.Consumer {
-			log.Event(ctx, "closing event consumer", log.INFO)
-			consumer.Close(shutdownCtx)
 		}
 
 		if serviceList.InstanceConsumer {

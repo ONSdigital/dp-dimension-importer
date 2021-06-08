@@ -16,6 +16,8 @@ type Config struct {
 	ServiceAuthToken               string        `envconfig:"SERVICE_AUTH_TOKEN"                     json:"-"`
 	KafkaAddr                      []string      `envconfig:"KAFKA_ADDR"`
 	KafkaVersion                   string        `envconfig:"KAFKA_VERSION"`
+	KafkaOffsetOldest              bool          `envconfig:"KAFKA_OFFSET_OLDEST"`
+	KafkaNumWorkers                int           `envconfig:"KAFKA_NUM_WORKERS"`
 	IncomingInstancesTopic         string        `envconfig:"DIMENSIONS_EXTRACTED_TOPIC"`
 	IncomingInstancesConsumerGroup string        `envconfig:"DIMENSIONS_EXTRACTED_CONSUMER_GROUP"`
 	OutgoingInstancesTopic         string        `envconfig:"DIMENSIONS_INSERTED_TOPIC"`
@@ -42,6 +44,8 @@ func Get(ctx context.Context) (*Config, error) {
 		DatasetAPIAddr:                 "http://localhost:22000",
 		KafkaAddr:                      []string{"localhost:9092"},
 		KafkaVersion:                   "1.0.2",
+		KafkaOffsetOldest:              true,
+		KafkaNumWorkers:                1,
 		IncomingInstancesTopic:         "dimensions-extracted",
 		IncomingInstancesConsumerGroup: "dp-dimension-importer",
 		OutgoingInstancesTopic:         "dimensions-inserted",
