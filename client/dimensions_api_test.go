@@ -152,7 +152,7 @@ func TestGetDimensions(t *testing.T) {
 	Convey("Given a valid client configuration", t, func() {
 
 		clientMock := &mocks.IClientMock{
-			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, userAuthToken, serviceAuthToken string, instanceID string, bacthSize, maxWorkers int) (dataset.Dimensions, error) {
+			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, bacthSize, maxWorkers int) (dataset.Dimensions, error) {
 				return datasetDimensions, nil
 			},
 		}
@@ -204,7 +204,7 @@ func TestGetDimensions(t *testing.T) {
 	Convey("Given dataset.GetInstanceDimensions will return an error", t, func() {
 
 		clientMock := &mocks.IClientMock{
-			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, userAuthToken, serviceAuthToken string, instanceID string, bacthSize, maxWorkers int) (dataset.Dimensions, error) {
+			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, bacthSize, maxWorkers int) (dataset.Dimensions, error) {
 				return dataset.Dimensions{}, errMock
 			},
 		}

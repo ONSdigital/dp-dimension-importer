@@ -11,6 +11,13 @@ import (
 	"sync"
 )
 
+var (
+	lockIClientMockChecker                        sync.RWMutex
+	lockIClientMockGetInstance                    sync.RWMutex
+	lockIClientMockGetInstanceDimensionsInBatches sync.RWMutex
+	lockIClientMockPatchInstanceDimensionOption   sync.RWMutex
+)
+
 // Ensure, that IClientMock does implement client.IClient.
 // If this is not the case, regenerate this file with moq.
 var _ client.IClient = &IClientMock{}
@@ -27,7 +34,7 @@ var _ client.IClient = &IClientMock{}
 //             GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string) (dataset.Instance, error) {
 // 	               panic("mock out the GetInstance method")
 //             },
-//             GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, instanceID string, batchSize int, maxWorkers int) (dataset.Dimensions, error) {
+//             GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, batchSize int, maxWorkers int) (dataset.Dimensions, error) {
 // 	               panic("mock out the GetInstanceDimensionsInBatches method")
 //             },
 //             PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int) error {
@@ -47,7 +54,7 @@ type IClientMock struct {
 	GetInstanceFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string) (dataset.Instance, error)
 
 	// GetInstanceDimensionsInBatchesFunc mocks the GetInstanceDimensionsInBatches method.
-	GetInstanceDimensionsInBatchesFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, instanceID string, batchSize int, maxWorkers int) (dataset.Dimensions, error)
+	GetInstanceDimensionsInBatchesFunc func(ctx context.Context, serviceAuthToken string, instanceID string, batchSize int, maxWorkers int) (dataset.Dimensions, error)
 
 	// PatchInstanceDimensionOptionFunc mocks the PatchInstanceDimensionOption method.
 	PatchInstanceDimensionOptionFunc func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int) error
@@ -78,8 +85,6 @@ type IClientMock struct {
 		GetInstanceDimensionsInBatches []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// UserAuthToken is the userAuthToken argument value.
-			UserAuthToken string
 			// ServiceAuthToken is the serviceAuthToken argument value.
 			ServiceAuthToken string
 			// InstanceID is the instanceID argument value.
@@ -107,10 +112,6 @@ type IClientMock struct {
 			Order *int
 		}
 	}
-	lockChecker                        sync.RWMutex
-	lockGetInstance                    sync.RWMutex
-	lockGetInstanceDimensionsInBatches sync.RWMutex
-	lockPatchInstanceDimensionOption   sync.RWMutex
 }
 
 // Checker calls CheckerFunc.
@@ -125,9 +126,9 @@ func (mock *IClientMock) Checker(ctx context.Context, state *healthcheck.CheckSt
 		Ctx:   ctx,
 		State: state,
 	}
-	mock.lockChecker.Lock()
+	lockIClientMockChecker.Lock()
 	mock.calls.Checker = append(mock.calls.Checker, callInfo)
-	mock.lockChecker.Unlock()
+	lockIClientMockChecker.Unlock()
 	return mock.CheckerFunc(ctx, state)
 }
 
@@ -142,9 +143,9 @@ func (mock *IClientMock) CheckerCalls() []struct {
 		Ctx   context.Context
 		State *healthcheck.CheckState
 	}
-	mock.lockChecker.RLock()
+	lockIClientMockChecker.RLock()
 	calls = mock.calls.Checker
-	mock.lockChecker.RUnlock()
+	lockIClientMockChecker.RUnlock()
 	return calls
 }
 
@@ -166,9 +167,9 @@ func (mock *IClientMock) GetInstance(ctx context.Context, userAuthToken string, 
 		CollectionID:     collectionID,
 		InstanceID:       instanceID,
 	}
-	mock.lockGetInstance.Lock()
+	lockIClientMockGetInstance.Lock()
 	mock.calls.GetInstance = append(mock.calls.GetInstance, callInfo)
-	mock.lockGetInstance.Unlock()
+	lockIClientMockGetInstance.Unlock()
 	return mock.GetInstanceFunc(ctx, userAuthToken, serviceAuthToken, collectionID, instanceID)
 }
 
@@ -189,36 +190,34 @@ func (mock *IClientMock) GetInstanceCalls() []struct {
 		CollectionID     string
 		InstanceID       string
 	}
-	mock.lockGetInstance.RLock()
+	lockIClientMockGetInstance.RLock()
 	calls = mock.calls.GetInstance
-	mock.lockGetInstance.RUnlock()
+	lockIClientMockGetInstance.RUnlock()
 	return calls
 }
 
 // GetInstanceDimensionsInBatches calls GetInstanceDimensionsInBatchesFunc.
-func (mock *IClientMock) GetInstanceDimensionsInBatches(ctx context.Context, userAuthToken string, serviceAuthToken string, instanceID string, batchSize int, maxWorkers int) (dataset.Dimensions, error) {
+func (mock *IClientMock) GetInstanceDimensionsInBatches(ctx context.Context, serviceAuthToken string, instanceID string, batchSize int, maxWorkers int) (dataset.Dimensions, error) {
 	if mock.GetInstanceDimensionsInBatchesFunc == nil {
 		panic("IClientMock.GetInstanceDimensionsInBatchesFunc: method is nil but IClient.GetInstanceDimensionsInBatches was just called")
 	}
 	callInfo := struct {
 		Ctx              context.Context
-		UserAuthToken    string
 		ServiceAuthToken string
 		InstanceID       string
 		BatchSize        int
 		MaxWorkers       int
 	}{
 		Ctx:              ctx,
-		UserAuthToken:    userAuthToken,
 		ServiceAuthToken: serviceAuthToken,
 		InstanceID:       instanceID,
 		BatchSize:        batchSize,
 		MaxWorkers:       maxWorkers,
 	}
-	mock.lockGetInstanceDimensionsInBatches.Lock()
+	lockIClientMockGetInstanceDimensionsInBatches.Lock()
 	mock.calls.GetInstanceDimensionsInBatches = append(mock.calls.GetInstanceDimensionsInBatches, callInfo)
-	mock.lockGetInstanceDimensionsInBatches.Unlock()
-	return mock.GetInstanceDimensionsInBatchesFunc(ctx, userAuthToken, serviceAuthToken, instanceID, batchSize, maxWorkers)
+	lockIClientMockGetInstanceDimensionsInBatches.Unlock()
+	return mock.GetInstanceDimensionsInBatchesFunc(ctx, serviceAuthToken, instanceID, batchSize, maxWorkers)
 }
 
 // GetInstanceDimensionsInBatchesCalls gets all the calls that were made to GetInstanceDimensionsInBatches.
@@ -226,7 +225,6 @@ func (mock *IClientMock) GetInstanceDimensionsInBatches(ctx context.Context, use
 //     len(mockedIClient.GetInstanceDimensionsInBatchesCalls())
 func (mock *IClientMock) GetInstanceDimensionsInBatchesCalls() []struct {
 	Ctx              context.Context
-	UserAuthToken    string
 	ServiceAuthToken string
 	InstanceID       string
 	BatchSize        int
@@ -234,15 +232,14 @@ func (mock *IClientMock) GetInstanceDimensionsInBatchesCalls() []struct {
 } {
 	var calls []struct {
 		Ctx              context.Context
-		UserAuthToken    string
 		ServiceAuthToken string
 		InstanceID       string
 		BatchSize        int
 		MaxWorkers       int
 	}
-	mock.lockGetInstanceDimensionsInBatches.RLock()
+	lockIClientMockGetInstanceDimensionsInBatches.RLock()
 	calls = mock.calls.GetInstanceDimensionsInBatches
-	mock.lockGetInstanceDimensionsInBatches.RUnlock()
+	lockIClientMockGetInstanceDimensionsInBatches.RUnlock()
 	return calls
 }
 
@@ -268,9 +265,9 @@ func (mock *IClientMock) PatchInstanceDimensionOption(ctx context.Context, servi
 		NodeID:           nodeID,
 		Order:            order,
 	}
-	mock.lockPatchInstanceDimensionOption.Lock()
+	lockIClientMockPatchInstanceDimensionOption.Lock()
 	mock.calls.PatchInstanceDimensionOption = append(mock.calls.PatchInstanceDimensionOption, callInfo)
-	mock.lockPatchInstanceDimensionOption.Unlock()
+	lockIClientMockPatchInstanceDimensionOption.Unlock()
 	return mock.PatchInstanceDimensionOptionFunc(ctx, serviceAuthToken, instanceID, dimensionID, optionID, nodeID, order)
 }
 
@@ -295,8 +292,8 @@ func (mock *IClientMock) PatchInstanceDimensionOptionCalls() []struct {
 		NodeID           string
 		Order            *int
 	}
-	mock.lockPatchInstanceDimensionOption.RLock()
+	lockIClientMockPatchInstanceDimensionOption.RLock()
 	calls = mock.calls.PatchInstanceDimensionOption
-	mock.lockPatchInstanceDimensionOption.RUnlock()
+	lockIClientMockPatchInstanceDimensionOption.RUnlock()
 	return calls
 }

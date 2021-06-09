@@ -177,7 +177,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When DatasetAPICli.GetInstanceDimensions returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			datasetAPIMock.GetInstanceDimensionsInBatchesFunc = func(ctx context.Context, userAuthToken, serviceAuthToken string, instanceID string, maxWorkers, batchSize int) (dataset.Dimensions, error) {
+			datasetAPIMock.GetInstanceDimensionsInBatchesFunc = func(ctx context.Context, serviceAuthToken string, instanceID string, maxWorkers, batchSize int) (dataset.Dimensions, error) {
 				return dataset.Dimensions{}, errorMock
 			}
 
@@ -694,7 +694,7 @@ func setUp() (*storertest.StorerMock, *mocks.IClientMock, *mocks.CompletedProduc
 	}
 
 	datasetAPIMock := &mocks.IClientMock{
-		GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, userAuthToken, serviceAuthToken string, instanceID string, maxWorkers, batchSize int) (dataset.Dimensions, error) {
+		GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, maxWorkers, batchSize int) (dataset.Dimensions, error) {
 			return dataset.Dimensions{Items: []dataset.Dimension{d1Api, d2Api}}, nil
 		},
 		PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int) error {

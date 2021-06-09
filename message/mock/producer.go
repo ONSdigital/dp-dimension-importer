@@ -8,6 +8,10 @@ import (
 	"sync"
 )
 
+var (
+	lockMarshallerMockMarshal sync.RWMutex
+)
+
 // Ensure, that MarshallerMock does implement message.Marshaller.
 // If this is not the case, regenerate this file with moq.
 var _ message.Marshaller = &MarshallerMock{}
@@ -39,7 +43,6 @@ type MarshallerMock struct {
 			S interface{}
 		}
 	}
-	lockMarshal sync.RWMutex
 }
 
 // Marshal calls MarshalFunc.
@@ -52,9 +55,9 @@ func (mock *MarshallerMock) Marshal(s interface{}) ([]byte, error) {
 	}{
 		S: s,
 	}
-	mock.lockMarshal.Lock()
+	lockMarshallerMockMarshal.Lock()
 	mock.calls.Marshal = append(mock.calls.Marshal, callInfo)
-	mock.lockMarshal.Unlock()
+	lockMarshallerMockMarshal.Unlock()
 	return mock.MarshalFunc(s)
 }
 
@@ -67,8 +70,8 @@ func (mock *MarshallerMock) MarshalCalls() []struct {
 	var calls []struct {
 		S interface{}
 	}
-	mock.lockMarshal.RLock()
+	lockMarshallerMockMarshal.RLock()
 	calls = mock.calls.Marshal
-	mock.lockMarshal.RUnlock()
+	lockMarshallerMockMarshal.RUnlock()
 	return calls
 }

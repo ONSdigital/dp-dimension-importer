@@ -31,7 +31,7 @@ var ErrDimensionIDEmpty = errors.New("dimension.id is required but is empty")
 // IClient is an interface that represents the required functionality from dataset client from dp-api-clients-go
 type IClient interface {
 	PatchInstanceDimensionOption(ctx context.Context, serviceAuthToken, instanceID, dimensionID, optionID, nodeID string, order *int) error
-	GetInstanceDimensionsInBatches(ctx context.Context, userAuthToken, serviceAuthToken, instanceID string, batchSize, maxWorkers int) (m dataset.Dimensions, err error)
+	GetInstanceDimensionsInBatches(ctx context.Context, serviceAuthToken, instanceID string, batchSize, maxWorkers int) (m dataset.Dimensions, err error)
 	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID string) (m dataset.Instance, err error)
 	Checker(ctx context.Context, state *healthcheck.CheckState) error
 }
@@ -77,7 +77,7 @@ func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID string) ([]*
 		return nil, ErrInstanceIDEmpty
 	}
 
-	dimensions, err := api.Client.GetInstanceDimensionsInBatches(ctx, "", api.AuthToken, instanceID, api.BatchSize, api.MaxWorkers)
+	dimensions, err := api.Client.GetInstanceDimensionsInBatches(ctx, api.AuthToken, instanceID, api.BatchSize, api.MaxWorkers)
 	if err != nil {
 		return nil, err
 	}
