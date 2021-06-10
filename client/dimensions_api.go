@@ -56,6 +56,8 @@ func NewDatasetAPIClient(cfg *config.Config) (*DatasetAPI, error) {
 		DatasetAPIHost:    cfg.DatasetAPIAddr,
 		Client:            dataset.NewAPIClient(cfg.DatasetAPIAddr),
 		EnablePatchNodeID: cfg.EnablePatchNodeID,
+		MaxWorkers:        cfg.DatasetAPIMaxWorkers,
+		BatchSize:         cfg.DatasetAPIBatchSize,
 	}, nil
 }
 
