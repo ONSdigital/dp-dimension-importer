@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/dp-dimension-importer/store"
 	"github.com/ONSdigital/log.go/log"
-	"github.com/pkg/errors"
 )
 
 //go:generate moq -out ../mocks/incoming_instance_generated_mocks.go -pkg mocks . CompletedProducer
@@ -52,7 +52,7 @@ func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.
 
 	dimensions, err := hdlr.DatasetAPICli.GetDimensions(ctx, newInstance.InstanceID)
 	if err != nil {
-		return errors.Wrap(err, "DatasetAPICli.GetDimensions returned an error")
+		return fmt.Errorf("DatasetAPICli.GetDimensions returned an error: %w", err)
 	}
 
 	logData["dimensions_count"] = len(dimensions)
@@ -60,7 +60,7 @@ func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.
 	// retrieve the CSV header from the dataset API and attach it to the instance node allowing it to be used after import.
 	instance, err := hdlr.DatasetAPICli.GetInstance(ctx, newInstance.InstanceID)
 	if err != nil {
-		return errors.Wrap(err, "dataset api client get instance returned an error")
+		return fmt.Errorf("dataset api client get instance returned an error: %w", err)
 	}
 
 	if err = hdlr.createInstanceNode(ctx, instance); err != nil {
@@ -85,7 +85,7 @@ func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.
 	}
 
 	if err := hdlr.Producer.Completed(ctx, instanceProcessed); err != nil {
-		return errors.Wrap(err, "Producer.Completed returned an error")
+		return fmt.Errorf("Producer.Completed returned an error: %w", err)
 	}
 
 	log.Event(ctx, "instance processing completed successfully", log.INFO, log.Data{"package": packageName, "processing_time": time.Since(start).Seconds()})
@@ -138,7 +138,7 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 	}
 
 	if err := hdlr.Store.AddDimensions(ctx, instance.DbModel().InstanceID, instance.DbModel().Dimensions); err != nil {
-		return errors.Wrap(err, "AddDimensions returned an error")
+		return fmt.Errorf("AddDimensions returned an error: %w", err)
 	}
 
 	return nil
@@ -163,7 +163,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 
 	dbDimension, err := hdlr.Store.InsertDimension(ctx, cache, instance.DbModel().InstanceID, d.DbModel())
 	if err != nil {
-		err = errors.Wrap(err, "error while attempting to insert dimension")
+		err = fmt.Errorf("error while attempting to insert dimension: %w", err)
 		log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 		problem <- err
 		return
@@ -171,7 +171,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 
 	orderMap, err := hdlr.Store.GetCodesOrder(ctx, d.CodeListID(), []string{d.DbModel().Option})
 	if err != nil {
-		err = errors.Wrap(err, "error while attempting to get dimension order using code")
+		err = fmt.Errorf("error while attempting to get dimension order using code: %w", err)
 		log.Event(ctx, err.Error(), log.Error(err), log.Data{
 			"instance_id":  instance.DbModel().InstanceID,
 			"dimension_id": dbDimension.DimensionID,
@@ -189,7 +189,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 	}
 
 	if err = hdlr.DatasetAPICli.PatchDimensionOption(ctx, instance.DbModel().InstanceID, d, order); err != nil {
-		err = errors.Wrap(err, "DatasetAPICli.PatchDimensionOption returned an error")
+		err = fmt.Errorf("DatasetAPICli.PatchDimensionOption returned an error: %w", err)
 		log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 		problem <- err
 		return
@@ -198,7 +198,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 	// todo: remove this temp hack once the time codelist / input data has been fixed.
 	if dbDimension.DimensionID != "time" {
 		if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance.DbModel().InstanceID, d.CodeListID(), dbDimension.Option); err != nil {
-			err = errors.Wrap(err, "error attempting to create relationship to code")
+			err = fmt.Errorf("error attempting to create relationship to code: %w", err)
 			log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 			problem <- err
 			return
@@ -210,7 +210,7 @@ func (hdlr *InstanceEventHandler) createInstanceNode(ctx context.Context, instan
 
 	exists, err := hdlr.Store.InstanceExists(ctx, instance.DbModel().InstanceID)
 	if err != nil {
-		return errors.Wrap(err, "instance exists check returned an error")
+		return fmt.Errorf("instance exists check returned an error: %w", err)
 	}
 
 	if exists {
@@ -218,7 +218,7 @@ func (hdlr *InstanceEventHandler) createInstanceNode(ctx context.Context, instan
 	}
 
 	if err = hdlr.Store.CreateInstance(ctx, instance.DbModel().InstanceID, instance.DbModel().CSVHeader); err != nil {
-		return errors.Wrap(err, "create instance returned an error")
+		return fmt.Errorf("create instance returned an error: %w", err)
 	}
 
 	return nil
@@ -227,7 +227,7 @@ func (hdlr *InstanceEventHandler) createInstanceNode(ctx context.Context, instan
 func (hdlr *InstanceEventHandler) createObservationConstraint(ctx context.Context, instance *model.Instance) error {
 
 	if err := hdlr.Store.CreateInstanceConstraint(ctx, instance.DbModel().InstanceID); err != nil {
-		return errors.Wrap(err, "error while attempting to add the unique observation constraint")
+		return fmt.Errorf("error while attempting to add the unique observation constraint: %w", err)
 	}
 
 	return nil

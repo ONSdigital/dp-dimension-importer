@@ -25,10 +25,13 @@ type KafkaMessageReceiver struct {
 
 // OnMessage unmarshal the kafka message and pass it to the InstanceEventHandler any errors are sent to the ErrorReporter
 func (r KafkaMessageReceiver) OnMessage(message kafka.Message) {
+	logData := log.Data{"package": "message.KafkaMessageReceiver"}
 	var newInstanceEvent event.NewInstance
+
 	// This context will come from the received kafka message
 	ctx := context.Background()
-	logData := log.Data{"package": "message.KafkaMessageReceiver"}
+
+	// unmarshal the event
 	if err := schema.NewInstanceSchema.Unmarshal(message.GetData(), &newInstanceEvent); err != nil {
 		log.Event(ctx, "error while attempting to unmarshal kafka message into event new instance", log.ERROR, log.Error(err), logData)
 		return
@@ -37,6 +40,7 @@ func (r KafkaMessageReceiver) OnMessage(message kafka.Message) {
 	logData["event"] = newInstanceEvent
 	log.Event(ctx, "successfully unmarshalled kafka message into event new instance", log.INFO, logData)
 
+	// handle event by the provided handler
 	if err := r.InstanceHandler.Handle(ctx, newInstanceEvent); err != nil {
 		log.Event(ctx, "instance handler handle returned an error", log.ERROR, log.Error(err), logData)
 		if err := r.ErrorReporter.Notify(newInstanceEvent.InstanceID, "InstanceHandler.Handle returned an unexpected error", err); err != nil {
@@ -46,5 +50,4 @@ func (r KafkaMessageReceiver) OnMessage(message kafka.Message) {
 	}
 
 	log.Event(ctx, "new instance event successfully processed", log.INFO, logData)
-	message.CommitAndRelease()
 }

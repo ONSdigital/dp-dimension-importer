@@ -2,8 +2,7 @@ package client
 
 import (
 	"context"
-
-	"github.com/pkg/errors"
+	"errors"
 
 	"net/url"
 
@@ -32,7 +31,7 @@ var ErrDimensionIDEmpty = errors.New("dimension.id is required but is empty")
 // IClient is an interface that represents the required functionality from dataset client from dp-api-clients-go
 type IClient interface {
 	PatchInstanceDimensionOption(ctx context.Context, serviceAuthToken, instanceID, dimensionID, optionID, nodeID string, order *int) error
-	GetInstanceDimensions(ctx context.Context, serviceAuthToken, instanceID string) (m dataset.Dimensions, err error)
+	GetInstanceDimensionsInBatches(ctx context.Context, serviceAuthToken, instanceID string, batchSize, maxWorkers int) (m dataset.Dimensions, err error)
 	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID string) (m dataset.Instance, err error)
 	Checker(ctx context.Context, state *healthcheck.CheckState) error
 }
@@ -43,6 +42,8 @@ type DatasetAPI struct {
 	DatasetAPIHost    string
 	Client            IClient
 	EnablePatchNodeID bool
+	MaxWorkers        int
+	BatchSize         int
 }
 
 // NewDatasetAPIClient validates the parameters and creates a new dataset API client from dp-api-clients-go library.
@@ -55,6 +56,8 @@ func NewDatasetAPIClient(cfg *config.Config) (*DatasetAPI, error) {
 		DatasetAPIHost:    cfg.DatasetAPIAddr,
 		Client:            dataset.NewAPIClient(cfg.DatasetAPIAddr),
 		EnablePatchNodeID: cfg.EnablePatchNodeID,
+		MaxWorkers:        cfg.DatasetAPIMaxWorkers,
+		BatchSize:         cfg.DatasetAPIBatchSize,
 	}, nil
 }
 
@@ -76,7 +79,7 @@ func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID string) ([]*
 		return nil, ErrInstanceIDEmpty
 	}
 
-	dimensions, err := api.Client.GetInstanceDimensions(ctx, api.AuthToken, instanceID)
+	dimensions, err := api.Client.GetInstanceDimensionsInBatches(ctx, api.AuthToken, instanceID, api.BatchSize, api.MaxWorkers)
 	if err != nil {
 		return nil, err
 	}

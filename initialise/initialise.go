@@ -3,12 +3,10 @@ package initialise
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/ONSdigital/dp-dimension-importer/store"
 
 	"github.com/ONSdigital/dp-dimension-importer/config"
-	"github.com/ONSdigital/dp-dimension-importer/message"
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -21,7 +19,6 @@ type ExternalServiceList struct {
 	InstanceCompleteProducer bool
 	ErrorReporterProducer    bool
 	GraphDB                  bool
-	Consumer                 bool
 	HealthCheck              bool
 }
 
@@ -36,8 +33,6 @@ const (
 
 var kafkaProducerNames = []string{"InstanceComplete", "ErrorReporter"}
 
-var kafkaOffset = kafka.OffsetOldest
-
 // Values of the kafka producers names
 func (k KafkaProducerName) String() string {
 	return kafkaProducerNames[k]
@@ -46,6 +41,10 @@ func (k KafkaProducerName) String() string {
 // GetConsumer returns a kafka consumer, which might not be initialised
 func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer *kafka.ConsumerGroup, err error) {
 	cgChannels := kafka.CreateConsumerGroupChannels(1)
+	kafkaOffset := kafka.OffsetNewest
+	if cfg.KafkaOffsetOldest {
+		kafkaOffset = kafka.OffsetOldest
+	}
 	cgConfig := &kafka.ConsumerGroupConfig{
 		Offset:       &kafkaOffset,
 		KafkaVersion: &cfg.KafkaVersion,
@@ -84,7 +83,7 @@ func (e *ExternalServiceList) GetProducer(ctx context.Context, topic string, nam
 	case name == ErrorReporter:
 		e.ErrorReporterProducer = true
 	default:
-		err = fmt.Errorf("kafka producer name not recognised: '%s'. valid names: %v", name.String(), kafkaProducerNames)
+		return producer, fmt.Errorf("kafka producer name not recognised: '%s'. valid names: %v", name.String(), kafkaProducerNames)
 	}
 
 	return producer, nil
@@ -100,12 +99,6 @@ func (e *ExternalServiceList) GetGraphDB(ctx context.Context) (store.Storer, err
 	e.GraphDB = true
 
 	return graphDB, nil
-}
-
-// NewConsumer creates a new InstanceEvent consumer
-func (e *ExternalServiceList) NewConsumer(ctx context.Context, consumer kafka.IConsumerGroup, messageReceiver message.Receiver, defaultShutdown time.Duration) message.Consumer {
-	e.Consumer = true
-	return message.NewConsumer(ctx, consumer, messageReceiver, defaultShutdown)
 }
 
 // GetHealthChecker creates a new healthcheck object

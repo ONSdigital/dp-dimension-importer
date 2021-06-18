@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	lockIClientMockChecker                      sync.RWMutex
-	lockIClientMockGetInstance                  sync.RWMutex
-	lockIClientMockGetInstanceDimensions        sync.RWMutex
-	lockIClientMockPatchInstanceDimensionOption sync.RWMutex
+	lockIClientMockChecker                        sync.RWMutex
+	lockIClientMockGetInstance                    sync.RWMutex
+	lockIClientMockGetInstanceDimensionsInBatches sync.RWMutex
+	lockIClientMockPatchInstanceDimensionOption   sync.RWMutex
 )
 
 // Ensure, that IClientMock does implement client.IClient.
@@ -34,8 +34,8 @@ var _ client.IClient = &IClientMock{}
 //             GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string) (dataset.Instance, error) {
 // 	               panic("mock out the GetInstance method")
 //             },
-//             GetInstanceDimensionsFunc: func(ctx context.Context, serviceAuthToken string, instanceID string) (dataset.Dimensions, error) {
-// 	               panic("mock out the GetInstanceDimensions method")
+//             GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, batchSize int, maxWorkers int) (dataset.Dimensions, error) {
+// 	               panic("mock out the GetInstanceDimensionsInBatches method")
 //             },
 //             PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int) error {
 // 	               panic("mock out the PatchInstanceDimensionOption method")
@@ -53,8 +53,8 @@ type IClientMock struct {
 	// GetInstanceFunc mocks the GetInstance method.
 	GetInstanceFunc func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string) (dataset.Instance, error)
 
-	// GetInstanceDimensionsFunc mocks the GetInstanceDimensions method.
-	GetInstanceDimensionsFunc func(ctx context.Context, serviceAuthToken string, instanceID string) (dataset.Dimensions, error)
+	// GetInstanceDimensionsInBatchesFunc mocks the GetInstanceDimensionsInBatches method.
+	GetInstanceDimensionsInBatchesFunc func(ctx context.Context, serviceAuthToken string, instanceID string, batchSize int, maxWorkers int) (dataset.Dimensions, error)
 
 	// PatchInstanceDimensionOptionFunc mocks the PatchInstanceDimensionOption method.
 	PatchInstanceDimensionOptionFunc func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int) error
@@ -81,14 +81,18 @@ type IClientMock struct {
 			// InstanceID is the instanceID argument value.
 			InstanceID string
 		}
-		// GetInstanceDimensions holds details about calls to the GetInstanceDimensions method.
-		GetInstanceDimensions []struct {
+		// GetInstanceDimensionsInBatches holds details about calls to the GetInstanceDimensionsInBatches method.
+		GetInstanceDimensionsInBatches []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// ServiceAuthToken is the serviceAuthToken argument value.
 			ServiceAuthToken string
 			// InstanceID is the instanceID argument value.
 			InstanceID string
+			// BatchSize is the batchSize argument value.
+			BatchSize int
+			// MaxWorkers is the maxWorkers argument value.
+			MaxWorkers int
 		}
 		// PatchInstanceDimensionOption holds details about calls to the PatchInstanceDimensionOption method.
 		PatchInstanceDimensionOption []struct {
@@ -192,42 +196,50 @@ func (mock *IClientMock) GetInstanceCalls() []struct {
 	return calls
 }
 
-// GetInstanceDimensions calls GetInstanceDimensionsFunc.
-func (mock *IClientMock) GetInstanceDimensions(ctx context.Context, serviceAuthToken string, instanceID string) (dataset.Dimensions, error) {
-	if mock.GetInstanceDimensionsFunc == nil {
-		panic("IClientMock.GetInstanceDimensionsFunc: method is nil but IClient.GetInstanceDimensions was just called")
+// GetInstanceDimensionsInBatches calls GetInstanceDimensionsInBatchesFunc.
+func (mock *IClientMock) GetInstanceDimensionsInBatches(ctx context.Context, serviceAuthToken string, instanceID string, batchSize int, maxWorkers int) (dataset.Dimensions, error) {
+	if mock.GetInstanceDimensionsInBatchesFunc == nil {
+		panic("IClientMock.GetInstanceDimensionsInBatchesFunc: method is nil but IClient.GetInstanceDimensionsInBatches was just called")
 	}
 	callInfo := struct {
 		Ctx              context.Context
 		ServiceAuthToken string
 		InstanceID       string
+		BatchSize        int
+		MaxWorkers       int
 	}{
 		Ctx:              ctx,
 		ServiceAuthToken: serviceAuthToken,
 		InstanceID:       instanceID,
+		BatchSize:        batchSize,
+		MaxWorkers:       maxWorkers,
 	}
-	lockIClientMockGetInstanceDimensions.Lock()
-	mock.calls.GetInstanceDimensions = append(mock.calls.GetInstanceDimensions, callInfo)
-	lockIClientMockGetInstanceDimensions.Unlock()
-	return mock.GetInstanceDimensionsFunc(ctx, serviceAuthToken, instanceID)
+	lockIClientMockGetInstanceDimensionsInBatches.Lock()
+	mock.calls.GetInstanceDimensionsInBatches = append(mock.calls.GetInstanceDimensionsInBatches, callInfo)
+	lockIClientMockGetInstanceDimensionsInBatches.Unlock()
+	return mock.GetInstanceDimensionsInBatchesFunc(ctx, serviceAuthToken, instanceID, batchSize, maxWorkers)
 }
 
-// GetInstanceDimensionsCalls gets all the calls that were made to GetInstanceDimensions.
+// GetInstanceDimensionsInBatchesCalls gets all the calls that were made to GetInstanceDimensionsInBatches.
 // Check the length with:
-//     len(mockedIClient.GetInstanceDimensionsCalls())
-func (mock *IClientMock) GetInstanceDimensionsCalls() []struct {
+//     len(mockedIClient.GetInstanceDimensionsInBatchesCalls())
+func (mock *IClientMock) GetInstanceDimensionsInBatchesCalls() []struct {
 	Ctx              context.Context
 	ServiceAuthToken string
 	InstanceID       string
+	BatchSize        int
+	MaxWorkers       int
 } {
 	var calls []struct {
 		Ctx              context.Context
 		ServiceAuthToken string
 		InstanceID       string
+		BatchSize        int
+		MaxWorkers       int
 	}
-	lockIClientMockGetInstanceDimensions.RLock()
-	calls = mock.calls.GetInstanceDimensions
-	lockIClientMockGetInstanceDimensions.RUnlock()
+	lockIClientMockGetInstanceDimensionsInBatches.RLock()
+	calls = mock.calls.GetInstanceDimensionsInBatches
+	lockIClientMockGetInstanceDimensionsInBatches.RUnlock()
 	return calls
 }
 

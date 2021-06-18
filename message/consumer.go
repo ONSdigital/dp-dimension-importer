@@ -2,8 +2,8 @@ package message
 
 import (
 	"context"
-	"time"
 
+	"github.com/ONSdigital/dp-dimension-importer/config"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
 )
@@ -20,78 +20,39 @@ type Receiver interface {
 	OnMessage(message kafka.Message)
 }
 
-// Consumer listens for kafka messages on the specified topic, processes thems & sends an outbound kafka message when complete.
-type Consumer struct {
-	closed          chan bool
-	ctx             context.Context
-	cancel          context.CancelFunc
-	consumer        kafka.IConsumerGroup
-	messageReceiver Receiver
-	defaultShutdown time.Duration
-}
+// Consume spawns a goroutine for each kafka consumer worker, which listens to the Upstream channel and calls the OnMessage on the provided Receiver
+// the consumer loops will end when the upstream or closed channels are closed, or when the provided context is Done
+func Consume(ctx context.Context, messageConsumer kafka.IConsumerGroup, messageReceiver Receiver, cfg *config.Config) {
 
-// NewConsumer create a NewInstance event consumer.
-func NewConsumer(ctx context.Context, consumer kafka.IConsumerGroup, messageReceiver Receiver, defaultShutdown time.Duration) Consumer {
-	ctx, cancel := context.WithCancel(ctx)
-
-	return Consumer{
-		closed:          make(chan bool, 1),
-		ctx:             ctx,
-		cancel:          cancel,
-		consumer:        consumer,
-		messageReceiver: messageReceiver,
-		defaultShutdown: defaultShutdown,
-	}
-}
-
-// Listen poll the KafkaConsumer for incoming messages and pass onto the Receiver
-func (c Consumer) Listen() {
-	go func() {
-		defer func() {
-			// Notify that the consumer loop has closed.
-			c.closed <- true
-		}()
-
-		logData := log.Data{"package": packageName}
+	// consume loop, to be executed by each worker
+	var consume = func(workerID int) {
+		logData := log.Data{"package": packageName, "worker_id": workerID}
+		log.Event(ctx, "worker started consuming", logData)
 		for {
 			select {
-			case consumedMessage := <-c.consumer.Channels().Upstream:
-				log.Event(c.ctx, "consumer received a message", log.INFO, logData)
-				c.messageReceiver.OnMessage(consumedMessage)
-			case <-c.ctx.Done():
-				log.Event(c.ctx, "loggercontext done received event, attempting to close consumer", log.INFO, logData)
+			case consumedMessage, ok := <-messageConsumer.Channels().Upstream:
+				if !ok {
+					log.Event(ctx, "closing event consumer loop because upstream channel is closed", log.INFO, logData)
+					return
+				}
+				messageCtx := context.Background()
+				log.Event(messageCtx, "consumer received a message", log.INFO, logData)
+				messageReceiver.OnMessage(consumedMessage)
+				// The message will always be committed in any case, even if the handling is unsuccessful.
+				// This means that the message will not be consumed again in the future.
+				consumedMessage.CommitAndRelease()
+			case <-ctx.Done():
+				log.Event(ctx, "closing event consumer loop because consumer context is Done", log.INFO, logData)
+				return
+			case <-messageConsumer.Channels().Closer:
+				log.Event(ctx, "closing event consumer loop because closer channel is closed", log.INFO, logData)
 				return
 			}
 		}
-	}()
-}
-
-// Close shutdown Consumer.Listen loop.
-func (c Consumer) Close(ctx context.Context) {
-	// if nil use a default context with a timeout
-	if ctx == nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, c.defaultShutdown)
-		defer cancel()
 	}
 
-	// if the context is not nil but no deadline is set the apply the default
-	if _, ok := ctx.Deadline(); !ok {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, c.defaultShutdown)
-		defer cancel()
-	}
-
-	// Call cancel to attempt to exit the consumer loop.
-	c.cancel()
-
-	logData := log.Data{"package": packageName}
-
-	// Wait for the consumer to tell is has exited or the context timeout occurs.
-	select {
-	case <-c.closed:
-		log.Event(ctx, "gracefully shutdown message consumer", log.INFO, logData)
-	case <-ctx.Done():
-		log.Event(ctx, "forced shutdown of message consumer", log.INFO, logData)
+	// workers to consume messages in parallel
+	for w := 1; w <= cfg.KafkaNumWorkers; w++ {
+		go consume(w)
 	}
 }

@@ -2,6 +2,7 @@ package message_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -13,7 +14,6 @@ import (
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/ONSdigital/log.go/log"
-	"github.com/pkg/errors"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -99,7 +99,7 @@ func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 			err := instanceCompletedProducer.Completed(ctx, completedEvent)
 
 			Convey("Then the expected error is returned", func() {
-				expectedError := errors.Wrap(mockError, fmt.Sprintf("Marshaller.Marshal returned an error: event=%v", completedEvent))
+				expectedError := fmt.Errorf(fmt.Sprintf("Marshaller.Marshal returned an error: event=%v: %%w", completedEvent), mockError)
 				So(err.Error(), ShouldEqual, expectedError.Error())
 			})
 
