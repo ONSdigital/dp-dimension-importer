@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-dimension-importer/client"
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/handler"
@@ -177,8 +177,8 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		Convey("When DatasetAPICli.GetInstanceDimensions returns an error", func() {
 			event := event.NewInstance{InstanceID: testInstanceID}
 
-			datasetAPIMock.GetInstanceDimensionsInBatchesFunc = func(ctx context.Context, serviceAuthToken string, instanceID string, maxWorkers, batchSize int) (dataset.Dimensions, error) {
-				return dataset.Dimensions{}, errorMock
+			datasetAPIMock.GetInstanceDimensionsInBatchesFunc = func(ctx context.Context, serviceAuthToken string, instanceID string, maxWorkers, batchSize int) (dataset.Dimensions, string, error) {
+				return dataset.Dimensions{}, "", errorMock
 			}
 
 			err := handler.Handle(ctx, event)
@@ -394,8 +394,8 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 				return dimension, nil
 			}
-			datasetAPIMock.PatchInstanceDimensionOptionFunc = func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int) error {
-				return errorMock
+			datasetAPIMock.PatchInstanceDimensionOptionFunc = func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int, ifMatch string) (string, error) {
+				return "", errorMock
 			}
 
 			err := handler.Handle(ctx, event)
@@ -455,8 +455,8 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 				return dimension, nil
 			}
-			datasetAPIMock.PatchInstanceDimensionOptionFunc = func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int) error {
-				return nil
+			datasetAPIMock.PatchInstanceDimensionOptionFunc = func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int, ifMatch string) (string, error) {
+				return "", nil
 			}
 			storerMock.AddDimensionsFunc = func(ctx context.Context, instanceID string, dimensions []interface{}) error {
 				return errorMock
@@ -694,14 +694,14 @@ func setUp() (*storertest.StorerMock, *mocks.IClientMock, *mocks.CompletedProduc
 	}
 
 	datasetAPIMock := &mocks.IClientMock{
-		GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, maxWorkers, batchSize int) (dataset.Dimensions, error) {
-			return dataset.Dimensions{Items: []dataset.Dimension{d1Api, d2Api}}, nil
+		GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, maxWorkers, batchSize int) (dataset.Dimensions, string, error) {
+			return dataset.Dimensions{Items: []dataset.Dimension{d1Api, d2Api}}, "", nil
 		},
-		PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int) error {
-			return nil
+		PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int, ifMatch string) (string, error) {
+			return "", nil
 		},
-		GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string) (dataset.Instance, error) {
-			return instanceApi, nil
+		GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
+			return instanceApi, "", nil
 		},
 	}
 	datasetAPIClient := &client.DatasetAPI{

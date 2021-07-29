@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	dataset "github.com/ONSdigital/dp-api-clients-go/dataset"
+	dataset "github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	db "github.com/ONSdigital/dp-graph/v2/models"
 )
 
