@@ -95,17 +95,17 @@ func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID string, ifMa
 // PatchDimensionOption make a HTTP patch request to update the node_id and/or order of the specified dimension.
 func (api DatasetAPI) PatchDimensionOption(ctx context.Context, instanceID string, d *model.Dimension, order *int) (string, error) {
 	if len(instanceID) == 0 {
-		return headers.IfMatchAnyETag, ErrInstanceIDEmpty
+		return "", ErrInstanceIDEmpty
 	}
 	if d == nil {
-		return headers.IfMatchAnyETag, ErrDimensionNil
+		return "", ErrDimensionNil
 	}
 	dim := d.DbModel()
 	if dim == nil {
-		return headers.IfMatchAnyETag, ErrDimensionNil
+		return "", ErrDimensionNil
 	}
 	if len(dim.DimensionID) == 0 {
-		return headers.IfMatchAnyETag, ErrDimensionIDEmpty
+		return "", ErrDimensionIDEmpty
 	}
 
 	nodeID := ""
