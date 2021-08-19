@@ -6,7 +6,8 @@ import (
 
 	"net/url"
 
-	dataset "github.com/ONSdigital/dp-api-clients-go/dataset"
+	dataset "github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
@@ -30,9 +31,9 @@ var ErrDimensionIDEmpty = errors.New("dimension.id is required but is empty")
 
 // IClient is an interface that represents the required functionality from dataset client from dp-api-clients-go
 type IClient interface {
-	PatchInstanceDimensionOption(ctx context.Context, serviceAuthToken, instanceID, dimensionID, optionID, nodeID string, order *int) error
-	GetInstanceDimensionsInBatches(ctx context.Context, serviceAuthToken, instanceID string, batchSize, maxWorkers int) (m dataset.Dimensions, err error)
-	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID string) (m dataset.Instance, err error)
+	PatchInstanceDimensionOption(ctx context.Context, serviceAuthToken, instanceID, dimensionID, optionID, nodeID string, order *int, ifMatch string) (eTag string, err error)
+	GetInstanceDimensionsInBatches(ctx context.Context, serviceAuthToken, instanceID string, batchSize, maxWorkers int) (dimensions dataset.Dimensions, eTag string, err error)
+	GetInstance(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID, ifMatch string) (m dataset.Instance, eTag string, err error)
 	Checker(ctx context.Context, state *healthcheck.CheckState) error
 }
 
@@ -66,7 +67,7 @@ func (api DatasetAPI) GetInstance(ctx context.Context, instanceID string) (*mode
 	if len(instanceID) == 0 {
 		return &model.Instance{}, ErrInstanceIDEmpty
 	}
-	datasetInstance, err := api.Client.GetInstance(ctx, "", api.AuthToken, "", instanceID)
+	datasetInstance, _, err := api.Client.GetInstance(ctx, "", api.AuthToken, "", instanceID, headers.IfMatchAnyETag)
 	if err != nil {
 		return nil, err
 	}
@@ -74,12 +75,12 @@ func (api DatasetAPI) GetInstance(ctx context.Context, instanceID string) (*mode
 }
 
 // GetDimensions retrieve the dimensions of the specified instance from the Dataset API
-func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID string) ([]*model.Dimension, error) {
+func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID string, ifMatch string) ([]*model.Dimension, error) {
 	if len(instanceID) == 0 {
 		return nil, ErrInstanceIDEmpty
 	}
 
-	dimensions, err := api.Client.GetInstanceDimensionsInBatches(ctx, api.AuthToken, instanceID, api.BatchSize, api.MaxWorkers)
+	dimensions, _, err := api.Client.GetInstanceDimensionsInBatches(ctx, api.AuthToken, instanceID, api.BatchSize, api.MaxWorkers)
 	if err != nil {
 		return nil, err
 	}
@@ -92,19 +93,19 @@ func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID string) ([]*
 }
 
 // PatchDimensionOption make a HTTP patch request to update the node_id and/or order of the specified dimension.
-func (api DatasetAPI) PatchDimensionOption(ctx context.Context, instanceID string, d *model.Dimension, order *int) error {
+func (api DatasetAPI) PatchDimensionOption(ctx context.Context, instanceID string, d *model.Dimension, order *int) (string, error) {
 	if len(instanceID) == 0 {
-		return ErrInstanceIDEmpty
+		return "", ErrInstanceIDEmpty
 	}
 	if d == nil {
-		return ErrDimensionNil
+		return "", ErrDimensionNil
 	}
 	dim := d.DbModel()
 	if dim == nil {
-		return ErrDimensionNil
+		return "", ErrDimensionNil
 	}
 	if len(dim.DimensionID) == 0 {
-		return ErrDimensionIDEmpty
+		return "", ErrDimensionIDEmpty
 	}
 
 	nodeID := ""
@@ -112,5 +113,5 @@ func (api DatasetAPI) PatchDimensionOption(ctx context.Context, instanceID strin
 		nodeID = dim.NodeID
 	}
 
-	return api.Client.PatchInstanceDimensionOption(ctx, api.AuthToken, instanceID, dim.DimensionID, url.PathEscape(dim.Option), nodeID, order)
+	return api.Client.PatchInstanceDimensionOption(ctx, api.AuthToken, instanceID, dim.DimensionID, url.PathEscape(dim.Option), nodeID, order, headers.IfMatchAnyETag)
 }

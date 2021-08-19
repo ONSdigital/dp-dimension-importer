@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	dataset "github.com/ONSdigital/dp-api-clients-go/dataset"
+	dataset "github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-dimension-importer/client"
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/mocks"
@@ -20,6 +20,7 @@ const (
 	host       = "http://localhost:8080"
 	instanceID = "1234567890"
 	authToken  = "pa55w0rd"
+	ifMatch    = "*"
 )
 
 var errMock = errors.New("broken")
@@ -63,8 +64,8 @@ func TestGetInstance(t *testing.T) {
 
 	Convey("Given valid client configuration", t, func() {
 		clientMock := &mocks.IClientMock{
-			GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string) (dataset.Instance, error) {
-				return datasetInstance, nil
+			GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
+				return datasetInstance, "", nil
 			},
 		}
 
@@ -117,8 +118,8 @@ func TestGetInstance(t *testing.T) {
 	Convey("Given dataset.GetInstance will return an error", t, func() {
 
 		clientMock := &mocks.IClientMock{
-			GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string) (dataset.Instance, error) {
-				return dataset.Instance{}, errMock
+			GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
+				return dataset.Instance{}, "", errMock
 			},
 		}
 
@@ -152,8 +153,8 @@ func TestGetDimensions(t *testing.T) {
 	Convey("Given a valid client configuration", t, func() {
 
 		clientMock := &mocks.IClientMock{
-			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, bacthSize, maxWorkers int) (dataset.Dimensions, error) {
-				return datasetDimensions, nil
+			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, bacthSize, maxWorkers int) (dataset.Dimensions, string, error) {
+				return datasetDimensions, "", nil
 			},
 		}
 
@@ -165,7 +166,7 @@ func TestGetDimensions(t *testing.T) {
 
 		Convey("When the client is called with a valid instanceID", func() {
 
-			dims, err := datasetAPI.GetDimensions(ctx, instanceID)
+			dims, err := datasetAPI.GetDimensions(ctx, instanceID, ifMatch)
 
 			Convey("Then the expected response is returned with no error", func() {
 				So(dims, ShouldResemble, expectedDimensions)
@@ -192,7 +193,7 @@ func TestGetDimensions(t *testing.T) {
 
 		Convey("When GetDimensions is invoked", func() {
 
-			dims, err := datasetAPI.GetDimensions(ctx, "")
+			dims, err := datasetAPI.GetDimensions(ctx, "", ifMatch)
 
 			Convey("Then the expected error is returned", func() {
 				So(dims, ShouldEqual, nil)
@@ -204,8 +205,8 @@ func TestGetDimensions(t *testing.T) {
 	Convey("Given dataset.GetInstanceDimensions will return an error", t, func() {
 
 		clientMock := &mocks.IClientMock{
-			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, bacthSize, maxWorkers int) (dataset.Dimensions, error) {
-				return dataset.Dimensions{}, errMock
+			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, bacthSize, maxWorkers int) (dataset.Dimensions, string, error) {
+				return dataset.Dimensions{}, "", errMock
 			},
 		}
 
@@ -217,7 +218,7 @@ func TestGetDimensions(t *testing.T) {
 
 		Convey("When GetDimensions is invoked", func() {
 
-			dims, err := datasetAPI.GetDimensions(ctx, instanceID)
+			dims, err := datasetAPI.GetDimensions(ctx, instanceID, ifMatch)
 
 			Convey("Then the expected error response is returned", func() {
 				So(dims, ShouldEqual, nil)
@@ -246,7 +247,7 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
-			err := datasetAPI.PatchDimensionOption(ctx, "", dimensionOne, nil)
+			_, err := datasetAPI.PatchDimensionOption(ctx, "", dimensionOne, nil)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, client.ErrInstanceIDEmpty)
@@ -265,7 +266,7 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
-			err := datasetAPI.PatchDimensionOption(ctx, instanceID, nil, nil)
+			_, err := datasetAPI.PatchDimensionOption(ctx, instanceID, nil, nil)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, client.ErrDimensionNil)
@@ -285,7 +286,7 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 
 		Convey("When PatchDimensionOption is called", func() {
 			emptyDimension := model.NewDimension(&dataset.Dimension{})
-			err := datasetAPI.PatchDimensionOption(ctx, instanceID, emptyDimension, nil)
+			_, err := datasetAPI.PatchDimensionOption(ctx, instanceID, emptyDimension, nil)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, client.ErrDimensionIDEmpty)
@@ -295,8 +296,8 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 
 	Convey("Given dataset.PatchInstanceDimensionOption will return an error", t, func() {
 		clientMock := &mocks.IClientMock{
-			PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int) error {
-				return errMock
+			PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int, ifMatch string) (string, error) {
+				return "", errMock
 			},
 		}
 
@@ -308,7 +309,7 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
-			err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
+			_, err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errMock)
@@ -328,8 +329,8 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 
 	Convey("Given dataset.PatchInstanceDimensionOption succeeds", t, func() {
 		clientMock := &mocks.IClientMock{
-			PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int) error {
-				return nil
+			PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int, ifMatch string) (string, error) {
+				return "", nil
 			},
 		}
 
@@ -341,7 +342,7 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
-			err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
+			_, err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldEqual, nil)
@@ -360,7 +361,7 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 
 		Convey("When PatchDimensionOption is called forcing the NodeID to be ignored", func() {
 			datasetAPI.EnablePatchNodeID = false
-			err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
+			_, err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldEqual, nil)

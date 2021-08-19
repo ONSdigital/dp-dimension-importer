@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-dimension-importer/client"
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/model"
@@ -50,7 +51,7 @@ func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.
 
 	start := time.Now()
 
-	dimensions, err := hdlr.DatasetAPICli.GetDimensions(ctx, newInstance.InstanceID)
+	dimensions, err := hdlr.DatasetAPICli.GetDimensions(ctx, newInstance.InstanceID, headers.IfMatchAnyETag)
 	if err != nil {
 		return fmt.Errorf("DatasetAPICli.GetDimensions returned an error: %w", err)
 	}
@@ -188,7 +189,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 		return
 	}
 
-	if err = hdlr.DatasetAPICli.PatchDimensionOption(ctx, instance.DbModel().InstanceID, d, order); err != nil {
+	if _, err = hdlr.DatasetAPICli.PatchDimensionOption(ctx, instance.DbModel().InstanceID, d, order); err != nil {
 		err = fmt.Errorf("DatasetAPICli.PatchDimensionOption returned an error: %w", err)
 		log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 		problem <- err

@@ -8,29 +8,25 @@ import (
 	"sync"
 )
 
-var (
-	lockMarshallerMockMarshal sync.RWMutex
-)
-
 // Ensure, that MarshallerMock does implement message.Marshaller.
 // If this is not the case, regenerate this file with moq.
 var _ message.Marshaller = &MarshallerMock{}
 
 // MarshallerMock is a mock implementation of message.Marshaller.
 //
-//     func TestSomethingThatUsesMarshaller(t *testing.T) {
+// 	func TestSomethingThatUsesMarshaller(t *testing.T) {
 //
-//         // make and configure a mocked message.Marshaller
-//         mockedMarshaller := &MarshallerMock{
-//             MarshalFunc: func(s interface{}) ([]byte, error) {
-// 	               panic("mock out the Marshal method")
-//             },
-//         }
+// 		// make and configure a mocked message.Marshaller
+// 		mockedMarshaller := &MarshallerMock{
+// 			MarshalFunc: func(s interface{}) ([]byte, error) {
+// 				panic("mock out the Marshal method")
+// 			},
+// 		}
 //
-//         // use mockedMarshaller in code that requires message.Marshaller
-//         // and then make assertions.
+// 		// use mockedMarshaller in code that requires message.Marshaller
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type MarshallerMock struct {
 	// MarshalFunc mocks the Marshal method.
 	MarshalFunc func(s interface{}) ([]byte, error)
@@ -43,6 +39,7 @@ type MarshallerMock struct {
 			S interface{}
 		}
 	}
+	lockMarshal sync.RWMutex
 }
 
 // Marshal calls MarshalFunc.
@@ -55,9 +52,9 @@ func (mock *MarshallerMock) Marshal(s interface{}) ([]byte, error) {
 	}{
 		S: s,
 	}
-	lockMarshallerMockMarshal.Lock()
+	mock.lockMarshal.Lock()
 	mock.calls.Marshal = append(mock.calls.Marshal, callInfo)
-	lockMarshallerMockMarshal.Unlock()
+	mock.lockMarshal.Unlock()
 	return mock.MarshalFunc(s)
 }
 
@@ -70,8 +67,8 @@ func (mock *MarshallerMock) MarshalCalls() []struct {
 	var calls []struct {
 		S interface{}
 	}
-	lockMarshallerMockMarshal.RLock()
+	mock.lockMarshal.RLock()
 	calls = mock.calls.Marshal
-	lockMarshallerMockMarshal.RUnlock()
+	mock.lockMarshal.RUnlock()
 	return calls
 }
