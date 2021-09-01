@@ -21,8 +21,8 @@ github.com/ONSdigital/dp-net v1.0.7/go.mod h1:1QFzx32FwPKD2lgZI6MtcsUXritsBdJihl
 github.com/ONSdigital/dp-net v1.0.12/go.mod h1:2lvIKOlD4T3BjWQwjHhBUO2UNWDk82u/+mHRn0R3C9A=
 github.com/ONSdigital/dp-net v1.2.0 h1:gP9pBt/J8gktYeKsb7hq6uOC2xx1tfvTorUBNXp6pX0=
 github.com/ONSdigital/dp-net v1.2.0/go.mod h1:NinlaqcsPbIR+X7j5PXCl3UI5G2zCL041SDF6WIiiO4=
-github.com/ONSdigital/dp-reporter-client v1.0.1 h1:9ds+ZROIlvScbkis6x9dZCuSC67D9Hsy0y80Bp34IBU=
-github.com/ONSdigital/dp-reporter-client v1.0.1/go.mod h1:i4PajSeDB6Ber2VzyzDlRjrMKqVZGAgM2Hcq9Fg1uWo=
+github.com/ONSdigital/dp-reporter-client v1.1.0 h1:XR7fNoFlrZHtlvGnZ8BjWSDAp458i3vvO2g+khtk66s=
+github.com/ONSdigital/dp-reporter-client v1.1.0/go.mod h1:f5bmimN9FvX1qmAF1MwnI64VFu1Io76KdCMe5LARxAM=
 github.com/ONSdigital/go-ns v0.0.0-20191104121206-f144c4ec2e58 h1:XHnzoC7TxueLAfkBpblPiwaIxjngGv1VNVZhvE4jY6w=
 github.com/ONSdigital/go-ns v0.0.0-20191104121206-f144c4ec2e58/go.mod h1:iWos35il+NjbvDEqwtB736pyHru0MPFE/LqcwkV1wDc=
 github.com/ONSdigital/golang-neo4j-bolt-driver v0.0.0-20210408132126-c2323ff08bf1 h1:xfcuXZ7tM8EL2Y+gSKW59JNN5ID6vhOaXO/MlN6m7xU=
