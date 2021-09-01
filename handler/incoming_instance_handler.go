@@ -12,7 +12,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/model"
 	"github.com/ONSdigital/dp-dimension-importer/store"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 //go:generate moq -out ../mocks/incoming_instance_generated_mocks.go -pkg mocks . CompletedProducer
@@ -47,7 +47,7 @@ func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.
 	}
 
 	logData := log.Data{"instance_id": newInstance.InstanceID, "package": packageName}
-	log.Event(ctx, "handling new instance event", log.INFO, logData)
+	log.Info(ctx, "handling new instance event", logData)
 
 	start := time.Now()
 
@@ -66,7 +66,7 @@ func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.
 
 	if err = hdlr.createInstanceNode(ctx, instance); err != nil {
 		if err == errInstanceExists {
-			log.Event(ctx, "an instance with this id already exists, ignoring this event", log.INFO, logData)
+			log.Info(ctx, "an instance with this id already exists, ignoring this event", logData)
 			return nil // ignoring
 		}
 		return err
@@ -89,7 +89,7 @@ func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.
 		return fmt.Errorf("Producer.Completed returned an error: %w", err)
 	}
 
-	log.Event(ctx, "instance processing completed successfully", log.INFO, log.Data{"package": packageName, "processing_time": time.Since(start).Seconds()})
+	log.Info(ctx, "instance processing completed successfully", log.Data{"package": packageName, "processing_time": time.Since(start).Seconds()})
 	return nil
 }
 
@@ -165,7 +165,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 	dbDimension, err := hdlr.Store.InsertDimension(ctx, cache, instance.DbModel().InstanceID, d.DbModel())
 	if err != nil {
 		err = fmt.Errorf("error while attempting to insert dimension: %w", err)
-		log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+		log.Error(ctx, "error while attempting to insert dimension", err, log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 		problem <- err
 		return
 	}
@@ -173,7 +173,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 	orderMap, err := hdlr.Store.GetCodesOrder(ctx, d.CodeListID(), []string{d.DbModel().Option})
 	if err != nil {
 		err = fmt.Errorf("error while attempting to get dimension order using code: %w", err)
-		log.Event(ctx, err.Error(), log.Error(err), log.Data{
+		log.Error(ctx, "error while attempting to get dimension order using code", err, log.Data{
 			"instance_id":  instance.DbModel().InstanceID,
 			"dimension_id": dbDimension.DimensionID,
 			"code_list_id": d.CodeListID(),
@@ -191,7 +191,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 
 	if _, err = hdlr.DatasetAPICli.PatchDimensionOption(ctx, instance.DbModel().InstanceID, d, order); err != nil {
 		err = fmt.Errorf("DatasetAPICli.PatchDimensionOption returned an error: %w", err)
-		log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+		log.Error(ctx, "DatasetAPICli.PatchDimensionOption returned an error", err, log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 		problem <- err
 		return
 	}
@@ -200,7 +200,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 	if dbDimension.DimensionID != "time" {
 		if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance.DbModel().InstanceID, d.CodeListID(), dbDimension.Option); err != nil {
 			err = fmt.Errorf("error attempting to create relationship to code: %w", err)
-			log.Event(ctx, err.Error(), log.Error(err), log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+			log.Error(ctx, "error attempting to create relationship to code", err, log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 			problem <- err
 			return
 		}

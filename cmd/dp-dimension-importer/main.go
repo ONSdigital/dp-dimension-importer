@@ -19,7 +19,7 @@ import (
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/gorilla/mux"
 )
 
@@ -41,11 +41,11 @@ func main() {
 
 	cfg, err := config.Get(ctx)
 	if err != nil {
-		log.Event(ctx, "config load returned an error", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "config load returned an error", err)
 		os.Exit(1)
 	}
 
-	log.Event(ctx, "application configuration", log.INFO, log.Data{"config": cfg})
+	log.Info(ctx, "application configuration", log.Data{"config": cfg})
 
 	// serviceList keeps track of what dependency services have been initialised
 	serviceList := initialise.ExternalServiceList{}
@@ -99,7 +99,7 @@ func main() {
 	// Errors handler
 	errorReporter, err := reporter.NewImportErrorReporter(errorReporterProducer, log.Namespace)
 	if err != nil {
-		log.Event(ctx, "new import error reporter error", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "new import error reporter error", err)
 		os.Exit(1)
 	}
 
@@ -129,7 +129,7 @@ func main() {
 
 	// If we receive a signal (SIGINT or SIGTERM), start graceful shutdown
 	signal := <-signals
-	log.Event(ctx, "os signal received, attempting graceful shutdown", log.INFO, log.Data{"signal": signal.String()})
+	log.Info(ctx, "os signal received, attempting graceful shutdown", log.Data{"signal": signal.String()})
 
 	shutdownCtx, cancel := context.WithTimeout(ctx, cfg.GracefulShutdownTimeout)
 	hasShutdownError := false
@@ -139,57 +139,57 @@ func main() {
 		defer cancel() // cancel shutdown context timer
 
 		if serviceList.HealthCheck {
-			log.Event(ctx, "stopping health check", log.INFO)
+			log.Info(ctx, "stopping health check")
 			hc.Stop()
 		}
 
 		if err := httpServer.Shutdown(shutdownCtx); err != nil {
-			log.Event(ctx, "error shutting down http server", log.ERROR, log.Error(err))
+			log.Error(ctx, "error shutting down http server", err)
 			hasShutdownError = true
 		}
 
 		if serviceList.InstanceConsumer {
-			log.Event(shutdownCtx, "stop listening to instance kafka consumer", log.INFO)
+			log.Info(shutdownCtx, "stop listening to instance kafka consumer")
 			if err := instanceConsumer.StopListeningToConsumer(shutdownCtx); err != nil {
-				log.Event(ctx, "error on stop listening to instance kafka consumer", log.ERROR, log.Error(err))
+				log.Error(ctx, "error on stop listening to instance kafka consumer", err)
 				hasShutdownError = true
 			}
 		}
 
 		if serviceList.InstanceConsumer {
-			log.Event(shutdownCtx, "closing instance kafka consumer", log.INFO)
+			log.Info(shutdownCtx, "closing instance kafka consumer")
 			if err := instanceConsumer.Close(shutdownCtx); err != nil {
-				log.Event(ctx, "error closing instance kafka consumer", log.ERROR, log.Error(err))
+				log.Error(ctx, "error closing instance kafka consumer", err)
 				hasShutdownError = true
 			}
 		}
 
 		if serviceList.InstanceCompleteProducer {
-			log.Event(shutdownCtx, "closing instance complete kafka producer", log.INFO)
+			log.Info(shutdownCtx, "closing instance complete kafka producer")
 			if err := instanceCompleteProducer.Close(shutdownCtx); err != nil {
-				log.Event(ctx, "error closing instance complete kafka consumer", log.ERROR, log.Error(err))
+				log.Error(ctx, "error closing instance complete kafka consumer", err)
 				hasShutdownError = true
 			}
 		}
 
 		if serviceList.GraphDB {
-			log.Event(shutdownCtx, "closing graph db", log.INFO)
+			log.Info(shutdownCtx, "closing graph db")
 			if err := graphDB.Close(shutdownCtx); err != nil {
-				log.Event(ctx, "error closing graph db", log.ERROR, log.Error(err))
+				log.Error(ctx, "error closing graph db", err)
 				hasShutdownError = true
 			}
 
-			log.Event(shutdownCtx, "closing graph db error consumer", log.INFO)
+			log.Info(shutdownCtx, "closing graph db error consumer")
 			if err := graphErrorConsumer.Close(shutdownCtx); err != nil {
-				log.Event(ctx, "error closing graph db error consumer", log.ERROR, log.Error(err))
+				log.Error(ctx, "error closing graph db error consumer", err)
 				hasShutdownError = true
 			}
 		}
 
 		if serviceList.ErrorReporterProducer {
-			log.Event(shutdownCtx, "closing error reporter kafka producer", log.INFO)
+			log.Info(shutdownCtx, "closing error reporter kafka producer")
 			if err := errorReporterProducer.Close(shutdownCtx); err != nil {
-				log.Event(ctx, "error closing error reporter kafka producer", log.ERROR, log.Error(err))
+				log.Error(ctx, "error closing error reporter kafka producer", err)
 				hasShutdownError = true
 			}
 		}
@@ -200,11 +200,11 @@ func main() {
 
 	if hasShutdownError {
 		err = errors.New("failed to shutdown gracefully")
-		log.Event(ctx, "failed to shutdown gracefully ", log.ERROR, log.Error(err))
+		log.Error(ctx, "failed to shutdown gracefully ", err)
 		os.Exit(1)
 	}
 
-	log.Event(ctx, "graceful shutdown complete", log.INFO)
+	log.Info(ctx, "graceful shutdown complete")
 	os.Exit(0)
 }
 
@@ -219,7 +219,7 @@ func startHealthCheck(ctx context.Context, hc *healthcheck.HealthCheck, bindAddr
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil {
-			log.Event(ctx, "http server error", log.ERROR, log.Error(err))
+			log.Error(ctx, "http server error", err)
 			hc.Stop()
 		}
 	}()
@@ -238,27 +238,27 @@ func registerCheckers(hc *healthcheck.HealthCheck,
 
 	if err = hc.AddCheck("Kafka Instance Consumer", instanceConsumer.Checker); err != nil {
 		hasErrors = true
-		log.Event(nil, "error adding check for kafka instance consumer checker", log.ERROR, log.Error(err))
+		log.Error(context.Background(), "error adding check for kafka instance consumer checker", err)
 	}
 
 	if err = hc.AddCheck("Kafka InstanceComplete Producer", instanceCompleteProducer.Checker); err != nil {
 		hasErrors = true
-		log.Event(nil, "error adding check for kafka instance complete producer checker", log.ERROR, log.Error(err))
+		log.Error(context.Background(), "error adding check for kafka instance complete producer checker", err)
 	}
 
 	if err = hc.AddCheck("Kafka ErrorReporter Producer", errorReporterProducer.Checker); err != nil {
 		hasErrors = true
-		log.Event(nil, "error adding check for kafka error reporter checker", log.ERROR, log.Error(err))
+		log.Error(context.Background(), "error adding check for kafka error reporter checker", err)
 	}
 
 	if err = hc.AddCheck("Dataset", datasetClient.Checker); err != nil {
 		hasErrors = true
-		log.Event(nil, "error adding check for dataset checker", log.ERROR, log.Error(err))
+		log.Error(context.Background(), "error adding check for dataset checker", err)
 	}
 
 	if err = hc.AddCheck("Graph DB", db.Checker); err != nil {
 		hasErrors = true
-		log.Event(nil, "error adding check for graph db", log.ERROR, log.Error(err))
+		log.Error(context.Background(), "error adding check for graph db", err)
 	}
 
 	if hasErrors {

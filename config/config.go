@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -63,7 +63,7 @@ func Get(ctx context.Context) (*Config, error) {
 
 	if len(cfg.ServiceAuthToken) == 0 {
 		err := errors.New("error while attempting to load config. service auth token is required but has not been configured")
-		log.Event(ctx, "service auth token error", log.ERROR, log.Error(err))
+		log.Error(ctx, "service auth token error", err)
 		return nil, err
 	}
 

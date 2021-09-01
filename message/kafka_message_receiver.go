@@ -7,7 +7,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 //go:generate moq -out mock/instance_event_handler.go -pkg mock . InstanceEventHandler
@@ -33,21 +33,21 @@ func (r KafkaMessageReceiver) OnMessage(message kafka.Message) {
 
 	// unmarshal the event
 	if err := schema.NewInstanceSchema.Unmarshal(message.GetData(), &newInstanceEvent); err != nil {
-		log.Event(ctx, "error while attempting to unmarshal kafka message into event new instance", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "error while attempting to unmarshal kafka message into event new instance", err, logData)
 		return
 	}
 
 	logData["event"] = newInstanceEvent
-	log.Event(ctx, "successfully unmarshalled kafka message into event new instance", log.INFO, logData)
+	log.Info(ctx, "successfully unmarshalled kafka message into event new instance", logData)
 
 	// handle event by the provided handler
 	if err := r.InstanceHandler.Handle(ctx, newInstanceEvent); err != nil {
-		log.Event(ctx, "instance handler handle returned an error", log.ERROR, log.Error(err), logData)
+		log.Error(ctx, "instance handler handle returned an error", err, logData)
 		if err := r.ErrorReporter.Notify(newInstanceEvent.InstanceID, "InstanceHandler.Handle returned an unexpected error", err); err != nil {
-			log.Event(ctx, "error reporter notify returned an error", log.ERROR, log.Error(err), logData)
+			log.Error(ctx, "error reporter notify returned an error", err, logData)
 		}
 		return
 	}
 
-	log.Event(ctx, "new instance event successfully processed", log.INFO, logData)
+	log.Info(ctx, "new instance event successfully processed", logData)
 }

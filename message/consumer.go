@@ -5,7 +5,7 @@ import (
 
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 //go:generate moq -out mock/receiver.go -pkg mock . Receiver
@@ -27,25 +27,25 @@ func Consume(ctx context.Context, messageConsumer kafka.IConsumerGroup, messageR
 	// consume loop, to be executed by each worker
 	var consume = func(workerID int) {
 		logData := log.Data{"package": packageName, "worker_id": workerID}
-		log.Event(ctx, "worker started consuming", logData)
+		log.Info(ctx, "worker started consuming", logData)
 		for {
 			select {
 			case consumedMessage, ok := <-messageConsumer.Channels().Upstream:
 				if !ok {
-					log.Event(ctx, "closing event consumer loop because upstream channel is closed", log.INFO, logData)
+					log.Info(ctx, "closing event consumer loop because upstream channel is closed", logData)
 					return
 				}
 				messageCtx := context.Background()
-				log.Event(messageCtx, "consumer received a message", log.INFO, logData)
+				log.Info(messageCtx, "consumer received a message", logData)
 				messageReceiver.OnMessage(consumedMessage)
 				// The message will always be committed in any case, even if the handling is unsuccessful.
 				// This means that the message will not be consumed again in the future.
 				consumedMessage.CommitAndRelease()
 			case <-ctx.Done():
-				log.Event(ctx, "closing event consumer loop because consumer context is Done", log.INFO, logData)
+				log.Info(ctx, "closing event consumer loop because consumer context is Done", logData)
 				return
 			case <-messageConsumer.Channels().Closer:
-				log.Event(ctx, "closing event consumer loop because closer channel is closed", log.INFO, logData)
+				log.Info(ctx, "closing event consumer loop because closer channel is closed", logData)
 				return
 			}
 		}

@@ -13,7 +13,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -53,9 +53,9 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 			var avroBytes []byte
 			select {
 			case avroBytes = <-pChannels.Output:
-				log.Event(ctx, "avro byte sent to producer output", log.INFO)
+				log.Info(ctx, "avro byte sent to producer output")
 			case <-time.After(time.Second * 5):
-				log.Event(ctx, "failing test due to timed out", log.INFO)
+				log.Info(ctx, "failing test due to timed out")
 				t.FailNow()
 			}
 
