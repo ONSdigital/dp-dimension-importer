@@ -51,19 +51,19 @@ func main() {
 	serviceList := initialise.ExternalServiceList{}
 
 	// Incoming kafka topic for instances to process
-	instanceConsumer, err := serviceList.GetConsumer(ctx, cfg)
+	instanceConsumer, err := serviceList.GetConsumer(ctx, cfg.KafkaConfig)
 	if err != nil {
 		os.Exit(1)
 	}
 
 	// Outgoing topic for instances that have completed processing
-	instanceCompleteProducer, err := serviceList.GetProducer(ctx, cfg.OutgoingInstancesTopic, initialise.InstanceComplete, cfg)
+	instanceCompleteProducer, err := serviceList.GetProducer(ctx, cfg.KafkaConfig.OutgoingInstancesTopic, initialise.InstanceComplete, cfg.KafkaConfig)
 	if err != nil {
 		os.Exit(1)
 	}
 
 	// Outgoing topic for any errors while processing an instance
-	errorReporterProducer, err := serviceList.GetProducer(ctx, cfg.EventReporterTopic, initialise.ErrorReporter, cfg)
+	errorReporterProducer, err := serviceList.GetProducer(ctx, cfg.KafkaConfig.EventReporterTopic, initialise.ErrorReporter, cfg.KafkaConfig)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -87,13 +87,17 @@ func main() {
 
 	// Dataset Client wrapper.
 	datasetAPICli, err := client.NewDatasetAPIClient(cfg)
+	if err != nil {
+		log.Fatal(ctx, "failed to create datasetAPI client", err)
+		os.Exit(1)
+	}
 
 	// Receiver for NewInstance events.
 	instanceEventHandler := &handler.InstanceEventHandler{
 		Store:         graphDB,
 		DatasetAPICli: datasetAPICli,
 		Producer:      instanceCompletedProducer,
-		BatchSize:     cfg.BatchSize,
+		BatchSize:     cfg.KafkaConfig.BatchSize,
 	}
 
 	// Errors handler
@@ -106,10 +110,12 @@ func main() {
 	// Create healthcheck object with versionInfo
 	hc, err := serviceList.GetHealthChecker(ctx, BuildTime, GitCommit, Version, cfg)
 	if err != nil {
+		log.Fatal(ctx, "failed to get health checker", err)
 		os.Exit(1)
 	}
 
 	if err := registerCheckers(hc, instanceConsumer, instanceCompleteProducer, errorReporterProducer, datasetAPICli.Client, graphDB); err != nil {
+		log.Fatal(ctx, "failed to register health checker", err)
 		os.Exit(1)
 	}
 
@@ -121,7 +127,7 @@ func main() {
 	}
 
 	// Start consuming messages from Kafka instanceConsumer
-	message.Consume(ctx, instanceConsumer, messageReceiver, cfg)
+	message.Consume(ctx, instanceConsumer, messageReceiver, cfg.KafkaConfig.NumWorkers)
 
 	instanceConsumer.Channels().LogErrors(ctx, "incoming instance kafka consumer received an error")
 	instanceCompleteProducer.Channels().LogErrors(ctx, "completed instance kafka producer received an error")

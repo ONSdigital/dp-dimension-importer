@@ -39,24 +39,24 @@ func (k KafkaProducerName) String() string {
 }
 
 // GetConsumer returns a kafka consumer, which might not be initialised
-func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer *kafka.ConsumerGroup, err error) {
+func (e *ExternalServiceList) GetConsumer(ctx context.Context, kafkaConfig config.KafkaConfig) (kafkaConsumer *kafka.ConsumerGroup, err error) {
 	cgChannels := kafka.CreateConsumerGroupChannels(1)
 	kafkaOffset := kafka.OffsetNewest
-	if cfg.KafkaOffsetOldest {
+	if kafkaConfig.OffsetOldest {
 		kafkaOffset = kafka.OffsetOldest
 	}
 	cgConfig := &kafka.ConsumerGroupConfig{
 		Offset:       &kafkaOffset,
-		KafkaVersion: &cfg.KafkaVersion,
+		KafkaVersion: &kafkaConfig.Version,
 	}
 	consumer, err := kafka.NewConsumerGroup(
-		ctx, cfg.KafkaAddr, cfg.IncomingInstancesTopic, cfg.IncomingInstancesConsumerGroup, cgChannels, cgConfig)
+		ctx, kafkaConfig.BindAddr, kafkaConfig.IncomingInstancesTopic, kafkaConfig.IncomingInstancesConsumerGroup, cgChannels, cgConfig)
 
 	if err != nil {
 		log.Fatal(ctx, "new kafka consumer group returned an error", err, log.Data{
-			"brokers":        cfg.KafkaAddr,
-			"topic":          cfg.IncomingInstancesTopic,
-			"consumer_group": cfg.IncomingInstancesConsumerGroup,
+			"brokers":        kafkaConfig.BindAddr,
+			"topic":          kafkaConfig.IncomingInstancesTopic,
+			"consumer_group": kafkaConfig.IncomingInstancesConsumerGroup,
 		})
 		return nil, err
 	}
@@ -66,12 +66,12 @@ func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Confi
 }
 
 // GetProducer returns a kafka producer, which might not be initialised
-func (e *ExternalServiceList) GetProducer(ctx context.Context, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer *kafka.Producer, err error) {
+func (e *ExternalServiceList) GetProducer(ctx context.Context, topic string, name KafkaProducerName, kafkaConfig config.KafkaConfig) (kafkaProducer *kafka.Producer, err error) {
 	pChannels := kafka.CreateProducerChannels()
 	pConfig := &kafka.ProducerConfig{
-		KafkaVersion: &cfg.KafkaVersion,
+		KafkaVersion: &kafkaConfig.Version,
 	}
-	producer, err := kafka.NewProducer(ctx, cfg.KafkaAddr, topic, pChannels, pConfig)
+	producer, err := kafka.NewProducer(ctx, kafkaConfig.BindAddr, topic, pChannels, pConfig)
 	if err != nil {
 		log.Fatal(ctx, "new kafka producer returned an error", err, log.Data{"topic": topic})
 		return nil, err

@@ -30,17 +30,18 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | Environment variable                | Default                              | Description
 | ----------------------------------- | ------------------------------------ | -----------
 | BIND_ADDR                           | :23000                               | The host and port to bind to
+| SERVICE_AUTH_TOKEN                  | 4424A9F2-B903-40F4-85F1-240107D1AFAF | The service authorization token
 | KAFKA_ADDR                          | localhost:9092                       | The list of kafka hosts
 | BATCH_SIZE                          | 1                                    | Number of kafka messages that will be batched
 | KAFKA_NUM_WORKERS                   | 1                                    | The maximum number of concurent kafka messages being consumed at the same time
 | KAFKA_VERSION                       | "1.0.2"                              | The kafka version that this service expects to connect to
+| KAFKA_OFFSET_OLDEST                 | true                                 | sets the kafka offset to be oldest if true 
 | KAFKA_SEC_PROTO                     | _unset_                              | if set to `TLS`, kafka connections will use TLS [[1]](#notes_1)
 | KAFKA_SEC_CLIENT_KEY                | _unset_                              | PEM for the client key [[1]](#notes_1)
 | KAFKA_SEC_CLIENT_CERT               | _unset_                              | PEM for the client certificate [[1]](#notes_1)
 | KAFKA_SEC_CA_CERTS                  | _unset_                              | CA cert chain for the server cert [[1]](#notes_1)
 | KAFKA_SEC_SKIP_VERIFY               | false                                | ignores server certificate issues if `true` [[1]](#notes_1)
 | DATASET_API_ADDR                    | http://localhost:21800               | The address of the dataset API
-| DATASET_API_AUTH_TOKEN              | FD0108EA-825D-411C-9B1D-41EF7727F465 | The authentication token for the dataset API
 | DIMENSIONS_EXTRACTED_TOPIC          | dimensions-extracted                 | The topic to consume messages from when dimensions are extracted
 | DIMENSIONS_EXTRACTED_CONSUMER_GROUP | dp-dimension-importer                | The consumer group to consume messages from when dimensions are extracted
 | DIMENSIONS_INSERTED_TOPIC           | dimensions-inserted                  | The topic to write output messages when dimensions are inserted
@@ -48,8 +49,6 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | GRACEFUL_SHUTDOWN_TIMEOUT           | 5s                                   | The graceful shutdown timeout (time.Duration)
 | HEALTHCHECK_INTERVAL                | 30s                                  | The period of time between health checks (time.Duration)
 | HEALTHCHECK_CRITICAL_TIMEOUT        | 90s                                  | The period of time after which failing checks will result in critical global check (time.Duration)
-| SERVICE_AUTH_TOKEN                  | 4424A9F2-B903-40F4-85F1-240107D1AFAF | The service authorization token
-| ZEBEDEE_URL                         | http://localhost:8082                | The host name for Zebedee
 | ENABLE_PATCH_NODE_ID                | true                                 | If true, the NodeID value for a dimension option stored in Neptune will be sent to dataset API
 
 **Notes:**
