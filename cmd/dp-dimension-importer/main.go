@@ -53,24 +53,32 @@ func main() {
 	// Incoming kafka topic for instances to process
 	instanceConsumer, err := serviceList.GetConsumer(ctx, cfg.KafkaConfig)
 	if err != nil {
+		log.Fatal(ctx, "failed to get kafka consumer", err)
 		os.Exit(1)
 	}
 
 	// Outgoing topic for instances that have completed processing
 	instanceCompleteProducer, err := serviceList.GetProducer(ctx, cfg.KafkaConfig.OutgoingInstancesTopic, initialise.InstanceComplete, cfg.KafkaConfig)
 	if err != nil {
+		log.Fatal(ctx, "failed to get kafka producer", err, log.Data{
+			"kafka_producer_topic": cfg.KafkaConfig.OutgoingInstancesTopic,
+		})
 		os.Exit(1)
 	}
 
 	// Outgoing topic for any errors while processing an instance
 	errorReporterProducer, err := serviceList.GetProducer(ctx, cfg.KafkaConfig.EventReporterTopic, initialise.ErrorReporter, cfg.KafkaConfig)
 	if err != nil {
+		log.Fatal(ctx, "failed to get kafka producer", err, log.Data{
+			"kafka_producer_topic": cfg.KafkaConfig.EventReporterTopic,
+		})
 		os.Exit(1)
 	}
 
 	// Connection to graph DB
 	graphDB, err := serviceList.GetGraphDB(ctx)
 	if err != nil {
+		log.Fatal(ctx, "failed to get graphDB", err)
 		os.Exit(1)
 	}
 

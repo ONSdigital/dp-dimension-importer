@@ -41,14 +41,25 @@ func (k KafkaProducerName) String() string {
 // GetConsumer returns a kafka consumer, which might not be initialised
 func (e *ExternalServiceList) GetConsumer(ctx context.Context, kafkaConfig config.KafkaConfig) (kafkaConsumer *kafka.ConsumerGroup, err error) {
 	cgChannels := kafka.CreateConsumerGroupChannels(1)
+
 	kafkaOffset := kafka.OffsetNewest
 	if kafkaConfig.OffsetOldest {
 		kafkaOffset = kafka.OffsetOldest
 	}
+
 	cgConfig := &kafka.ConsumerGroupConfig{
 		Offset:       &kafkaOffset,
 		KafkaVersion: &kafkaConfig.Version,
 	}
+	if kafkaConfig.SecProtocol == config.KafkaTLSProtocolFlag {
+		cgConfig.SecurityConfig = kafka.GetSecurityConfig(
+			kafkaConfig.SecCACerts,
+			kafkaConfig.SecClientCert,
+			kafkaConfig.SecClientKey,
+			kafkaConfig.SecSkipVerify,
+		)
+	}
+
 	consumer, err := kafka.NewConsumerGroup(
 		ctx, kafkaConfig.BindAddr, kafkaConfig.IncomingInstancesTopic, kafkaConfig.IncomingInstancesConsumerGroup, cgChannels, cgConfig)
 
@@ -68,9 +79,19 @@ func (e *ExternalServiceList) GetConsumer(ctx context.Context, kafkaConfig confi
 // GetProducer returns a kafka producer, which might not be initialised
 func (e *ExternalServiceList) GetProducer(ctx context.Context, topic string, name KafkaProducerName, kafkaConfig config.KafkaConfig) (kafkaProducer *kafka.Producer, err error) {
 	pChannels := kafka.CreateProducerChannels()
+
 	pConfig := &kafka.ProducerConfig{
 		KafkaVersion: &kafkaConfig.Version,
 	}
+	if kafkaConfig.SecProtocol == config.KafkaTLSProtocolFlag {
+		pConfig.SecurityConfig = kafka.GetSecurityConfig(
+			kafkaConfig.SecCACerts,
+			kafkaConfig.SecClientCert,
+			kafkaConfig.SecClientKey,
+			kafkaConfig.SecSkipVerify,
+		)
+	}
+
 	producer, err := kafka.NewProducer(ctx, kafkaConfig.BindAddr, topic, pChannels, pConfig)
 	if err != nil {
 		log.Fatal(ctx, "new kafka producer returned an error", err, log.Data{"topic": topic})
