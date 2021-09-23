@@ -95,14 +95,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And storerMock.InsertDimension is called 2 times with the expected parameters", func() {
-				calls := storerMock.InsertDimensionCalls()
-				So(len(calls), ShouldEqual, 2)
-
-				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
-				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
-
-				So(calls[1].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
-				So(calls[1].Dimension, ShouldResemble, d2.DbModel())
+				validateInsertDimensionCalls(storerMock, 2, instance.DbModel().InstanceID, d1.DbModel(), d2.DbModel())
 			})
 
 			Convey("And storerMock.GetCodeOrder is called 1 time with the expected paramters", func() {
@@ -272,7 +265,6 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldBeGreaterThan, 0) // may be 1 or 2 depending on when go routines run
 				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
-				// just check the dimensionID. The Option and NodeID may correspond to d1 or d2, depending on the order of execution
 				So(calls[0].Dimension.DimensionID, ShouldEqual, "1234567890_Geography")
 			})
 
@@ -321,7 +313,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldBeGreaterThan, 0) // may be 1 or 2 depending on when go routines run
 				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
-				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
+				So(calls[0].Dimension.DimensionID, ShouldEqual, "1234567890_Geography")
 			})
 
 			Convey("And the expected error is returned", func() {
@@ -365,7 +357,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldBeGreaterThan, 0) // may be 1 or 2 depending on when go routines run
 				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
-				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
+				So(calls[0].Dimension.DimensionID, ShouldEqual, "1234567890_Geography")
 			})
 
 			Convey("And storerMock.GetCodesOrder is called at least once with the expected paramters", func() {
@@ -416,7 +408,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				calls := storerMock.InsertDimensionCalls()
 				So(len(calls), ShouldBeGreaterThan, 0) // may be 1 or 2 depending on when go routines run
 				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
-				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
+				So(calls[0].Dimension.DimensionID, ShouldEqual, "1234567890_Geography")
 			})
 
 			Convey("And storerMock.GetCodeOrder is called 2 times with the expected paramters", func() {
@@ -488,13 +480,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			})
 
 			Convey("And storer.InsertDimension is called 2 time with the expected parameters", func() {
-				calls := storerMock.InsertDimensionCalls()
-				So(len(calls), ShouldEqual, 2)
-				So(calls[0].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
-				So(calls[0].Dimension, ShouldResemble, d1.DbModel())
-
-				So(calls[1].InstanceID, ShouldResemble, instance.DbModel().InstanceID)
-				So(calls[1].Dimension, ShouldResemble, d2.DbModel())
+				validateInsertDimensionCalls(storerMock, 2, instance.DbModel().InstanceID, d1.DbModel(), d2.DbModel())
 			})
 
 			Convey("And storerMock.GetCodeOrder is called 1 time with the expected paramters", func() {
@@ -736,4 +722,27 @@ func setUp() (*storertest.StorerMock, *mocks.IClientMock, *mocks.CompletedProduc
 		BatchSize:         testBatchSize,
 	}
 	return storeMock, datasetAPIMock, completedProducer, handler
+}
+
+// validateInsertDimensionCalls validates the following for InsertDimensionCalls:
+// - it was called exactly numCalls
+// - all expected dimensions were inserted, and nothing else
+func validateInsertDimensionCalls(storerMock *storertest.StorerMock, numCalls int, instanceID string, expectedDimensions ...*models.Dimension) {
+	So(storerMock.InsertDimensionCalls(), ShouldHaveLength, numCalls)
+	calledDimensions := []*models.Dimension{}
+	for _, c := range storerMock.InsertDimensionCalls() {
+		So(c.InstanceID, ShouldEqual, instanceID) // Validate all calls have expected instanceID
+		calledDimensions = append(calledDimensions, c.Dimension)
+	}
+	So(calledDimensions, ShouldHaveLength, len(expectedDimensions))
+	for _, expectedDimension := range expectedDimensions {
+		found := false
+		for _, f := range calledDimensions {
+			if expectedDimension.DimensionID == f.DimensionID && expectedDimension.NodeID == f.NodeID && expectedDimension.Option == f.Option {
+				found = true
+				break
+			}
+		}
+		So(found, ShouldBeTrue) // validate that dimension 'd' is found
+	}
 }
