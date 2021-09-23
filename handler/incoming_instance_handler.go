@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-dimension-importer/client"
 	"github.com/ONSdigital/dp-dimension-importer/event"
@@ -30,10 +31,11 @@ type CompletedProducer interface {
 
 // InstanceEventHandler provides functions for handling DimensionsExtractedEvents.
 type InstanceEventHandler struct {
-	Store         store.Storer
-	DatasetAPICli *client.DatasetAPI
-	Producer      CompletedProducer
-	BatchSize     int
+	Store             store.Storer
+	DatasetAPICli     *client.DatasetAPI
+	Producer          CompletedProducer
+	BatchSize         int
+	EnablePatchNodeID bool
 }
 
 // Handle retrieves the dimensions for specified instanceID from the Import API, creates an MyInstance entity for
@@ -109,6 +111,24 @@ func (hdlr *InstanceEventHandler) validate(newInstance event.NewInstance) error 
 }
 
 func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance *model.Instance, dimensions []*model.Dimension) error {
+	// validate instance
+	if instance == nil || instance.DbModel() == nil || len(instance.DbModel().InstanceID) == 0 {
+		log.Error(ctx, "nil or empty instanceID provided to patchDimensions", client.ErrInstanceIDEmpty)
+		return client.ErrInstanceIDEmpty
+	}
+	// validate dimensions
+	if len(dimensions) == 0 {
+		log.Error(ctx, "nil or empty dimensions provided to patchDimensions", client.ErrDimensionNil)
+		return client.ErrDimensionNil
+	}
+	for _, d := range dimensions {
+		if d == nil || d.DbModel() == nil {
+			return client.ErrDimensionNil
+		}
+		if len(d.DbModel().DimensionID) == 0 {
+			return client.ErrDimensionIDEmpty
+		}
+	}
 
 	cache := make(map[string]string)
 	var wg sync.WaitGroup
@@ -125,19 +145,31 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 		}(dimension)
 
 		if count >= hdlr.BatchSize {
-			err := waitForBatch(&wg, batchProcessed, problem)
-			if err != nil {
+			// stop creating go-routins until this full batch (of size BatchSize) finishes
+			if err := waitForBatch(&wg, batchProcessed, problem); err != nil {
+				return err
+			}
+			// set dimension options' order and nodeID for the current batch
+			if err := hdlr.setOrderAndNodeIDs(ctx, cache, instance.DbModel().InstanceID, dimensions); err != nil {
 				return err
 			}
 			count = 0
 		}
 	}
 
+	// wait until the last batch (of size <BatchSize) finishes
 	err := waitForBatch(&wg, batchProcessed, problem)
 	if err != nil {
 		return err
 	}
+	if count > 0 {
+		// set dimension options' order and nodeID for the last batch
+		if err := hdlr.setOrderAndNodeIDs(ctx, cache, instance.DbModel().InstanceID, dimensions); err != nil {
+			return err
+		}
+	}
 
+	// Add dimensions to graph database
 	if err := hdlr.Store.AddDimensions(ctx, instance.DbModel().InstanceID, instance.DbModel().Dimensions); err != nil {
 		return fmt.Errorf("AddDimensions returned an error: %w", err)
 	}
@@ -146,7 +178,6 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 }
 
 func waitForBatch(wg *sync.WaitGroup, batchProcessed chan bool, problem chan error) error {
-
 	go func() {
 		wg.Wait()
 		batchProcessed <- true
@@ -160,38 +191,79 @@ func waitForBatch(wg *sync.WaitGroup, batchProcessed chan bool, problem chan err
 	}
 }
 
-func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map[string]string, instance *model.Instance, d *model.Dimension, problem chan error) {
+// setOrderAndNodeIDs obtains the codes order from the graph database
+// and patches the existing dimension options in dataset API (updating node_id and order values)
+// this method assumes that valid non-nil values are provided (have been created or validated by caller)
+func (hdlr *InstanceEventHandler) setOrderAndNodeIDs(ctx context.Context, cache map[string]string, instanceID string, dimensions []*model.Dimension) error {
+	// get a map of codes by codelistID
+	codesByCodelistID := map[string][]string{}
+	for _, d := range dimensions {
+		codelistID := d.CodeListID()
+		codesByCodelistID[codelistID] = append(codesByCodelistID[codelistID], d.DbModel().Option)
+	}
 
+	// get a map of orders by code (one call to dp-graph per codeListID)
+	orderByCode := map[string]*int{}
+	for codeListID, codes := range codesByCodelistID {
+		o, err := hdlr.Store.GetCodesOrder(ctx, codeListID, codes)
+		if err != nil {
+			err = fmt.Errorf("error while attempting to get dimension order using codes: %w", err)
+			log.Error(ctx, "error in setOrderAndNodeIDs while getting orders from the graph database", err, log.Data{
+				"instance_id":  instanceID,
+				"code_list_id": codeListID,
+				"codes":        codes,
+			})
+			return err
+		}
+		for k, v := range o {
+			orderByCode[k] = v
+		}
+	}
+
+	// create list of updates to send to dataset API patch endpoint
+	updates := []*dataset.OptionUpdate{}
+	for _, d := range dimensions {
+		nodeID := ""
+		if hdlr.EnablePatchNodeID {
+			nodeID = d.DbModel().NodeID
+		}
+		order := orderByCode[d.DbModel().Option]
+
+		if nodeID == "" && order == nil {
+			continue // no update for the current dimension
+		}
+
+		u := &dataset.OptionUpdate{
+			Name:   d.DbModel().DimensionID,
+			Option: d.DbModel().Option,
+		}
+		if nodeID != "" {
+			u.NodeID = nodeID
+		}
+		if order != nil {
+			u.Order = order
+		}
+		updates = append(updates, u)
+	}
+
+	if _, err := hdlr.DatasetAPICli.PatchDimensionOption(ctx, instanceID, updates); err != nil {
+		err = fmt.Errorf("DatasetAPICli.PatchDimensionOption returned an error: %w", err)
+		log.Error(ctx, "patch error in setOrderAndNodeIDs", err, log.Data{
+			"instance_id": instanceID,
+			"updates":     updates})
+		return err
+	}
+	return nil
+}
+
+// insertDimension inserts the dimension to the graph database
+// and creates the code relationship if DimensionID is time
+// this method assumes that valid non-nil values are provided (have been created or validated by caller)
+func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map[string]string, instance *model.Instance, d *model.Dimension, problem chan error) {
 	dbDimension, err := hdlr.Store.InsertDimension(ctx, cache, instance.DbModel().InstanceID, d.DbModel())
 	if err != nil {
-		err = fmt.Errorf("error while attempting to insert dimension: %w", err)
-		log.Error(ctx, "error while attempting to insert dimension", err, log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
-		problem <- err
-		return
-	}
-
-	orderMap, err := hdlr.Store.GetCodesOrder(ctx, d.CodeListID(), []string{d.DbModel().Option})
-	if err != nil {
-		err = fmt.Errorf("error while attempting to get dimension order using code: %w", err)
-		log.Error(ctx, "error while attempting to get dimension order using code", err, log.Data{
-			"instance_id":  instance.DbModel().InstanceID,
-			"dimension_id": dbDimension.DimensionID,
-			"code_list_id": d.CodeListID(),
-			"code":         d.DbModel().Option,
-		})
-		problem <- err
-		return
-	}
-
-	order, ok := orderMap[d.DbModel().Option]
-	if !ok {
-		problem <- fmt.Errorf("no order was found for option %s", d.DbModel().Option)
-		return
-	}
-
-	if _, err = hdlr.DatasetAPICli.PatchDimensionOption(ctx, instance.DbModel().InstanceID, d, order); err != nil {
-		err = fmt.Errorf("DatasetAPICli.PatchDimensionOption returned an error: %w", err)
-		log.Error(ctx, "DatasetAPICli.PatchDimensionOption returned an error", err, log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+		err = fmt.Errorf("error while attempting to insert a dimension to the graph database: %w", err)
+		log.Error(ctx, "error inserting dimension", err, log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 		problem <- err
 		return
 	}

@@ -90,10 +90,11 @@ func main() {
 
 	// Receiver for NewInstance events.
 	instanceEventHandler := &handler.InstanceEventHandler{
-		Store:         graphDB,
-		DatasetAPICli: datasetAPICli,
-		Producer:      instanceCompletedProducer,
-		BatchSize:     cfg.BatchSize,
+		Store:             graphDB,
+		DatasetAPICli:     datasetAPICli,
+		Producer:          instanceCompletedProducer,
+		BatchSize:         cfg.BatchSize,
+		EnablePatchNodeID: cfg.EnablePatchNodeID,
 	}
 
 	// Errors handler

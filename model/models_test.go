@@ -50,7 +50,7 @@ func TestDimension_Validate(t *testing.T) {
 	})
 
 	Convey("Given a dimension with an empty dimensionID", t, func() {
-		d := &Dimension{&db.Dimension{Option: "10"}, ""}
+		d := &Dimension{&db.Dimension{Option: "10"}, "", nil}
 
 		Convey("When validateDimension is called", func() {
 			err := d.Validate()
@@ -62,7 +62,7 @@ func TestDimension_Validate(t *testing.T) {
 	})
 
 	Convey("Given a dimension with an empty dimensionID and option", t, func() {
-		d := &Dimension{&db.Dimension{DimensionID: "", Option: ""}, ""}
+		d := &Dimension{&db.Dimension{DimensionID: "", Option: ""}, "", nil}
 
 		Convey("When validateDimension is called", func() {
 			err := d.Validate()
@@ -74,7 +74,7 @@ func TestDimension_Validate(t *testing.T) {
 	})
 
 	Convey("Given a dimension with an empty option", t, func() {
-		d := &Dimension{&db.Dimension{DimensionID: "id"}, ""}
+		d := &Dimension{&db.Dimension{DimensionID: "id"}, "", nil}
 
 		Convey("When validateDimension is called", func() {
 			err := d.Validate()
@@ -88,7 +88,7 @@ func TestDimension_Validate(t *testing.T) {
 
 func TestDimension_New(t *testing.T) {
 
-	emptyDimension := &Dimension{&db.Dimension{}, ""}
+	emptyDimension := &Dimension{&db.Dimension{}, "", nil}
 
 	Convey("Given a new dimension with a nil pointer dataset API model", t, func() {
 		d := NewDimension(nil)

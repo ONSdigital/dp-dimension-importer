@@ -10,25 +10,29 @@ import (
 	"sync"
 )
 
+var (
+	lockCompletedProducerMockCompleted sync.RWMutex
+)
+
 // Ensure, that CompletedProducerMock does implement handler.CompletedProducer.
 // If this is not the case, regenerate this file with moq.
 var _ handler.CompletedProducer = &CompletedProducerMock{}
 
 // CompletedProducerMock is a mock implementation of handler.CompletedProducer.
 //
-// 	func TestSomethingThatUsesCompletedProducer(t *testing.T) {
+//     func TestSomethingThatUsesCompletedProducer(t *testing.T) {
 //
-// 		// make and configure a mocked handler.CompletedProducer
-// 		mockedCompletedProducer := &CompletedProducerMock{
-// 			CompletedFunc: func(ctx context.Context, e event.InstanceCompleted) error {
-// 				panic("mock out the Completed method")
-// 			},
-// 		}
+//         // make and configure a mocked handler.CompletedProducer
+//         mockedCompletedProducer := &CompletedProducerMock{
+//             CompletedFunc: func(ctx context.Context, e event.InstanceCompleted) error {
+// 	               panic("mock out the Completed method")
+//             },
+//         }
 //
-// 		// use mockedCompletedProducer in code that requires handler.CompletedProducer
-// 		// and then make assertions.
+//         // use mockedCompletedProducer in code that requires handler.CompletedProducer
+//         // and then make assertions.
 //
-// 	}
+//     }
 type CompletedProducerMock struct {
 	// CompletedFunc mocks the Completed method.
 	CompletedFunc func(ctx context.Context, e event.InstanceCompleted) error
@@ -43,7 +47,6 @@ type CompletedProducerMock struct {
 			E event.InstanceCompleted
 		}
 	}
-	lockCompleted sync.RWMutex
 }
 
 // Completed calls CompletedFunc.
@@ -58,9 +61,9 @@ func (mock *CompletedProducerMock) Completed(ctx context.Context, e event.Instan
 		Ctx: ctx,
 		E:   e,
 	}
-	mock.lockCompleted.Lock()
+	lockCompletedProducerMockCompleted.Lock()
 	mock.calls.Completed = append(mock.calls.Completed, callInfo)
-	mock.lockCompleted.Unlock()
+	lockCompletedProducerMockCompleted.Unlock()
 	return mock.CompletedFunc(ctx, e)
 }
 
@@ -75,8 +78,8 @@ func (mock *CompletedProducerMock) CompletedCalls() []struct {
 		Ctx context.Context
 		E   event.InstanceCompleted
 	}
-	mock.lockCompleted.RLock()
+	lockCompletedProducerMockCompleted.RLock()
 	calls = mock.calls.Completed
-	mock.lockCompleted.RUnlock()
+	lockCompletedProducerMockCompleted.RUnlock()
 	return calls
 }
