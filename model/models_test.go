@@ -14,7 +14,7 @@ func TestInstance_Validate(t *testing.T) {
 	Convey("Given Instance is nil", t, func() {
 		var i *Instance
 
-		Convey("When Insert is invoked", func() {
+		Convey("When Validate is invoked", func() {
 			err := i.Validate()
 
 			Convey("Then the expected error is returned", func() {
@@ -26,11 +26,23 @@ func TestInstance_Validate(t *testing.T) {
 	Convey("Given an Instance with an empty instanceID", t, func() {
 		i := &Instance{dbInstance: &db.Instance{InstanceID: ""}}
 
-		Convey("When Insert is invoked", func() {
+		Convey("When Validate is invoked", func() {
 			err := i.Validate()
 
 			Convey("Then the expected error is returned", func() {
 				So(err.Error(), ShouldEqual, errors.New("instance id is required but was empty").Error())
+			})
+		})
+	})
+
+	Convey("Given an Instance with a valid instanceID", t, func() {
+		i := &Instance{dbInstance: &db.Instance{InstanceID: "myInstance"}}
+
+		Convey("When Validate is invoked", func() {
+			err := i.Validate()
+
+			Convey("Then the no error is returned", func() {
+				So(err, ShouldBeNil)
 			})
 		})
 	})
@@ -81,6 +93,18 @@ func TestDimension_Validate(t *testing.T) {
 
 			Convey("Then the expected error is returned with a nil dimension", func() {
 				So(err.Error(), ShouldEqual, errors.New("dimension value is required but was empty").Error())
+			})
+		})
+	})
+
+	Convey("Given a dimension with dimensionID and option", t, func() {
+		d := &Dimension{&db.Dimension{DimensionID: "id", Option: "myOption"}, "", nil}
+
+		Convey("When validateDimension is called", func() {
+			err := d.Validate()
+
+			Convey("Then no error is returned", func() {
+				So(err, ShouldBeNil)
 			})
 		})
 	})
