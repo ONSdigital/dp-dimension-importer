@@ -20,7 +20,6 @@ import (
 
 var (
 	errInstanceExists = errors.New("[handler.InstanceEventHandler] instance already exists")
-	errValidationFail = errors.New("[handler.InstanceEventHandler] validation error")
 	packageName       = "handler.InstanceEventHandler"
 )
 
@@ -110,61 +109,93 @@ func (hdlr *InstanceEventHandler) validate(newInstance event.NewInstance) error 
 	return nil
 }
 
+// insertDimensions inserts the necessary nodes in the graph database and updates the dimension options in Dataset API
+// for all the provided dimensions, in batches of size BatchSize. For each batch:
+// - we trigger BatchSize go-routines, each one will insert a dimension node to the graph database
+// - when all go-routines finish their execution, we perform one patch call to dataset api to update the order and node_id values
+// Once all batches have been processed, a final AddDimensions call is performed
 func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance *model.Instance, dimensions []*model.Dimension) error {
 	// validate instance
 	if instance == nil || instance.DbModel() == nil || len(instance.DbModel().InstanceID) == 0 {
-		log.Error(ctx, "nil or empty instanceID provided to patchDimensions", client.ErrInstanceIDEmpty)
+		log.Error(ctx, "nil or empty instanceID provided to insertDimensions", client.ErrInstanceIDEmpty)
 		return client.ErrInstanceIDEmpty
 	}
 	// validate dimensions
 	if len(dimensions) == 0 {
-		log.Error(ctx, "nil or empty dimensions provided to patchDimensions", client.ErrDimensionNil)
+		log.Error(ctx, "nil or empty dimensions provided to insertDimensions", client.ErrDimensionNil)
 		return client.ErrDimensionNil
 	}
 	for _, d := range dimensions {
 		if d == nil || d.DbModel() == nil {
+			log.Error(ctx, "nil dimension provided to insertDimensions", client.ErrDimensionNil)
 			return client.ErrDimensionNil
 		}
 		if len(d.DbModel().DimensionID) == 0 {
+			log.Error(ctx, "empty dimension provided to insertDimensions", client.ErrDimensionNil)
 			return client.ErrDimensionIDEmpty
 		}
 	}
 
 	cache := make(map[string]string)
-	var wg sync.WaitGroup
+	wg := &sync.WaitGroup{}
 	problem := make(chan error, len(dimensions))
-	batchProcessed := make(chan bool)
-	count := 0
 
-	for _, dimension := range dimensions {
-		wg.Add(1)
-		count++
-		go func(d *model.Dimension) {
-			defer wg.Done()
-			hdlr.insertDimension(ctx, cache, instance, d, problem)
-		}(dimension)
+	// waitForBatch is an aux func to block the main thread until all go-routines finish,
+	// returning err if any one of them reported an error
+	waitForBatch := func() error {
+		batchProcessed := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(batchProcessed)
+		}()
 
-		if count >= hdlr.BatchSize {
-			// stop creating go-routins until this full batch (of size BatchSize) finishes
-			if err := waitForBatch(&wg, batchProcessed, problem); err != nil {
-				return err
-			}
-			// set dimension options' order and nodeID for the current batch
-			if err := hdlr.setOrderAndNodeIDs(ctx, cache, instance.DbModel().InstanceID, dimensions); err != nil {
-				return err
-			}
-			count = 0
+		select {
+		case <-batchProcessed:
+			return nil
+		case err := <-problem:
+			return err
 		}
 	}
 
-	// wait until the last batch (of size <BatchSize) finishes
-	err := waitForBatch(&wg, batchProcessed, problem)
-	if err != nil {
-		return err
+	// func to process one batch
+	processBatch := func(dimensionsBatch []*model.Dimension) error {
+		// trigger insertDimension in parallel go-routines (one per item in the batch)
+		for _, dimension := range dimensionsBatch {
+			wg.Add(1)
+			go func(d *model.Dimension) {
+				defer wg.Done()
+				hdlr.insertDimension(ctx, cache, instance, d, problem)
+			}(dimension)
+		}
+
+		// wait for all go-routines to finish
+		if err := waitForBatch(); err != nil {
+			return err
+		}
+
+		// set dimension options' order and nodeID for the current batch (one call per batch)
+		if err := hdlr.setOrderAndNodeIDs(ctx, instance.DbModel().InstanceID, dimensionsBatch); err != nil {
+			return err
+		}
+		return nil
 	}
-	if count > 0 {
-		// set dimension options' order and nodeID for the last batch
-		if err := hdlr.setOrderAndNodeIDs(ctx, cache, instance.DbModel().InstanceID, dimensions); err != nil {
+
+	// Get batch splits for provided items
+	numFullChunks := len(dimensions) / hdlr.BatchSize
+	remainingSize := len(dimensions) % hdlr.BatchSize
+
+	// process full batches
+	for i := 0; i < numFullChunks; i++ {
+		chunk := dimensions[i*hdlr.BatchSize : (i+1)*hdlr.BatchSize]
+		if err := processBatch(chunk); err != nil {
+			return err
+		}
+	}
+
+	// process any remaining
+	if remainingSize > 0 {
+		lastChunk := dimensions[numFullChunks*hdlr.BatchSize : (numFullChunks*hdlr.BatchSize + remainingSize)]
+		if err := processBatch(lastChunk); err != nil {
 			return err
 		}
 	}
@@ -177,24 +208,10 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 	return nil
 }
 
-func waitForBatch(wg *sync.WaitGroup, batchProcessed chan bool, problem chan error) error {
-	go func() {
-		wg.Wait()
-		batchProcessed <- true
-	}()
-
-	select {
-	case <-batchProcessed:
-		return nil
-	case err := <-problem:
-		return err
-	}
-}
-
 // setOrderAndNodeIDs obtains the codes order from the graph database
 // and patches the existing dimension options in dataset API (updating node_id and order values)
 // this method assumes that valid non-nil values are provided (have been created or validated by caller)
-func (hdlr *InstanceEventHandler) setOrderAndNodeIDs(ctx context.Context, cache map[string]string, instanceID string, dimensions []*model.Dimension) error {
+func (hdlr *InstanceEventHandler) setOrderAndNodeIDs(ctx context.Context, instanceID string, dimensions []*model.Dimension) error {
 	// get a map of codes by codelistID
 	codesByCodelistID := map[string][]string{}
 	for _, d := range dimensions {
