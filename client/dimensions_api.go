@@ -16,10 +16,16 @@ import (
 const packageName = "client.DatasetAPI"
 
 // ErrHostEmpty is returned when a Client is created with an empty Host
-var ErrHostEmpty = errors.New("validation error: api host is required but was empty")
+var ErrHostEmpty = errors.New("api host is required but was empty")
+
+// ErrNoDatasetAPI is returned when a dataset API Client is not provided
+var ErrNoDatasetAPI = errors.New("dataset api is required but is not provided")
+
+// ErrNoDatastore is returned when a data store is not provided
+var ErrNoDatastore = errors.New("data store is required but is not provided")
 
 // ErrInstanceIDEmpty is returned when an InstanceID is not provided to a call that requires it
-var ErrInstanceIDEmpty = errors.New("validation error: instance id is required but is empty")
+var ErrInstanceIDEmpty = errors.New("instance id is required but is empty")
 
 // ErrDimensionNil is returned when a dimension is not provided to a call that requires it
 var ErrDimensionNil = errors.New("dimension is required but is nil")
