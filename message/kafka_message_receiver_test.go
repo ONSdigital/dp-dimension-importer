@@ -42,7 +42,7 @@ func TestKafkaMessageHandler_Handle(t *testing.T) {
 			So(fixture.instanceHdlrCalls[0], ShouldResemble, newInstanceEvent)
 		})
 
-		Convey("And ErrorReporter.Notify is never called", func() {
+		Convey("Then ErrorReporter.Notify is never called", func() {
 			So(len(fixture.errorReporter.NotifyCalls()), ShouldEqual, 0)
 		})
 	})
@@ -68,7 +68,7 @@ func TestKafkaMessageHandler_Handle_InvalidKafkaMessage(t *testing.T) {
 				So(len(fix.errorReporter.NotifyCalls()), ShouldEqual, 0)
 			})
 
-			Convey("And InstanceHandler.OnMessage is never called", func() {
+			Convey("Then InstanceHandler.OnMessage is never called", func() {
 				So(len(fix.instanceHdlrCalls), ShouldEqual, 0)
 			})
 		})
@@ -105,7 +105,7 @@ func TestKafkaMessageHandler_Handle_InstanceHandlerError(t *testing.T) {
 			So(fix.instanceHdlrCalls[0], ShouldResemble, newInstanceEvent)
 		})
 
-		Convey("And ErrorReporter.Notify is called 1 time with the expected parameters", func() {
+		Convey("Then ErrorReporter.Notify is called 1 time with the expected parameters", func() {
 			So(len(fix.errorReporter.NotifyCalls()), ShouldEqual, 1)
 			So(fix.errorReporter.NotifyCalls()[0].ErrContext, ShouldEqual, "InstanceHandler.Handle returned an unexpected error")
 		})

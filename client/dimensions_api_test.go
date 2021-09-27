@@ -56,7 +56,7 @@ func TestNewClient(t *testing.T) {
 
 		Convey("Then a nil instance and ErrHostEmpty is returned", func() {
 			So(datasetAPI, ShouldEqual, nil)
-			So(err.Error(), ShouldResemble, client.ErrHostEmpty.Error())
+			So(err.Error(), ShouldEqual, client.ErrHostEmpty.Error())
 		})
 	})
 }
@@ -85,7 +85,7 @@ func TestGetInstance(t *testing.T) {
 				So(err, ShouldEqual, nil)
 			})
 
-			Convey("And dataset.GetInstance is called exactly once with the right parameters", func() {
+			Convey("Then dataset.GetInstance is called exactly once with the right parameters", func() {
 				So(len(clientMock.GetInstanceCalls()), ShouldEqual, 1)
 				So(clientMock.GetInstanceCalls()[0].InstanceID, ShouldEqual, instanceID)
 				So(clientMock.GetInstanceCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
@@ -139,7 +139,7 @@ func TestGetInstance(t *testing.T) {
 				So(err, ShouldResemble, errMock)
 			})
 
-			Convey("And dataset.GetInstance is called exactly once with the right parameters", func() {
+			Convey("Then dataset.GetInstance is called exactly once with the right parameters", func() {
 				So(len(clientMock.GetInstanceCalls()), ShouldEqual, 1)
 				So(clientMock.GetInstanceCalls()[0].InstanceID, ShouldEqual, instanceID)
 				So(clientMock.GetInstanceCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
@@ -174,7 +174,7 @@ func TestGetDimensions(t *testing.T) {
 				So(err, ShouldEqual, nil)
 			})
 
-			Convey("And dataset.GetInstanceDimensions is called exactly once with the right parameters", func() {
+			Convey("Then dataset.GetInstanceDimensions is called exactly once with the right parameters", func() {
 				So(len(clientMock.GetInstanceDimensionsInBatchesCalls()), ShouldEqual, 1)
 				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].InstanceID, ShouldEqual, instanceID)
 				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
@@ -226,7 +226,7 @@ func TestGetDimensions(t *testing.T) {
 				So(err, ShouldResemble, errMock)
 			})
 
-			Convey("And dataset.GetInstanceDimensions is called exactly once with the right parameters", func() {
+			Convey("Then dataset.GetInstanceDimensions is called exactly once with the right parameters", func() {
 				So(len(clientMock.GetInstanceDimensionsInBatchesCalls()), ShouldEqual, 1)
 				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].InstanceID, ShouldEqual, instanceID)
 				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
@@ -264,7 +264,7 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 				So(err, ShouldResemble, errMock)
 			})
 
-			Convey("And dataset.PatchInstanceDimensions is called exactly once with the right parameters", func() {
+			Convey("Then dataset.PatchInstanceDimensions is called exactly once with the right parameters", func() {
 				So(len(clientMock.PatchInstanceDimensionsCalls()), ShouldEqual, 1)
 				So(clientMock.PatchInstanceDimensionsCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
 				So(clientMock.PatchInstanceDimensionsCalls()[0].InstanceID, ShouldEqual, instanceID)
@@ -295,7 +295,7 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 				So(err, ShouldEqual, nil)
 			})
 
-			Convey("And dataset.PatchInstanceDimensionOption is called exactly once with the right parameters", func() {
+			Convey("Then dataset.PatchInstanceDimensionOption is called exactly once with the right parameters", func() {
 				So(len(clientMock.PatchInstanceDimensionsCalls()), ShouldEqual, 1)
 				So(clientMock.PatchInstanceDimensionsCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
 				So(clientMock.PatchInstanceDimensionsCalls()[0].InstanceID, ShouldEqual, instanceID)
