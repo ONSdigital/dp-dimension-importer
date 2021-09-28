@@ -41,8 +41,7 @@ type InstanceEventHandler struct {
 // provided instanceID, creates a Dimension entity for each dimension and a relationship to the MyInstance it belongs to
 // and makes a PUT request to the Import API with the database ID of each Dimension entity.
 func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.NewInstance) error {
-	err := hdlr.Validate(newInstance)
-	if err != nil {
+	if err := hdlr.Validate(newInstance); err != nil {
 		return err
 	}
 
@@ -103,34 +102,34 @@ func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.
 
 func (hdlr *InstanceEventHandler) Validate(newInstance event.NewInstance) error {
 	if hdlr.DatasetAPICli == nil {
-		return fmt.Errorf("validation error: %w", client.ErrNoDatasetAPI)
+		return fmt.Errorf("event validation error: %w", client.ErrNoDatasetAPI)
 	}
 	if hdlr.Store == nil {
-		return fmt.Errorf("validation error: %w", client.ErrNoDatastore)
+		return fmt.Errorf("event validation error: %w", client.ErrNoDatastore)
 	}
 	if len(newInstance.InstanceID) == 0 {
-		return fmt.Errorf("validation error: %w", client.ErrInstanceIDEmpty)
+		return fmt.Errorf("event validation error: %w", client.ErrInstanceIDEmpty)
 	}
 	return nil
 }
 
 func ValidateInstance(instance *model.Instance) error {
 	if instance == nil || instance.DbModel() == nil || len(instance.DbModel().InstanceID) == 0 {
-		return fmt.Errorf("validation error: %w", client.ErrInstanceIDEmpty)
+		return fmt.Errorf("instance validation error: %w", client.ErrInstanceIDEmpty)
 	}
 	return nil
 }
 
 func ValidateDimensions(dimensions []*model.Dimension) error {
 	if len(dimensions) == 0 {
-		return fmt.Errorf("validation error: %w", client.ErrDimensionNil)
+		return fmt.Errorf("dimensions validation error: %w", client.ErrDimensionsNil)
 	}
 	for _, d := range dimensions {
 		if d == nil || d.DbModel() == nil {
-			return fmt.Errorf("validation error: %w", client.ErrDimensionNil)
+			return fmt.Errorf("dimensions validation error: %w", client.ErrDimensionNil)
 		}
 		if len(d.DbModel().DimensionID) == 0 {
-			return fmt.Errorf("validation error: %w", client.ErrDimensionIDEmpty)
+			return fmt.Errorf("dimensions validation error: %w", client.ErrDimensionIDEmpty)
 		}
 	}
 	return nil
@@ -245,7 +244,8 @@ func (hdlr *InstanceEventHandler) SetOrderAndNodeIDs(ctx context.Context, instan
 		}
 	}
 
-	log.Info(ctx, "successfully got code orders from graph database", log.Data{"time": time.Since(t0), "num_codelists": len(codesByCodelistID)})
+	t1 := time.Since(t0)
+	log.Info(ctx, "successfully got code orders from graph database", log.Data{"time": t1, "num_codelists": len(codesByCodelistID)})
 
 	// create list of updates to send to dataset API patch endpoint
 	updates := []*dataset.OptionUpdate{}
@@ -275,7 +275,7 @@ func (hdlr *InstanceEventHandler) SetOrderAndNodeIDs(ctx context.Context, instan
 
 	// Send a patch to dataset api with all the updates in a single call
 	// so that the mongodb lock will be acquired only once per batch.
-	// The reason is that releasing a lock has been observed in 'develop' environment to take over 40ms.
+	// The reason is that releasing a lock has been observed in 'develop' environment to take about 40 or more milliseconds.
 	if _, err := hdlr.DatasetAPICli.PatchDimensionOption(ctx, instanceID, updates); err != nil {
 		err = fmt.Errorf("DatasetAPICli.PatchDimensionOption returned an error: %w", err)
 		log.Error(ctx, "patch error in setOrderAndNodeIDs", err, log.Data{

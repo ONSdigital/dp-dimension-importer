@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	dataset "github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-dimension-importer/client"
 	"github.com/ONSdigital/dp-dimension-importer/config"
@@ -56,7 +56,7 @@ func TestNewClient(t *testing.T) {
 
 		Convey("Then a nil instance and ErrHostEmpty is returned", func() {
 			So(datasetAPI, ShouldEqual, nil)
-			So(err.Error(), ShouldEqual, client.ErrHostEmpty.Error())
+			So(err.Error(), ShouldEqual, "error creating new dataset api client: api host is required but was empty")
 		})
 	})
 }
@@ -111,7 +111,7 @@ func TestGetInstance(t *testing.T) {
 
 			Convey("Then the expected error is returned", func() {
 				So(instance, ShouldResemble, &model.Instance{})
-				So(err, ShouldResemble, client.ErrInstanceIDEmpty)
+				So(err.Error(), ShouldEqual, "error getting instance: instance id is required but is empty")
 			})
 		})
 	})
@@ -198,7 +198,7 @@ func TestGetDimensions(t *testing.T) {
 
 			Convey("Then the expected error is returned", func() {
 				So(dims, ShouldEqual, nil)
-				So(err, ShouldResemble, client.ErrInstanceIDEmpty)
+				So(err.Error(), ShouldEqual, "error getting dimensions: instance id is required but is empty")
 			})
 		})
 	})

@@ -42,8 +42,8 @@ func main() {
 		FileURL:    *file,
 	}
 
-	bytes, error := schema.NewInstanceSchema.Marshal(dimensionsInsertedEvent)
-	if error != nil {
+	bytes, err := schema.NewInstanceSchema.Marshal(dimensionsInsertedEvent)
+	if err != nil {
 		log.Fatal(ctx, "error marshalling dimensions inserted event", err)
 		os.Exit(1)
 	}
@@ -52,5 +52,8 @@ func main() {
 	// give Kafka time to produce the message before closing the producer
 	time.Sleep(time.Second)
 
-	producer.Close(nil)
+	if err := producer.Close(ctx); err != nil {
+		log.Fatal(ctx, "error closing producer", err)
+		os.Exit(1)
+	}
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/message"
-	mock "github.com/ONSdigital/dp-dimension-importer/message/mock"
+	"github.com/ONSdigital/dp-dimension-importer/message/mock"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/ONSdigital/dp-reporter-client/reporter/reportertest"
@@ -83,7 +83,7 @@ func TestKafkaMessageHandler_Handle_InstanceHandlerError(t *testing.T) {
 	}
 	avroBytes, _ := schema.NewInstanceSchema.Marshal(newInstanceEvent)
 
-	instanceHandlerErr := errors.New("Boom!")
+	instanceHandlerErr := errors.New("boom!")
 	handleInstanceFunc := func(e event.NewInstance) error {
 		return instanceHandlerErr
 	}

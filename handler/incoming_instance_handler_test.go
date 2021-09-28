@@ -223,10 +223,10 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		storerMock := storerMockHappy()
 		datasetAPIMock := datasetAPIMockHappy()
 		completedProducer := completedProducerHappy()
-		handler := setUp(storerMock, datasetAPIMock, completedProducer)
+		h := setUp(storerMock, datasetAPIMock, completedProducer)
 
 		Convey("When a valid event is handled", func() {
-			err := handler.Handle(ctx, newInstance)
+			err := h.Handle(ctx, newInstance)
 			validateDatastGetSuccessful(datasetAPIMock)
 			validateCreateInstanceSuccessful(storerMock)
 			validateInsertDimensionSuccessful(t, datasetAPIMock, storerMock)
@@ -261,10 +261,10 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			}
 			return dimension, errorMock
 		}
-		handler := setUp(storerMock, datasetAPIMock, nil)
+		h := setUp(storerMock, datasetAPIMock, nil)
 
 		Convey("When a valid event is handled", func() {
-			err := handler.Handle(ctx, newInstance)
+			err := h.Handle(ctx, newInstance)
 			validateDatastGetSuccessful(datasetAPIMock)
 			validateCreateInstanceSuccessful(storerMock)
 
@@ -305,24 +305,24 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 	})
 
 	Convey("When an invalid event is handled", t, func() {
-		handler := setUp(nil, nil, nil)
-		err := handler.Handle(ctx, event.NewInstance{})
+		h := setUp(nil, nil, nil)
+		err := h.Handle(ctx, event.NewInstance{})
 
 		Convey("Then the appropriate error is returned", func() {
-			So(err.Error(), ShouldEqual, "validation error: instance id is required but is empty")
+			So(err.Error(), ShouldEqual, "event validation error: instance id is required but is empty")
 		})
 	})
 
 	Convey("When DatasetAPICli.GetInstanceDimensionsInBatches returns an error", t, func() {
-		event := event.NewInstance{InstanceID: testInstanceID}
+		e := event.NewInstance{InstanceID: testInstanceID}
 
 		datasetAPIMock := &mocks.IClientMock{
 			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, maxWorkers, batchSize int) (dataset.Dimensions, string, error) {
 				return dataset.Dimensions{}, "", errorMock
 			},
 		}
-		handler := setUp(nil, datasetAPIMock, nil)
-		err := handler.Handle(ctx, event)
+		h := setUp(nil, datasetAPIMock, nil)
+		err := h.Handle(ctx, e)
 
 		Convey("Then the expected error is returned", func() {
 			So(err.Error(), ShouldEqual, fmt.Errorf("DatasetAPICli.GetDimensions returned an error: %w", errorMock).Error())
@@ -334,14 +334,14 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 	})
 
 	Convey("When DatasetAPICli.GetInstance returns an error", t, func() {
-		event := event.NewInstance{InstanceID: testInstanceID}
+		e := event.NewInstance{InstanceID: testInstanceID}
 
 		datasetAPIMock := datasetAPIMockHappy()
 		datasetAPIMock.GetInstanceFunc = func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
 			return dataset.Instance{}, "", errorMock
 		}
-		handler := setUp(nil, datasetAPIMock, nil)
-		err := handler.Handle(ctx, event)
+		h := setUp(nil, datasetAPIMock, nil)
+		err := h.Handle(ctx, e)
 
 		Convey("Then the expected error is returned", func() {
 			So(err.Error(), ShouldEqual, fmt.Errorf("dataset api client get instance returned an error: %w", errorMock).Error())
@@ -357,7 +357,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 	})
 
 	Convey("When storer.CreateInstance returns an error", t, func() {
-		event := event.NewInstance{InstanceID: testInstanceID}
+		e := event.NewInstance{InstanceID: testInstanceID}
 
 		datasetAPIMock := datasetAPIMockHappy()
 		storerMock := &storertest.StorerMock{
@@ -368,8 +368,8 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				return errorMock
 			},
 		}
-		handler := setUp(storerMock, datasetAPIMock, nil)
-		err := handler.Handle(ctx, event)
+		h := setUp(storerMock, datasetAPIMock, nil)
+		err := h.Handle(ctx, e)
 
 		validateDatastGetSuccessful(datasetAPIMock)
 
@@ -389,15 +389,15 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 	})
 
 	Convey("When DatasetAPICli.GetInstanceDimensions returns an empty list of dimensions without error", t, func() {
-		event := event.NewInstance{InstanceID: testInstanceID}
+		e := event.NewInstance{InstanceID: testInstanceID}
 
 		datasetAPIMock := &mocks.IClientMock{
 			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, batchSize int, maxWorkers int) (dataset.Dimensions, string, error) {
 				return dataset.Dimensions{}, "", nil
 			},
 		}
-		handler := setUp(nil, datasetAPIMock, nil)
-		err := handler.Handle(ctx, event)
+		h := setUp(nil, datasetAPIMock, nil)
+		err := h.Handle(ctx, e)
 
 		Convey("Then DatasetAPICli.GetInstanceDimensionsInBatchesCalls is called 1 time with the expected paramters", func() {
 			So(datasetAPIMock.GetInstanceDimensionsInBatchesCalls(), ShouldHaveLength, 1)
@@ -405,12 +405,12 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		})
 
 		Convey("Then the expected validation error is returned", func() {
-			So(err.Error(), ShouldEqual, fmt.Errorf("validation error: %w", client.ErrDimensionNil).Error())
+			So(err.Error(), ShouldEqual, fmt.Errorf("dimensions validation error: %w", client.ErrDimensionsNil).Error())
 		})
 	})
 
 	Convey("When DatasetAPICli.GetInstance returns an empty instance without error", t, func() {
-		event := event.NewInstance{InstanceID: testInstanceID}
+		e := event.NewInstance{InstanceID: testInstanceID}
 
 		datasetAPIMock := &mocks.IClientMock{
 			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, maxWorkers, batchSize int) (dataset.Dimensions, string, error) {
@@ -420,26 +420,26 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				return dataset.Instance{}, "", nil
 			},
 		}
-		handler := setUp(nil, datasetAPIMock, nil)
-		err := handler.Handle(ctx, event)
+		h := setUp(nil, datasetAPIMock, nil)
+		err := h.Handle(ctx, e)
 
 		validateDatastGetSuccessful(datasetAPIMock)
 
 		Convey("Then the expected validation error is returned", func() {
-			So(err.Error(), ShouldEqual, fmt.Errorf("validation error: %w", client.ErrInstanceIDEmpty).Error())
+			So(err.Error(), ShouldEqual, fmt.Errorf("instance validation error: %w", client.ErrInstanceIDEmpty).Error())
 		})
 	})
 
 	Convey("When storer.CreateCodeRelationship returns an error", t, func() {
-		event := event.NewInstance{InstanceID: testInstanceID}
+		e := event.NewInstance{InstanceID: testInstanceID}
 
 		datasetAPIMock := datasetAPIMockHappy()
 		storerMock := storerMockHappy()
 		storerMock.CreateCodeRelationshipFunc = func(ctx context.Context, instanceID string, codeListID string, code string) error {
 			return errorMock
 		}
-		handler := setUp(storerMock, datasetAPIMock, nil)
-		err := handler.Handle(ctx, event)
+		h := setUp(storerMock, datasetAPIMock, nil)
+		err := h.Handle(ctx, e)
 
 		validateDatastGetSuccessful(datasetAPIMock)
 		validateCreateInstanceSuccessful(storerMock)
@@ -471,15 +471,15 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 	})
 
 	Convey("When storer.InsertDimension returns an error", t, func() {
-		event := event.NewInstance{InstanceID: testInstanceID}
+		e := event.NewInstance{InstanceID: testInstanceID}
 
 		datasetAPIMock := datasetAPIMockHappy()
 		storerMock := storerMockHappy()
 		storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 			return dimension, errorMock
 		}
-		handler := setUp(storerMock, datasetAPIMock, nil)
-		err := handler.Handle(ctx, event)
+		h := setUp(storerMock, datasetAPIMock, nil)
+		err := h.Handle(ctx, e)
 
 		validateDatastGetSuccessful(datasetAPIMock)
 		validateCreateInstanceSuccessful(storerMock)
@@ -503,15 +503,15 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 	})
 
 	Convey("When SetOrderAndNodeIDs returns an error (due to storer.GetCodesOrder returning an error)", t, func() {
-		event := event.NewInstance{InstanceID: testInstanceID}
+		e := event.NewInstance{InstanceID: testInstanceID}
 
 		datasetAPIMock := datasetAPIMockHappy()
 		storerMock := storerMockHappy()
 		storerMock.GetCodesOrderFunc = func(ctx context.Context, codeListID string, codes []string) (map[string]*int, error) {
 			return nil, errorMock
 		}
-		handler := setUp(storerMock, datasetAPIMock, nil)
-		err := handler.Handle(ctx, event)
+		h := setUp(storerMock, datasetAPIMock, nil)
+		err := h.Handle(ctx, e)
 
 		validateDatastGetSuccessful(datasetAPIMock)
 		validateCreateInstanceSuccessful(storerMock)
@@ -542,15 +542,15 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 	})
 
 	Convey("When storer.AddDimensions returns an error", t, func() {
-		event := event.NewInstance{InstanceID: testInstanceID}
+		e := event.NewInstance{InstanceID: testInstanceID}
 
 		datasetAPIMock := datasetAPIMockHappy()
 		storerMock := storerMockHappy()
 		storerMock.AddDimensionsFunc = func(ctx context.Context, instanceID string, dimensions []interface{}) error {
 			return errorMock
 		}
-		handler := setUp(storerMock, datasetAPIMock, nil)
-		err := handler.Handle(ctx, event)
+		h := setUp(storerMock, datasetAPIMock, nil)
+		err := h.Handle(ctx, e)
 
 		validateDatastGetSuccessful(datasetAPIMock)
 		validateCreateInstanceSuccessful(storerMock)
@@ -563,15 +563,15 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 	})
 
 	Convey("When storer.CreateInstanceConstraint returns an error", t, func() {
-		event := event.NewInstance{InstanceID: testInstanceID}
+		e := event.NewInstance{InstanceID: testInstanceID}
 
 		datasetAPIMock := datasetAPIMockHappy()
 		storerMock := storerMockHappy()
 		storerMock.CreateInstanceConstraintFunc = func(ctx context.Context, instanceID string) error {
 			return errorMock
 		}
-		handler := setUp(storerMock, datasetAPIMock, nil)
-		err := handler.Handle(ctx, event)
+		h := setUp(storerMock, datasetAPIMock, nil)
+		err := h.Handle(ctx, e)
 
 		validateDatastGetSuccessful(datasetAPIMock)
 		validateCreateInstanceSuccessful(storerMock)
@@ -594,10 +594,10 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 				return errorMock
 			},
 		}
-		handler := setUp(storerMock, datasetAPIMock, completedProducer)
+		h := setUp(storerMock, datasetAPIMock, completedProducer)
 
 		Convey("When a valid event is handled", func() {
-			err := handler.Handle(ctx, newInstance)
+			err := h.Handle(ctx, newInstance)
 			validateDatastGetSuccessful(datasetAPIMock)
 			validateCreateInstanceSuccessful(storerMock)
 			validateInsertDimensionSuccessful(t, datasetAPIMock, storerMock)
@@ -620,19 +620,19 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 func TestValidate(t *testing.T) {
 	Convey("Given handler.DatasetAPICli has not been configured", t, func() {
-		handler := handler.InstanceEventHandler{
+		h := handler.InstanceEventHandler{
 			Store: &storertest.StorerMock{},
 		}
 
 		Convey("Then calling Validate returns the expected error", func() {
-			event := event.NewInstance{InstanceID: testInstanceID}
-			err := handler.Validate(event)
-			So(err.Error(), ShouldEqual, "validation error: dataset api is required but is not provided")
+			e := event.NewInstance{InstanceID: testInstanceID}
+			err := h.Validate(e)
+			So(err.Error(), ShouldEqual, "event validation error: dataset api is required but is not provided")
 		})
 	})
 
 	Convey("Given handler.Store has not been configured", t, func() {
-		handler := handler.InstanceEventHandler{
+		h := handler.InstanceEventHandler{
 			DatasetAPICli: &client.DatasetAPI{
 				AuthToken:      "token",
 				DatasetAPIHost: "host",
@@ -641,14 +641,14 @@ func TestValidate(t *testing.T) {
 		}
 
 		Convey("Then calling Validate returns the expected error", func() {
-			event := event.NewInstance{InstanceID: testInstanceID}
-			err := handler.Validate(event)
-			So(err.Error(), ShouldEqual, "validation error: data store is required but is not provided")
+			e := event.NewInstance{InstanceID: testInstanceID}
+			err := h.Validate(e)
+			So(err.Error(), ShouldEqual, "event validation error: data store is required but is not provided")
 		})
 	})
 
 	Convey("Given a fully configured handler", t, func() {
-		handler := handler.InstanceEventHandler{
+		h := handler.InstanceEventHandler{
 			Store: &storertest.StorerMock{},
 			DatasetAPICli: &client.DatasetAPI{
 				AuthToken:      "token",
@@ -658,14 +658,14 @@ func TestValidate(t *testing.T) {
 		}
 
 		Convey("Then calling Validate with an empty instance returns the expected error", func() {
-			event := event.NewInstance{}
-			err := handler.Validate(event)
-			So(err.Error(), ShouldEqual, "validation error: instance id is required but is empty")
+			e := event.NewInstance{}
+			err := h.Validate(e)
+			So(err.Error(), ShouldEqual, "event validation error: instance id is required but is empty")
 		})
 
 		Convey("Then calling Validate with a valid instance succeeds", func() {
-			event := event.NewInstance{InstanceID: testInstanceID}
-			err := handler.Validate(event)
+			e := event.NewInstance{InstanceID: testInstanceID}
+			err := h.Validate(e)
 			So(err, ShouldBeNil)
 		})
 	})
@@ -674,12 +674,12 @@ func TestValidate(t *testing.T) {
 func TestValidateInstance(t *testing.T) {
 	Convey("Calling ValidateInstance with a nil instance returns the expected error", t, func() {
 		err := handler.ValidateInstance(nil)
-		So(err.Error(), ShouldEqual, "validation error: instance id is required but is empty")
+		So(err.Error(), ShouldEqual, "instance validation error: instance id is required but is empty")
 	})
 
 	Convey("Calling ValidateInstance with an empty instance returns the expected error", t, func() {
 		err := handler.ValidateInstance(&model.Instance{})
-		So(err.Error(), ShouldEqual, "validation error: instance id is required but is empty")
+		So(err.Error(), ShouldEqual, "instance validation error: instance id is required but is empty")
 	})
 
 	Convey("Calling ValidateInstance with a valid instance succeeds", t, func() {
@@ -696,22 +696,22 @@ func TestValidateInstance(t *testing.T) {
 func TestValidateDimensions(t *testing.T) {
 	Convey("Calling ValidateDimensions with a nil dimensions array returns the expected error", t, func() {
 		err := handler.ValidateDimensions(nil)
-		So(err.Error(), ShouldEqual, "validation error: dimension is required but is nil")
+		So(err.Error(), ShouldEqual, "dimensions validation error: dimension array is required but is nil or empty")
 	})
 
 	Convey("Calling ValidateDimensions with an empty dimensions array returns the expected error", t, func() {
 		err := handler.ValidateDimensions([]*model.Dimension{})
-		So(err.Error(), ShouldEqual, "validation error: dimension is required but is nil")
+		So(err.Error(), ShouldEqual, "dimensions validation error: dimension array is required but is nil or empty")
 	})
 	Convey("Calling ValidateDimensions with a dimensions array with a nil dimension returns the expected error", t, func() {
 		err := handler.ValidateDimensions([]*model.Dimension{nil})
-		So(err.Error(), ShouldEqual, "validation error: dimension is required but is nil")
+		So(err.Error(), ShouldEqual, "dimensions validation error: dimension is required but is nil")
 	})
 
 	Convey("Calling ValidateDimensions with an invalid dimensions array returns the expected error", t, func() {
 		d := model.NewDimension(&dataset.Dimension{})
 		err := handler.ValidateDimensions([]*model.Dimension{d})
-		So(err.Error(), ShouldEqual, "validation error: dimension.id is required but is empty")
+		So(err.Error(), ShouldEqual, "dimensions validation error: dimension.id is required but is empty")
 	})
 
 	Convey("Calling ValidateDimensions with a valid dimensions array succeeds", t, func() {
@@ -756,7 +756,7 @@ func TestSetOrderAndNodeIDs(t *testing.T) {
 				return "", nil
 			},
 		}
-		handler := setUp(storerMock, datasetAPIMock, nil)
+		h := setUp(storerMock, datasetAPIMock, nil)
 
 		Convey("When SetOrderAndNodeIDs is called with all 4 dimensions", func() {
 			dims := []*model.Dimension{
@@ -765,7 +765,7 @@ func TestSetOrderAndNodeIDs(t *testing.T) {
 				model.NewDimension(&d3Api),
 				model.NewDimension(&d4Api),
 			}
-			err := handler.SetOrderAndNodeIDs(ctx, testInstanceID, dims)
+			err := h.SetOrderAndNodeIDs(ctx, testInstanceID, dims)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
@@ -852,14 +852,14 @@ func TestSetOrderAndNodeIDs(t *testing.T) {
 				return "", nil
 			},
 		}
-		handler := setUp(storerMock, datasetAPIMock, nil)
+		h := setUp(storerMock, datasetAPIMock, nil)
 
 		Convey("When SetOrderAndNodeIDs is called with 2 dimensions", func() {
 			dims := []*model.Dimension{
 				model.NewDimension(&d1Api),
 				model.NewDimension(&d5Api),
 			}
-			err := handler.SetOrderAndNodeIDs(ctx, testInstanceID, dims)
+			err := h.SetOrderAndNodeIDs(ctx, testInstanceID, dims)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
@@ -895,13 +895,13 @@ func TestSetOrderAndNodeIDs(t *testing.T) {
 				return nil, errorMock
 			},
 		}
-		handler := setUp(storerMock, nil, nil)
+		h := setUp(storerMock, nil, nil)
 
 		Convey("When SetOrderAndNodeIDs is called", func() {
 			dims := []*model.Dimension{
 				model.NewDimension(&d1Api),
 			}
-			err := handler.SetOrderAndNodeIDs(ctx, testInstanceID, dims)
+			err := h.SetOrderAndNodeIDs(ctx, testInstanceID, dims)
 
 			Convey("Then the expected error is returned", func() {
 				So(err.Error(), ShouldEqual, "error while attempting to get dimension order using codes: mock error")
@@ -922,13 +922,13 @@ func TestSetOrderAndNodeIDs(t *testing.T) {
 				return "", errorMock
 			},
 		}
-		handler := setUp(storerMock, datasetAPIMock, nil)
+		h := setUp(storerMock, datasetAPIMock, nil)
 
 		Convey("When SetOrderAndNodeIDs is called", func() {
 			dims := []*model.Dimension{
 				model.NewDimension(&d1Api),
 			}
-			err := handler.SetOrderAndNodeIDs(ctx, testInstanceID, dims)
+			err := h.SetOrderAndNodeIDs(ctx, testInstanceID, dims)
 
 			Convey("Then the expected error is returned", func() {
 				So(err.Error(), ShouldEqual, "DatasetAPICli.PatchDimensionOption returned an error: mock error")
@@ -946,10 +946,10 @@ func TestInstanceEventHandler_Handle_ExistingInstance(t *testing.T) {
 			},
 		}
 		datasetAPIMock := datasetAPIMockHappy()
-		handler := setUp(storerMock, datasetAPIMock, nil)
+		h := setUp(storerMock, datasetAPIMock, nil)
 
 		Convey("When Handle is given a NewInstance event with the same instanceID", func() {
-			err := handler.Handle(ctx, newInstance)
+			err := h.Handle(ctx, newInstance)
 
 			Convey("Then storer.InstanceExists is called 1 time with expected parameters ", func() {
 				calls := storerMock.InstanceExistsCalls()
@@ -977,14 +977,14 @@ func TestInstanceEventHandler_Handle_InstanceExistsErr(t *testing.T) {
 			},
 		}
 		datasetAPIMock := datasetAPIMockHappy()
-		handler := setUp(storerMock, datasetAPIMock, nil)
+		h := setUp(storerMock, datasetAPIMock, nil)
 
 		Convey("When storer.InstanceExists returns an error", func() {
 			storerMock.InstanceExistsFunc = func(ctx context.Context, instanceID string) (bool, error) {
 				return false, errorMock
 			}
 
-			err := handler.Handle(ctx, newInstance)
+			err := h.Handle(ctx, newInstance)
 
 			Convey("Then handler returns the expected error", func() {
 				So(err.Error(), ShouldEqual, fmt.Errorf("instance exists check returned an error: %w", errorMock).Error())

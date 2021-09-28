@@ -9,7 +9,7 @@ import (
 
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/message"
-	mock "github.com/ONSdigital/dp-dimension-importer/message/mock"
+	"github.com/ONSdigital/dp-dimension-importer/message/mock"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
@@ -64,8 +64,9 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 
 				Convey("Then the expected bytes are sent to producer.output", func() {
 					var actual event.InstanceCompleted
-					schema.InstanceCompletedSchema.Unmarshal(avroBytes, &actual)
+					err := schema.InstanceCompletedSchema.Unmarshal(avroBytes, &actual)
 					So(completedEvent, ShouldResemble, actual)
+					So(err, ShouldBeNil)
 				})
 			})
 		})
