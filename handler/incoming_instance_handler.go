@@ -142,6 +142,7 @@ func ValidateDimensions(dimensions []*model.Dimension) error {
 // Once all batches have been processed, a final AddDimensions call is performed
 func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance *model.Instance, dimensions []*model.Dimension) error {
 	cache := make(map[string]string)
+	cacheMutex := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
 	problem := make(chan error, len(dimensions))
 
@@ -169,7 +170,7 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 			wg.Add(1)
 			go func(d *model.Dimension) {
 				defer wg.Done()
-				hdlr.insertDimension(ctx, cache, instance, d, problem)
+				hdlr.insertDimension(ctx, cache, cacheMutex, instance, d, problem)
 			}(dimension)
 		}
 
@@ -289,8 +290,8 @@ func (hdlr *InstanceEventHandler) SetOrderAndNodeIDs(ctx context.Context, instan
 // insertDimension inserts the dimension to the graph database
 // and creates the code relationship if DimensionID is time
 // this method assumes that valid non-nil values are provided (have been created or validated by caller)
-func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map[string]string, instance *model.Instance, d *model.Dimension, problem chan error) {
-	dbDimension, err := hdlr.Store.InsertDimension(ctx, cache, instance.DbModel().InstanceID, d.DbModel())
+func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map[string]string, cacheMutex *sync.Mutex, instance *model.Instance, d *model.Dimension, problem chan error) {
+	dbDimension, err := hdlr.Store.InsertDimension(ctx, cache, cacheMutex, instance.DbModel().InstanceID, d.DbModel())
 	if err != nil {
 		err = fmt.Errorf("error while attempting to insert a dimension to the graph database: %w", err)
 		log.Error(ctx, "error inserting dimension", err, log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})

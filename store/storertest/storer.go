@@ -58,7 +58,7 @@ var _ store.Storer = &StorerMock{}
 //             GetCodesOrderFunc: func(ctx context.Context, codeListID string, codes []string) (map[string]*int, error) {
 // 	               panic("mock out the GetCodesOrder method")
 //             },
-//             InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
+//             InsertDimensionFunc: func(ctx context.Context, cache map[string]string, cacheMutex *sync.Mutex, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 // 	               panic("mock out the InsertDimension method")
 //             },
 //             InstanceExistsFunc: func(ctx context.Context, instanceID string) (bool, error) {
@@ -96,7 +96,7 @@ type StorerMock struct {
 	GetCodesOrderFunc func(ctx context.Context, codeListID string, codes []string) (map[string]*int, error)
 
 	// InsertDimensionFunc mocks the InsertDimension method.
-	InsertDimensionFunc func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error)
+	InsertDimensionFunc func(ctx context.Context, cache map[string]string, cacheMutex *sync.Mutex, instanceID string, dimension *models.Dimension) (*models.Dimension, error)
 
 	// InstanceExistsFunc mocks the InstanceExists method.
 	InstanceExistsFunc func(ctx context.Context, instanceID string) (bool, error)
@@ -169,6 +169,8 @@ type StorerMock struct {
 			Ctx context.Context
 			// Cache is the cache argument value.
 			Cache map[string]string
+			// CacheMutex is the cacheMutex argument value.
+			CacheMutex *sync.Mutex
 			// InstanceID is the instanceID argument value.
 			InstanceID string
 			// Dimension is the dimension argument value.
@@ -472,25 +474,27 @@ func (mock *StorerMock) GetCodesOrderCalls() []struct {
 }
 
 // InsertDimension calls InsertDimensionFunc.
-func (mock *StorerMock) InsertDimension(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
+func (mock *StorerMock) InsertDimension(ctx context.Context, cache map[string]string, cacheMutex *sync.Mutex, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 	if mock.InsertDimensionFunc == nil {
 		panic("StorerMock.InsertDimensionFunc: method is nil but Storer.InsertDimension was just called")
 	}
 	callInfo := struct {
 		Ctx        context.Context
 		Cache      map[string]string
+		CacheMutex *sync.Mutex
 		InstanceID string
 		Dimension  *models.Dimension
 	}{
 		Ctx:        ctx,
 		Cache:      cache,
+		CacheMutex: cacheMutex,
 		InstanceID: instanceID,
 		Dimension:  dimension,
 	}
 	lockStorerMockInsertDimension.Lock()
 	mock.calls.InsertDimension = append(mock.calls.InsertDimension, callInfo)
 	lockStorerMockInsertDimension.Unlock()
-	return mock.InsertDimensionFunc(ctx, cache, instanceID, dimension)
+	return mock.InsertDimensionFunc(ctx, cache, cacheMutex, instanceID, dimension)
 }
 
 // InsertDimensionCalls gets all the calls that were made to InsertDimension.
@@ -499,12 +503,14 @@ func (mock *StorerMock) InsertDimension(ctx context.Context, cache map[string]st
 func (mock *StorerMock) InsertDimensionCalls() []struct {
 	Ctx        context.Context
 	Cache      map[string]string
+	CacheMutex *sync.Mutex
 	InstanceID string
 	Dimension  *models.Dimension
 } {
 	var calls []struct {
 		Ctx        context.Context
 		Cache      map[string]string
+		CacheMutex *sync.Mutex
 		InstanceID string
 		Dimension  *models.Dimension
 	}

@@ -252,7 +252,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		numCall := 0
 		numCallLock := sync.Mutex{}
 		datasetAPIMock := datasetAPIMockHappy()
-		storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
+		storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, cacheMutex *sync.Mutex, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 			defer numCallLock.Unlock()
 			numCallLock.Lock() // we need this lock because this method is called concurrently
 			numCall++
@@ -475,7 +475,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 
 		datasetAPIMock := datasetAPIMockHappy()
 		storerMock := storerMockHappy()
-		storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
+		storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, cacheMutex *sync.Mutex, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 			return dimension, errorMock
 		}
 		h := setUp(storerMock, datasetAPIMock, nil)
@@ -1018,7 +1018,7 @@ func storerMockHappy() *storertest.StorerMock {
 		CreateCodeRelationshipFunc: func(ctx context.Context, instanceID string, codeListID string, code string) error {
 			return nil
 		},
-		InsertDimensionFunc: func(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
+		InsertDimensionFunc: func(ctx context.Context, cache map[string]string, cacheMutex *sync.Mutex, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 			return dimension, nil
 		},
 		CreateInstanceConstraintFunc: func(ctx context.Context, instanceID string) error {
