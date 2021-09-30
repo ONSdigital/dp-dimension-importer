@@ -225,8 +225,6 @@ func (hdlr *InstanceEventHandler) SetOrderAndNodeIDs(ctx context.Context, instan
 		codesByCodelistID[codelistID] = append(codesByCodelistID[codelistID], d.DbModel().Option)
 	}
 
-	t0 := time.Now()
-
 	// get a map of orders by code (one call to dp-graph per codeListID)
 	orderByCode := map[string]*int{}
 	for codeListID, codes := range codesByCodelistID {
@@ -244,9 +242,6 @@ func (hdlr *InstanceEventHandler) SetOrderAndNodeIDs(ctx context.Context, instan
 			orderByCode[k] = v
 		}
 	}
-
-	t1 := time.Since(t0)
-	log.Info(ctx, "successfully got code orders from graph database", log.Data{"time": t1, "num_codelists": len(codesByCodelistID)})
 
 	// create list of updates to send to dataset API patch endpoint
 	updates := []*dataset.OptionUpdate{}
