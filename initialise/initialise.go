@@ -10,7 +10,7 @@ import (
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 // ExternalServiceList represents a list of services
@@ -53,7 +53,7 @@ func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Confi
 		ctx, cfg.KafkaAddr, cfg.IncomingInstancesTopic, cfg.IncomingInstancesConsumerGroup, cgChannels, cgConfig)
 
 	if err != nil {
-		log.Event(ctx, "new kafka consumer group returned an error", log.FATAL, log.Error(err), log.Data{
+		log.Fatal(ctx, "new kafka consumer group returned an error", err, log.Data{
 			"brokers":        cfg.KafkaAddr,
 			"topic":          cfg.IncomingInstancesTopic,
 			"consumer_group": cfg.IncomingInstancesConsumerGroup,
@@ -73,7 +73,7 @@ func (e *ExternalServiceList) GetProducer(ctx context.Context, topic string, nam
 	}
 	producer, err := kafka.NewProducer(ctx, cfg.KafkaAddr, topic, pChannels, pConfig)
 	if err != nil {
-		log.Event(ctx, "new kafka producer returned an error", log.FATAL, log.Error(err), log.Data{"topic": topic})
+		log.Fatal(ctx, "new kafka producer returned an error", err, log.Data{"topic": topic})
 		return nil, err
 	}
 
@@ -93,7 +93,7 @@ func (e *ExternalServiceList) GetProducer(ctx context.Context, topic string, nam
 func (e *ExternalServiceList) GetGraphDB(ctx context.Context) (store.Storer, error) {
 	graphDB, err := graph.New(ctx, graph.Subsets{Instance: true, Dimension: true, CodeList: true})
 	if err != nil {
-		log.Event(ctx, "new graph db returned an error", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "new graph db returned an error", err)
 		return nil, err
 	}
 	e.GraphDB = true
@@ -105,7 +105,7 @@ func (e *ExternalServiceList) GetGraphDB(ctx context.Context) (store.Storer, err
 func (e *ExternalServiceList) GetHealthChecker(ctx context.Context, buildTime, gitCommit, version string, cfg *config.Config) (*healthcheck.HealthCheck, error) {
 	versionInfo, err := healthcheck.NewVersionInfo(buildTime, gitCommit, version)
 	if err != nil {
-		log.Event(ctx, "failed to create versionInfo for healthcheck", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "failed to create versionInfo for healthcheck", err)
 		return nil, err
 	}
 	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)

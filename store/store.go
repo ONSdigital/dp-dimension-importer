@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"sync"
 
 	"github.com/ONSdigital/dp-graph/v2/models"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
@@ -16,7 +17,7 @@ type Storer interface {
 	AddDimensions(ctx context.Context, instanceID string, dimensions []interface{}) error
 	CreateCodeRelationship(ctx context.Context, instanceID, codeListID, code string) error
 	InstanceExists(ctx context.Context, instanceID string) (bool, error)
-	InsertDimension(ctx context.Context, cache map[string]string, instanceID string, dimension *models.Dimension) (*models.Dimension, error)
+	InsertDimension(ctx context.Context, cache map[string]string, cacheMutex *sync.Mutex, instanceID string, dimension *models.Dimension) (*models.Dimension, error)
 	GetCodesOrder(ctx context.Context, codeListID string, codes []string) (codeOrders map[string]*int, err error)
 	Checker(ctx context.Context, state *healthcheck.CheckState) error
 	Close(ctx context.Context) error

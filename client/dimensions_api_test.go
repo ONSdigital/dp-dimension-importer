@@ -8,7 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	dataset "github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-dimension-importer/client"
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/mocks"
@@ -55,7 +56,7 @@ func TestNewClient(t *testing.T) {
 
 		Convey("Then a nil instance and ErrHostEmpty is returned", func() {
 			So(datasetAPI, ShouldEqual, nil)
-			So(err.Error(), ShouldResemble, client.ErrHostEmpty.Error())
+			So(err.Error(), ShouldEqual, "error creating new dataset api client: api host is required but was empty")
 		})
 	})
 }
@@ -84,7 +85,7 @@ func TestGetInstance(t *testing.T) {
 				So(err, ShouldEqual, nil)
 			})
 
-			Convey("And dataset.GetInstance is called exactly once with the right parameters", func() {
+			Convey("Then dataset.GetInstance is called exactly once with the right parameters", func() {
 				So(len(clientMock.GetInstanceCalls()), ShouldEqual, 1)
 				So(clientMock.GetInstanceCalls()[0].InstanceID, ShouldEqual, instanceID)
 				So(clientMock.GetInstanceCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
@@ -110,7 +111,7 @@ func TestGetInstance(t *testing.T) {
 
 			Convey("Then the expected error is returned", func() {
 				So(instance, ShouldResemble, &model.Instance{})
-				So(err, ShouldResemble, client.ErrInstanceIDEmpty)
+				So(err.Error(), ShouldEqual, "error getting instance: instance id is required but is empty")
 			})
 		})
 	})
@@ -138,7 +139,7 @@ func TestGetInstance(t *testing.T) {
 				So(err, ShouldResemble, errMock)
 			})
 
-			Convey("And dataset.GetInstance is called exactly once with the right parameters", func() {
+			Convey("Then dataset.GetInstance is called exactly once with the right parameters", func() {
 				So(len(clientMock.GetInstanceCalls()), ShouldEqual, 1)
 				So(clientMock.GetInstanceCalls()[0].InstanceID, ShouldEqual, instanceID)
 				So(clientMock.GetInstanceCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
@@ -173,7 +174,7 @@ func TestGetDimensions(t *testing.T) {
 				So(err, ShouldEqual, nil)
 			})
 
-			Convey("And dataset.GetInstanceDimensions is called exactly once with the right parameters", func() {
+			Convey("Then dataset.GetInstanceDimensions is called exactly once with the right parameters", func() {
 				So(len(clientMock.GetInstanceDimensionsInBatchesCalls()), ShouldEqual, 1)
 				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].InstanceID, ShouldEqual, instanceID)
 				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
@@ -197,7 +198,7 @@ func TestGetDimensions(t *testing.T) {
 
 			Convey("Then the expected error is returned", func() {
 				So(dims, ShouldEqual, nil)
-				So(err, ShouldResemble, client.ErrInstanceIDEmpty)
+				So(err.Error(), ShouldEqual, "error getting dimensions: instance id is required but is empty")
 			})
 		})
 	})
@@ -225,7 +226,7 @@ func TestGetDimensions(t *testing.T) {
 				So(err, ShouldResemble, errMock)
 			})
 
-			Convey("And dataset.GetInstanceDimensions is called exactly once with the right parameters", func() {
+			Convey("Then dataset.GetInstanceDimensions is called exactly once with the right parameters", func() {
 				So(len(clientMock.GetInstanceDimensionsInBatchesCalls()), ShouldEqual, 1)
 				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].InstanceID, ShouldEqual, instanceID)
 				So(clientMock.GetInstanceDimensionsInBatchesCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
@@ -235,146 +236,72 @@ func TestGetDimensions(t *testing.T) {
 }
 
 func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
+	updates := []*dataset.OptionUpdate{
+		{
+			Name:   dimensionOne.DbModel().DimensionID,
+			Option: dimensionOne.DbModel().Option,
+			NodeID: dimensionOne.DbModel().NodeID,
+		},
+	}
 
-	Convey("Given no instanceID is provided", t, func() {
-		clientMock := &mocks.IClientMock{}
-
-		datasetAPI := client.DatasetAPI{
-			AuthToken:         authToken,
-			DatasetAPIHost:    host,
-			Client:            clientMock,
-			EnablePatchNodeID: true,
-		}
-
-		Convey("When PatchDimensionOption is called", func() {
-			_, err := datasetAPI.PatchDimensionOption(ctx, "", dimensionOne, nil)
-
-			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, client.ErrInstanceIDEmpty)
-			})
-		})
-	})
-
-	Convey("Given no dimension is provided", t, func() {
-		clientMock := &mocks.IClientMock{}
-
-		datasetAPI := client.DatasetAPI{
-			AuthToken:         authToken,
-			DatasetAPIHost:    host,
-			Client:            clientMock,
-			EnablePatchNodeID: true,
-		}
-
-		Convey("When PatchDimensionOption is called", func() {
-			_, err := datasetAPI.PatchDimensionOption(ctx, instanceID, nil, nil)
-
-			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, client.ErrDimensionNil)
-			})
-		})
-	})
-
-	Convey("Given a dimension with an empty dimensionID", t, func() {
-		clientMock := &mocks.IClientMock{}
-
-		datasetAPI := client.DatasetAPI{
-			AuthToken:         authToken,
-			DatasetAPIHost:    host,
-			Client:            clientMock,
-			EnablePatchNodeID: true,
-		}
-
-		Convey("When PatchDimensionOption is called", func() {
-			emptyDimension := model.NewDimension(&dataset.Dimension{})
-			_, err := datasetAPI.PatchDimensionOption(ctx, instanceID, emptyDimension, nil)
-
-			Convey("Then the expected error is returned", func() {
-				So(err, ShouldResemble, client.ErrDimensionIDEmpty)
-			})
-		})
-	})
-
-	Convey("Given dataset.PatchInstanceDimensionOption will return an error", t, func() {
+	Convey("Given dataset.PatchInstanceDimensions will return an error", t, func() {
 		clientMock := &mocks.IClientMock{
-			PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int, ifMatch string) (string, error) {
+			PatchInstanceDimensionsFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, upserts []*dataset.OptionPost, updates []*dataset.OptionUpdate, ifMatch string) (string, error) {
 				return "", errMock
 			},
 		}
 
 		datasetAPI := client.DatasetAPI{
-			AuthToken:         authToken,
-			DatasetAPIHost:    host,
-			Client:            clientMock,
-			EnablePatchNodeID: true,
+			AuthToken:      authToken,
+			DatasetAPIHost: host,
+			Client:         clientMock,
 		}
 
-		Convey("When PatchDimensionOption is called", func() {
-			_, err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
+		Convey("When PatchDimensionOption is called with an update", func() {
+			_, err := datasetAPI.PatchDimensionOption(ctx, instanceID, updates)
 
 			Convey("Then the expected error is returned", func() {
 				So(err, ShouldResemble, errMock)
 			})
 
-			Convey("And dataset.PatchInstanceDimensionOption is called exactly once with the right parameters", func() {
-				So(len(clientMock.PatchInstanceDimensionOptionCalls()), ShouldEqual, 1)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].DimensionID, ShouldEqual, dimensionOne.DbModel().DimensionID)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].InstanceID, ShouldEqual, instanceID)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].OptionID, ShouldEqual, dimensionOne.DbModel().Option)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].NodeID, ShouldEqual, dimensionOne.DbModel().NodeID)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].Order, ShouldBeNil)
+			Convey("Then dataset.PatchInstanceDimensions is called exactly once with the right parameters", func() {
+				So(len(clientMock.PatchInstanceDimensionsCalls()), ShouldEqual, 1)
+				So(clientMock.PatchInstanceDimensionsCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
+				So(clientMock.PatchInstanceDimensionsCalls()[0].InstanceID, ShouldEqual, instanceID)
+				So(clientMock.PatchInstanceDimensionsCalls()[0].Upserts, ShouldBeNil)
+				So(clientMock.PatchInstanceDimensionsCalls()[0].Updates, ShouldResemble, updates)
+				So(clientMock.PatchInstanceDimensionsCalls()[0].IfMatch, ShouldEqual, headers.IfMatchAnyETag)
 			})
 		})
 	})
 
 	Convey("Given dataset.PatchInstanceDimensionOption succeeds", t, func() {
 		clientMock := &mocks.IClientMock{
-			PatchInstanceDimensionOptionFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, dimensionID string, optionID string, nodeID string, order *int, ifMatch string) (string, error) {
+			PatchInstanceDimensionsFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, upserts []*dataset.OptionPost, updates []*dataset.OptionUpdate, ifMatch string) (string, error) {
 				return "", nil
 			},
 		}
 
 		datasetAPI := client.DatasetAPI{
-			AuthToken:         authToken,
-			DatasetAPIHost:    host,
-			Client:            clientMock,
-			EnablePatchNodeID: true,
+			AuthToken:      authToken,
+			DatasetAPIHost: host,
+			Client:         clientMock,
 		}
 
 		Convey("When PatchDimensionOption is called", func() {
-			_, err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
+			_, err := datasetAPI.PatchDimensionOption(ctx, instanceID, updates)
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldEqual, nil)
 			})
 
-			Convey("And dataset.PatchInstanceDimensionOption is called exactly once with the right parameters", func() {
-				So(len(clientMock.PatchInstanceDimensionOptionCalls()), ShouldEqual, 1)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].DimensionID, ShouldEqual, dimensionOne.DbModel().DimensionID)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].InstanceID, ShouldEqual, instanceID)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].OptionID, ShouldEqual, dimensionOne.DbModel().Option)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].NodeID, ShouldEqual, dimensionOne.DbModel().NodeID)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].Order, ShouldBeNil)
-			})
-		})
-
-		Convey("When PatchDimensionOption is called forcing the NodeID to be ignored", func() {
-			datasetAPI.EnablePatchNodeID = false
-			_, err := datasetAPI.PatchDimensionOption(ctx, instanceID, dimensionOne, nil)
-
-			Convey("Then no error is returned", func() {
-				So(err, ShouldEqual, nil)
-			})
-
-			Convey("And dataset.PatchInstanceDimensionOption is called exactly once to update the order only", func() {
-				So(len(clientMock.PatchInstanceDimensionOptionCalls()), ShouldEqual, 1)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].DimensionID, ShouldEqual, dimensionOne.DbModel().DimensionID)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].InstanceID, ShouldEqual, instanceID)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].OptionID, ShouldEqual, dimensionOne.DbModel().Option)
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].NodeID, ShouldEqual, "")
-				So(clientMock.PatchInstanceDimensionOptionCalls()[0].Order, ShouldBeNil)
+			Convey("Then dataset.PatchInstanceDimensionOption is called exactly once with the right parameters", func() {
+				So(len(clientMock.PatchInstanceDimensionsCalls()), ShouldEqual, 1)
+				So(clientMock.PatchInstanceDimensionsCalls()[0].ServiceAuthToken, ShouldEqual, authToken)
+				So(clientMock.PatchInstanceDimensionsCalls()[0].InstanceID, ShouldEqual, instanceID)
+				So(clientMock.PatchInstanceDimensionsCalls()[0].Upserts, ShouldBeNil)
+				So(clientMock.PatchInstanceDimensionsCalls()[0].Updates, ShouldResemble, updates)
+				So(clientMock.PatchInstanceDimensionsCalls()[0].IfMatch, ShouldEqual, headers.IfMatchAnyETag)
 			})
 		})
 	})

@@ -13,12 +13,13 @@ import (
 type Dimension struct {
 	dbDimension *db.Dimension
 	codeListID  string
+	Order       *int
 }
 
 // NewDimension creates a new DB wrapped Dimension from an api dimension
 func NewDimension(dimension *dataset.Dimension) *Dimension {
 	if dimension == nil {
-		return &Dimension{&db.Dimension{}, ""}
+		return &Dimension{&db.Dimension{}, "", nil}
 	}
 	dbDimension := &db.Dimension{
 		DimensionID: dimension.DimensionID,

@@ -9,7 +9,7 @@ import (
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 var instanceID = flag.String("instance", "5156253b-e21e-4a73-a783-fb53fabc1211", "")
@@ -33,7 +33,7 @@ func main() {
 
 	producer, err := kafka.NewProducer(ctx, brokers, *topic, kafka.CreateProducerChannels(), pConfig)
 	if err != nil {
-		log.Event(ctx, "error creating producer", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "error creating producer", err)
 		os.Exit(1)
 	}
 
@@ -42,9 +42,9 @@ func main() {
 		FileURL:    *file,
 	}
 
-	bytes, error := schema.NewInstanceSchema.Marshal(dimensionsInsertedEvent)
-	if error != nil {
-		log.Event(ctx, "error marshalling dimensions inserted event", log.FATAL, log.Error(err))
+	bytes, err := schema.NewInstanceSchema.Marshal(dimensionsInsertedEvent)
+	if err != nil {
+		log.Fatal(ctx, "error marshalling dimensions inserted event", err)
 		os.Exit(1)
 	}
 	producer.Channels().Output <- bytes
@@ -52,5 +52,8 @@ func main() {
 	// give Kafka time to produce the message before closing the producer
 	time.Sleep(time.Second)
 
-	producer.Close(nil)
+	if err := producer.Close(ctx); err != nil {
+		log.Fatal(ctx, "error closing producer", err)
+		os.Exit(1)
+	}
 }

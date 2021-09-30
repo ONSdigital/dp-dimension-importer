@@ -9,11 +9,11 @@ import (
 
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/message"
-	mock "github.com/ONSdigital/dp-dimension-importer/message/mock"
+	"github.com/ONSdigital/dp-dimension-importer/message/mock"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -53,19 +53,20 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 			var avroBytes []byte
 			select {
 			case avroBytes = <-pChannels.Output:
-				log.Event(ctx, "avro byte sent to producer output", log.INFO)
+				log.Info(ctx, "avro byte sent to producer output")
 			case <-time.After(time.Second * 5):
-				log.Event(ctx, "failing test due to timed out", log.INFO)
+				log.Info(ctx, "failing test due to timed out")
 				t.FailNow()
 			}
 
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
 
-				Convey("And the expected bytes are sent to producer.output", func() {
+				Convey("Then the expected bytes are sent to producer.output", func() {
 					var actual event.InstanceCompleted
-					schema.InstanceCompletedSchema.Unmarshal(avroBytes, &actual)
+					err := schema.InstanceCompletedSchema.Unmarshal(avroBytes, &actual)
 					So(completedEvent, ShouldResemble, actual)
+					So(err, ShouldBeNil)
 				})
 			})
 		})
@@ -103,7 +104,7 @@ func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 				So(err.Error(), ShouldEqual, expectedError.Error())
 			})
 
-			Convey("And producer.Output is never called", func() {
+			Convey("Then producer.Output is never called", func() {
 				So(len(kafkaProducerMock.ChannelsCalls()), ShouldEqual, 0)
 			})
 		})

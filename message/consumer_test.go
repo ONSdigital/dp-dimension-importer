@@ -6,7 +6,7 @@ import (
 
 	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/message"
-	mock "github.com/ONSdigital/dp-dimension-importer/message/mock"
+	"github.com/ONSdigital/dp-dimension-importer/message/mock"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	. "github.com/smartystreets/goconvey/convey"

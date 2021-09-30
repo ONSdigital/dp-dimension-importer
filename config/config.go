@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -18,7 +18,7 @@ type Config struct {
 	KafkaVersion                   string        `envconfig:"KAFKA_VERSION"`
 	KafkaOffsetOldest              bool          `envconfig:"KAFKA_OFFSET_OLDEST"`
 	KafkaNumWorkers                int           `envconfig:"KAFKA_NUM_WORKERS"` // maximum number of concurent kafka messages being consumed at the same time
-	BatchSize                      int           `envconfig:"BATCH_SIZE"`        // Number of kafka messages that will be batched
+	BatchSize                      int           `envconfig:"BATCH_SIZE"`        // number of kafka messages that will be batched
 	IncomingInstancesTopic         string        `envconfig:"DIMENSIONS_EXTRACTED_TOPIC"`
 	IncomingInstancesConsumerGroup string        `envconfig:"DIMENSIONS_EXTRACTED_CONSUMER_GROUP"`
 	OutgoingInstancesTopic         string        `envconfig:"DIMENSIONS_INSERTED_TOPIC"`
@@ -47,7 +47,7 @@ func Get(ctx context.Context) (*Config, error) {
 		KafkaVersion:                   "1.0.2",
 		KafkaOffsetOldest:              true,
 		KafkaNumWorkers:                1,
-		BatchSize:                      1, //not all implementations will allow for batching, so set to a safe default
+		BatchSize:                      1, // not all implementations will allow for batching, so set to a safe default
 		IncomingInstancesTopic:         "dimensions-extracted",
 		IncomingInstancesConsumerGroup: "dp-dimension-importer",
 		OutgoingInstancesTopic:         "dimensions-inserted",
@@ -63,7 +63,7 @@ func Get(ctx context.Context) (*Config, error) {
 
 	if len(cfg.ServiceAuthToken) == 0 {
 		err := errors.New("error while attempting to load config. service auth token is required but has not been configured")
-		log.Event(ctx, "service auth token error", log.ERROR, log.Error(err))
+		log.Error(ctx, "service auth token error", err)
 		return nil, err
 	}
 
@@ -79,6 +79,6 @@ func Get(ctx context.Context) (*Config, error) {
 // String is implemented to prevent sensitive fields being logged.
 // The config is returned as JSON with sensitive fields omitted.
 func (config Config) String() string {
-	json, _ := json.Marshal(config)
-	return string(json)
+	b, _ := json.Marshal(config)
+	return string(b)
 }
