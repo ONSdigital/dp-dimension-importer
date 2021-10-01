@@ -103,7 +103,7 @@ func TestString(t *testing.T) {
 
 			Convey("Then the string format of config should not contain any sensitive configurations", func() {
 				So(cfgStr, ShouldNotContainSubstring, "ServiceAuthToken")
-				So(cfgStr, ShouldNotContainSubstring, "BindAddr:[localhost:9092]") // KafkaConfig.BindAddr
+				So(cfgStr, ShouldNotContainSubstring, "Brokers") // KafkaConfig.Brokers
 				So(cfgStr, ShouldNotContainSubstring, "SecClientKey")
 
 				Convey("And should contain all non-sensitive configurations", func() {
@@ -117,7 +117,6 @@ func TestString(t *testing.T) {
 					So(cfgStr, ShouldContainSubstring, "EnablePatchNodeID")
 
 					So(cfgStr, ShouldContainSubstring, "KafkaConfig")
-					So(cfgStr, ShouldContainSubstring, "Brokers")
 					So(cfgStr, ShouldContainSubstring, "BatchSize")
 					So(cfgStr, ShouldContainSubstring, "NumWorkers")
 					So(cfgStr, ShouldContainSubstring, "Version")
