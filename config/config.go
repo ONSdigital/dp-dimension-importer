@@ -16,9 +16,8 @@ const KafkaTLSProtocolFlag = "TLS"
 
 // Config struct to hold application configuration.
 type Config struct {
-	BindAddr                   string `envconfig:"BIND_ADDR"`
-	ServiceAuthToken           string `envconfig:"SERVICE_AUTH_TOKEN"                          json:"-"`
-	KafkaConfig                KafkaConfig
+	BindAddr                   string        `envconfig:"BIND_ADDR"`
+	ServiceAuthToken           string        `envconfig:"SERVICE_AUTH_TOKEN"            json:"-"`
 	DatasetAPIAddr             string        `envconfig:"DATASET_API_ADDR"`
 	DatasetAPIMaxWorkers       int           `envconfig:"DATASET_API_MAX_WORKERS"` // maximum number of concurrent go-routines requesting items to datast api at the same time
 	DatasetAPIBatchSize        int           `envconfig:"DATASET_API_BATCH_SIZE"`  // maximum size of a response by dataset api when requesting items in batches
@@ -26,17 +25,18 @@ type Config struct {
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
 	EnablePatchNodeID          bool          `envconfig:"ENABLE_PATCH_NODE_ID"`
+	KafkaConfig                KafkaConfig
 }
 
 // KafkaConfig contains the config required to connect to Kafka
 type KafkaConfig struct {
-	BindAddr                       []string `envconfig:"KAFKA_ADDR"                            json:"-"`
-	BatchSize                      int      `envconfig:"BATCH_SIZE"`        // Number of kafka messages that will be batched
+	BindAddr                       []string `envconfig:"KAFKA_ADDR"                           json:"-"`
+	BatchSize                      int      `envconfig:"BATCH_SIZE"`        // number of kafka messages that will be batched
 	NumWorkers                     int      `envconfig:"KAFKA_NUM_WORKERS"` // maximum number of concurent kafka messages being consumed at the same time
 	Version                        string   `envconfig:"KAFKA_VERSION"`
 	OffsetOldest                   bool     `envconfig:"KAFKA_OFFSET_OLDEST"`
 	SecProtocol                    string   `envconfig:"KAFKA_SEC_PROTO"`
-	SecClientKey                   string   `envconfig:"KAFKA_SEC_CLIENT_KEY"                  json:"-"`
+	SecClientKey                   string   `envconfig:"KAFKA_SEC_CLIENT_KEY"                 json:"-"`
 	SecClientCert                  string   `envconfig:"KAFKA_SEC_CLIENT_CERT"`
 	SecCACerts                     string   `envconfig:"KAFKA_SEC_CA_CERTS"`
 	SecSkipVerify                  bool     `envconfig:"KAFKA_SEC_SKIP_VERIFY"`
@@ -85,10 +85,15 @@ func Get(ctx context.Context) (*Config, error) {
 	}
 
 	cfg := getDefaultConfig()
-
 	if err := envconfig.Process("", cfg); err != nil {
 		log.Error(ctx, "failed to populate config with environment variables", err)
-		return cfg, err
+		return nil, err
+	}
+
+	if len(cfg.ServiceAuthToken) == 0 {
+		err := errors.New("error while attempting to load config. service auth token is required but has not been configured")
+		log.Error(ctx, "service auth token error", err)
+		return nil, err
 	}
 
 	errs := validateConfig(ctx, cfg)
@@ -106,6 +111,6 @@ func Get(ctx context.Context) (*Config, error) {
 // String is implemented to prevent sensitive fields being logged.
 // The config is returned as JSON with sensitive fields omitted.
 func (config Config) String() string {
-	json, _ := json.Marshal(config)
-	return string(json)
+	b, _ := json.Marshal(config)
+	return string(b)
 }

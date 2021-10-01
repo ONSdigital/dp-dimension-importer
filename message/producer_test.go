@@ -9,7 +9,7 @@ import (
 
 	"github.com/ONSdigital/dp-dimension-importer/event"
 	"github.com/ONSdigital/dp-dimension-importer/message"
-	mock "github.com/ONSdigital/dp-dimension-importer/message/mock"
+	"github.com/ONSdigital/dp-dimension-importer/message/mock"
 	"github.com/ONSdigital/dp-dimension-importer/schema"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
@@ -62,10 +62,11 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 			Convey("Then no error is returned", func() {
 				So(err, ShouldBeNil)
 
-				Convey("And the expected bytes are sent to producer.output", func() {
+				Convey("Then the expected bytes are sent to producer.output", func() {
 					var actual event.InstanceCompleted
-					schema.InstanceCompletedSchema.Unmarshal(avroBytes, &actual)
+					err := schema.InstanceCompletedSchema.Unmarshal(avroBytes, &actual)
 					So(completedEvent, ShouldResemble, actual)
+					So(err, ShouldBeNil)
 				})
 			})
 		})
@@ -103,7 +104,7 @@ func TestInstanceCompletedProducer_Completed_MarshalErr(t *testing.T) {
 				So(err.Error(), ShouldEqual, expectedError.Error())
 			})
 
-			Convey("And producer.Output is never called", func() {
+			Convey("Then producer.Output is never called", func() {
 				So(len(kafkaProducerMock.ChannelsCalls()), ShouldEqual, 0)
 			})
 		})

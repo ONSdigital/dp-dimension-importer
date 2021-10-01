@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	dataset "github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
 	db "github.com/ONSdigital/dp-graph/v2/models"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -14,7 +14,7 @@ func TestInstance_Validate(t *testing.T) {
 	Convey("Given Instance is nil", t, func() {
 		var i *Instance
 
-		Convey("When Insert is invoked", func() {
+		Convey("When Validate is invoked", func() {
 			err := i.Validate()
 
 			Convey("Then the expected error is returned", func() {
@@ -26,11 +26,23 @@ func TestInstance_Validate(t *testing.T) {
 	Convey("Given an Instance with an empty instanceID", t, func() {
 		i := &Instance{dbInstance: &db.Instance{InstanceID: ""}}
 
-		Convey("When Insert is invoked", func() {
+		Convey("When Validate is invoked", func() {
 			err := i.Validate()
 
 			Convey("Then the expected error is returned", func() {
 				So(err.Error(), ShouldEqual, errors.New("instance id is required but was empty").Error())
+			})
+		})
+	})
+
+	Convey("Given an Instance with a valid instanceID", t, func() {
+		i := &Instance{dbInstance: &db.Instance{InstanceID: "myInstance"}}
+
+		Convey("When Validate is invoked", func() {
+			err := i.Validate()
+
+			Convey("Then the no error is returned", func() {
+				So(err, ShouldBeNil)
 			})
 		})
 	})
@@ -50,7 +62,7 @@ func TestDimension_Validate(t *testing.T) {
 	})
 
 	Convey("Given a dimension with an empty dimensionID", t, func() {
-		d := &Dimension{&db.Dimension{Option: "10"}, ""}
+		d := &Dimension{&db.Dimension{Option: "10"}, "", nil}
 
 		Convey("When validateDimension is called", func() {
 			err := d.Validate()
@@ -62,7 +74,7 @@ func TestDimension_Validate(t *testing.T) {
 	})
 
 	Convey("Given a dimension with an empty dimensionID and option", t, func() {
-		d := &Dimension{&db.Dimension{DimensionID: "", Option: ""}, ""}
+		d := &Dimension{&db.Dimension{DimensionID: "", Option: ""}, "", nil}
 
 		Convey("When validateDimension is called", func() {
 			err := d.Validate()
@@ -74,7 +86,7 @@ func TestDimension_Validate(t *testing.T) {
 	})
 
 	Convey("Given a dimension with an empty option", t, func() {
-		d := &Dimension{&db.Dimension{DimensionID: "id"}, ""}
+		d := &Dimension{&db.Dimension{DimensionID: "id"}, "", nil}
 
 		Convey("When validateDimension is called", func() {
 			err := d.Validate()
@@ -84,11 +96,23 @@ func TestDimension_Validate(t *testing.T) {
 			})
 		})
 	})
+
+	Convey("Given a dimension with dimensionID and option", t, func() {
+		d := &Dimension{&db.Dimension{DimensionID: "id", Option: "myOption"}, "", nil}
+
+		Convey("When validateDimension is called", func() {
+			err := d.Validate()
+
+			Convey("Then no error is returned", func() {
+				So(err, ShouldBeNil)
+			})
+		})
+	})
 }
 
 func TestDimension_New(t *testing.T) {
 
-	emptyDimension := &Dimension{&db.Dimension{}, ""}
+	emptyDimension := &Dimension{&db.Dimension{}, "", nil}
 
 	Convey("Given a new dimension with a nil pointer dataset API model", t, func() {
 		d := NewDimension(nil)

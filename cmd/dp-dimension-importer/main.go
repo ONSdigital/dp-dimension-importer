@@ -102,10 +102,11 @@ func main() {
 
 	// Receiver for NewInstance events.
 	instanceEventHandler := &handler.InstanceEventHandler{
-		Store:         graphDB,
-		DatasetAPICli: datasetAPICli,
-		Producer:      instanceCompletedProducer,
-		BatchSize:     cfg.KafkaConfig.BatchSize,
+		Store:             graphDB,
+		DatasetAPICli:     datasetAPICli,
+		Producer:          instanceCompletedProducer,
+		BatchSize:         cfg.KafkaConfig.BatchSize,
+		EnablePatchNodeID: cfg.EnablePatchNodeID,
 	}
 
 	// Errors handler
@@ -142,8 +143,8 @@ func main() {
 	errorReporterProducer.Channels().LogErrors(ctx, "error reporter kafka producer received an error")
 
 	// If we receive a signal (SIGINT or SIGTERM), start graceful shutdown
-	signal := <-signals
-	log.Info(ctx, "os signal received, attempting graceful shutdown", log.Data{"signal": signal.String()})
+	s := <-signals
+	log.Info(ctx, "os signal received, attempting graceful shutdown", log.Data{"signal": s.String()})
 
 	shutdownCtx, cancel := context.WithTimeout(ctx, cfg.GracefulShutdownTimeout)
 	hasShutdownError := false
@@ -276,7 +277,7 @@ func registerCheckers(hc *healthcheck.HealthCheck,
 	}
 
 	if hasErrors {
-		return errors.New("Error(s) registering checkers for healthcheck")
+		return errors.New("error(s) registering checkers for healthcheck")
 	}
 	return nil
 }

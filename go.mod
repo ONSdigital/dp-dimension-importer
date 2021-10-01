@@ -3,9 +3,8 @@ module github.com/ONSdigital/dp-dimension-importer
 go 1.17
 
 require (
-	github.com/ONSdigital/dp-api-clients-go v1.43.0 // indirect
-	github.com/ONSdigital/dp-api-clients-go/v2 v2.1.15
-	github.com/ONSdigital/dp-graph/v2 v2.14.0
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.3.0
+	github.com/ONSdigital/dp-graph/v2 v2.15.0
 	github.com/ONSdigital/dp-healthcheck v1.1.2
 	github.com/ONSdigital/dp-kafka/v2 v2.4.1
 	github.com/ONSdigital/dp-net v1.2.0
@@ -23,6 +22,7 @@ require (
 )
 
 require (
+	github.com/ONSdigital/dp-api-clients-go v1.42.0 // indirect
 	github.com/ONSdigital/golang-neo4j-bolt-driver v0.0.0-20210408132126-c2323ff08bf1 // indirect
 	github.com/ONSdigital/graphson v0.2.0 // indirect
 	github.com/ONSdigital/gremgo-neptune v1.0.2 // indirect
