@@ -30,7 +30,7 @@ type Config struct {
 
 // KafkaConfig contains the config required to connect to Kafka
 type KafkaConfig struct {
-	BindAddr                       []string `envconfig:"KAFKA_ADDR"                           json:"-"`
+	Brokers                        []string `envconfig:"KAFKA_ADDR"                           json:"-"`
 	BatchSize                      int      `envconfig:"BATCH_SIZE"`        // number of kafka messages that will be batched
 	NumWorkers                     int      `envconfig:"KAFKA_NUM_WORKERS"` // maximum number of concurent kafka messages being consumed at the same time
 	Version                        string   `envconfig:"KAFKA_VERSION"`
@@ -53,7 +53,7 @@ func getDefaultConfig() *Config {
 		BindAddr:         ":23000",
 		ServiceAuthToken: "4424A9F2-B903-40F4-85F1-240107D1AFAF",
 		KafkaConfig: KafkaConfig{
-			BindAddr:                       []string{"localhost:9092"},
+			Brokers:                        []string{"localhost:9092"},
 			BatchSize:                      1, //not all implementations will allow for batching, so set to a safe default
 			NumWorkers:                     1,
 			Version:                        "1.0.2",

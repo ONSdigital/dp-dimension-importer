@@ -61,11 +61,11 @@ func (e *ExternalServiceList) GetConsumer(ctx context.Context, kafkaConfig confi
 	}
 
 	consumer, err := kafka.NewConsumerGroup(
-		ctx, kafkaConfig.BindAddr, kafkaConfig.IncomingInstancesTopic, kafkaConfig.IncomingInstancesConsumerGroup, cgChannels, cgConfig)
+		ctx, kafkaConfig.Brokers, kafkaConfig.IncomingInstancesTopic, kafkaConfig.IncomingInstancesConsumerGroup, cgChannels, cgConfig)
 
 	if err != nil {
 		log.Fatal(ctx, "new kafka consumer group returned an error", err, log.Data{
-			"brokers":        kafkaConfig.BindAddr,
+			"brokers":        kafkaConfig.Brokers,
 			"topic":          kafkaConfig.IncomingInstancesTopic,
 			"consumer_group": kafkaConfig.IncomingInstancesConsumerGroup,
 		})
@@ -92,7 +92,7 @@ func (e *ExternalServiceList) GetProducer(ctx context.Context, topic string, nam
 		)
 	}
 
-	producer, err := kafka.NewProducer(ctx, kafkaConfig.BindAddr, topic, pChannels, pConfig)
+	producer, err := kafka.NewProducer(ctx, kafkaConfig.Brokers, topic, pChannels, pConfig)
 	if err != nil {
 		log.Fatal(ctx, "new kafka producer returned an error", err, log.Data{"topic": topic})
 		return nil, err

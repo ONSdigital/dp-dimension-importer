@@ -54,7 +54,7 @@ func TestValidateKafkaValues(t *testing.T) {
 		})
 
 		Convey("And an empty KAFKA_ADDR is given", func() {
-			cfg.KafkaConfig.BindAddr = []string{}
+			cfg.KafkaConfig.Brokers = []string{}
 
 			Convey("When validateKafkaValues is called", func() {
 				errs := validateKafkaValues(cfg.KafkaConfig)

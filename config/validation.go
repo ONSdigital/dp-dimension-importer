@@ -25,7 +25,7 @@ func validateConfig(ctx context.Context, cfg *Config) []string {
 func validateKafkaValues(kafkaConfig KafkaConfig) []string {
 	errs := []string{}
 
-	if len(kafkaConfig.BindAddr) == 0 {
+	if len(kafkaConfig.Brokers) == 0 {
 		errs = append(errs, "no KAFKA_ADDR given")
 	}
 
