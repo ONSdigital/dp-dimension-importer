@@ -90,12 +90,6 @@ func Get(ctx context.Context) (*Config, error) {
 		return nil, err
 	}
 
-	if len(cfg.ServiceAuthToken) == 0 {
-		err := errors.New("error while attempting to load config. service auth token is required but has not been configured")
-		log.Error(ctx, "service auth token error", err)
-		return nil, err
-	}
-
 	errs := validateConfig(ctx, cfg)
 	if len(errs) != 0 {
 		err := fmt.Errorf("config validation errors: %v", strings.Join(errs, ", "))
