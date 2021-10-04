@@ -1,0 +1,21 @@
+# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ # Dependencies used by github.com/gopherjs/gopherjs@v0.0.0-20210803090616-8f023c250c89
+ # In github.com/ONSdigital/dp-healthcheck@v1.1.1
+ # Ignoring all below as no upgrade for gopherjs
+
+ # Skip for indirect dependency github.com/coreos/etcd@3.3.13
+ # For more info: https://ossindex.sonatype.org/vulnerability/bba60acb-c7b5-4621-af69-f4085a8301d0?component-type=golang&component-name=github.com%2Fcoreos%2Fetcd&utm_source=nancy-client&utm_medium=integration&utm_content=1.0.22
+ CVE-2020-15114
+ CVE-2020-15136
+ CVE-2020-15115
+
+ # Skip for indirect dependency github.com/dgrijalva/jwt-go@3.2.0
+ # For more info: https://ossindex.sonatype.org/vulnerability/c16fb56d-9de6-4065-9fca-d2b4cfb13020?component-type=golang&component-name=github.com%2Fdgrijalva%2Fjwt-go&utm_source=nancy-client&utm_medium=integration&utm_content=1.0.22
+ CVE-2020-26160
+
+ # Skip for indirect dependency github.com/gogo/protobuf@1.2.1
+ # For more info: https://ossindex.sonatype.org/vulnerability/c16fb56d-9de6-4065-9fca-d2b4cfb13020?component-type=golang&component-name=github.com%2Fdgrijalva%2Fjwt-go&utm_source=nancy-client&utm_medium=integration&utm_content=1.0.22
+ CVE-2021-3121
+
+ # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

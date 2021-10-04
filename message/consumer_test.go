@@ -4,7 +4,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ONSdigital/dp-dimension-importer/config"
 	"github.com/ONSdigital/dp-dimension-importer/message"
 	"github.com/ONSdigital/dp-dimension-importer/message/mock"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -14,9 +13,7 @@ import (
 
 func TestConsumer_Listen(t *testing.T) {
 
-	cfg := &config.Config{
-		KafkaNumWorkers: 1,
-	}
+	kafkaNumWorkers := 1
 
 	Convey("Given the Consumer has been configured correctly", t, func() {
 
@@ -38,7 +35,7 @@ func TestConsumer_Listen(t *testing.T) {
 			kafkaConsumer.Channels().Upstream <- msg
 
 			handlerWg.Add(1)
-			message.Consume(ctx, kafkaConsumer, receiverMock, cfg)
+			message.Consume(ctx, kafkaConsumer, receiverMock, kafkaNumWorkers)
 			handlerWg.Wait()
 
 			Convey("OnMessage is called on the receiver ", func() {

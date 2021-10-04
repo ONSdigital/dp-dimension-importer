@@ -3,7 +3,6 @@ package message
 import (
 	"context"
 
-	"github.com/ONSdigital/dp-dimension-importer/config"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/v2/log"
 )
@@ -22,7 +21,7 @@ type Receiver interface {
 
 // Consume spawns a goroutine for each kafka consumer worker, which listens to the Upstream channel and calls the OnMessage on the provided Receiver
 // the consumer loops will end when the upstream or closed channels are closed, or when the provided context is Done
-func Consume(ctx context.Context, messageConsumer kafka.IConsumerGroup, messageReceiver Receiver, cfg *config.Config) {
+func Consume(ctx context.Context, messageConsumer kafka.IConsumerGroup, messageReceiver Receiver, kafkaNumWorkers int) {
 
 	// consume loop, to be executed by each worker
 	var consume = func(workerID int) {
@@ -52,7 +51,7 @@ func Consume(ctx context.Context, messageConsumer kafka.IConsumerGroup, messageR
 	}
 
 	// workers to consume messages in parallel
-	for w := 1; w <= cfg.KafkaNumWorkers; w++ {
+	for w := 1; w <= kafkaNumWorkers; w++ {
 		go consume(w)
 	}
 }
