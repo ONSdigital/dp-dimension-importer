@@ -49,7 +49,6 @@ func TestGet(t *testing.T) {
 		})
 
 		Convey("When configuration is called with an invalid security setting", func() {
-			defer os.Clearenv()
 			os.Setenv("KAFKA_SEC_PROTO", "ssl")
 			cfg, err := Get(context.Background())
 
@@ -61,7 +60,6 @@ func TestGet(t *testing.T) {
 		})
 
 		Convey("When more than one config is invalid", func() {
-			defer os.Clearenv()
 			os.Setenv("SERVICE_AUTH_TOKEN", "")
 			os.Setenv("KAFKA_SEC_PROTO", "ssl")
 
