@@ -6,7 +6,7 @@ require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.3.0
 	github.com/ONSdigital/dp-graph/v2 v2.15.0
 	github.com/ONSdigital/dp-healthcheck v1.1.2
-	github.com/ONSdigital/dp-kafka/v2 v2.4.1
+	github.com/ONSdigital/dp-kafka/v2 v2.4.3
 	github.com/ONSdigital/dp-net v1.2.0
 	github.com/ONSdigital/dp-reporter-client v1.1.0
 	github.com/ONSdigital/go-ns v0.0.0-20210831102424-ebdecc20fe9e // indirect
