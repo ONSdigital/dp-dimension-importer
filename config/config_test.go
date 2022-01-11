@@ -24,7 +24,7 @@ func TestGet(t *testing.T) {
 				Convey("And values should be set to the expected defaults", func() {
 					So(cfg.BindAddr, ShouldEqual, ":23000")
 					So(cfg.ServiceAuthToken, ShouldEqual, "Bearer 4424A9F2-B903-40F4-85F1-240107D1AFAF")
-					So(cfg.KafkaConfig.Brokers[0], ShouldEqual, "localhost:9092")
+					So(cfg.KafkaConfig.Brokers, ShouldResemble, []string{"localhost:9092", "localhost:9093", "localhost:9094"})
 					So(cfg.KafkaConfig.BatchSize, ShouldEqual, 1)
 					So(cfg.KafkaConfig.NumWorkers, ShouldEqual, 1)
 					So(cfg.KafkaConfig.OffsetOldest, ShouldEqual, true)

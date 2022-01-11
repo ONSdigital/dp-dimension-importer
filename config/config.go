@@ -53,7 +53,7 @@ func getDefaultConfig() *Config {
 		BindAddr:         ":23000",
 		ServiceAuthToken: "4424A9F2-B903-40F4-85F1-240107D1AFAF",
 		KafkaConfig: KafkaConfig{
-			Brokers:                        []string{"localhost:9092"},
+			Brokers:                        []string{"localhost:9092", "localhost:9093", "localhost:9094"},
 			BatchSize:                      1, //not all implementations will allow for batching, so set to a safe default
 			NumWorkers:                     1,
 			Version:                        "1.0.2",

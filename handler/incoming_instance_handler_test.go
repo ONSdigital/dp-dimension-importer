@@ -252,6 +252,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 		numCall := 0
 		numCallLock := sync.Mutex{}
 		datasetAPIMock := datasetAPIMockHappy()
+		completedProducer := completedProducerHappy()
 		storerMock.InsertDimensionFunc = func(ctx context.Context, cache map[string]string, cacheMutex *sync.Mutex, instanceID string, dimension *models.Dimension) (*models.Dimension, error) {
 			defer numCallLock.Unlock()
 			numCallLock.Lock() // we need this lock because this method is called concurrently
@@ -261,7 +262,7 @@ func TestInstanceEventHandler_Handle(t *testing.T) {
 			}
 			return dimension, errorMock
 		}
-		h := setUp(storerMock, datasetAPIMock, nil)
+		h := setUp(storerMock, datasetAPIMock, completedProducer)
 
 		Convey("When a valid event is handled", func() {
 			err := h.Handle(ctx, newInstance)
