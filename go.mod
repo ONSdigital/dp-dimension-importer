@@ -20,8 +20,8 @@ require (
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/smartystreets/goconvey v1.7.2
-	golang.org/x/net v0.0.0-20220812174116-3211cb980234 // indirect
-	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
+	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
 )
 
 require (
