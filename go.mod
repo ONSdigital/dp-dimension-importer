@@ -5,6 +5,10 @@ go 1.20
 // to avoid 'sonatype-2021-4899' non-CVE Vulnerability
 exclude github.com/gorilla/sessions v1.2.1
 
+//to avoid  [CVE-2022-29153] CWE-918: Server-Side Request Forgery (SSRF) 
+exclude github.com/hashicorp/consul/api v1.1.0
+
+
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.252.0
 	github.com/ONSdigital/dp-graph/v2 v2.15.0
