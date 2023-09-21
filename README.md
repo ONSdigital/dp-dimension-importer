@@ -55,6 +55,16 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 
 1. <a name="notes_1">For more info, see the [kafka TLS examples documentation](https://github.com/ONSdigital/dp-kafka/tree/main/examples#tls)</a>
 
+#### Graph / Neptune Configuration
+
+| Environment variable    | Default | Description
+| ------------------------| ------- | -----------
+| GRAPH_DRIVER_TYPE       | ""      | string identifier for the implementation to be used (e.g. 'neptune' or 'mock')
+| GRAPH_ADDR              | ""      | address of the database matching the chosen driver type (web socket)
+| NEPTUNE_TLS_SKIP_VERIFY | false   | flag to skip TLS certificate verification, should only be true when run locally
+
+:warning: to connect to a remote Neptune environment on MacOSX using Go 1.18 or higher you must set `NEPTUNE_TLS_SKIP_VERIFY` to true. See our [Neptune guide](https://github.com/ONSdigital/dp/blob/main/guides/NEPTUNE.md) for more details.
+
 ### Healthcheck
 
  The `/healthcheck` endpoint returns the current status of the service. Dependent services are health checked on an interval defined by the `HEALTHCHECK_INTERVAL` environment variable.
