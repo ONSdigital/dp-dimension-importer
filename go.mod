@@ -8,6 +8,9 @@ exclude github.com/gorilla/sessions v1.2.1
 //to avoid  [CVE-2022-29153] CWE-918: Server-Side Request Forgery (SSRF)
 exclude github.com/hashicorp/consul/api v1.1.0
 
+// to fix: [CVE-2023-32731] CWE-Other
+replace google.golang.org/grpc => google.golang.org/grpc v1.55.0
+
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.252.0
 	github.com/ONSdigital/dp-graph/v2 v2.17.0
@@ -20,7 +23,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/klauspost/compress v1.13.6 // indirect
+	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/smartystreets/goconvey v1.8.0
 	golang.org/x/net v0.14.0 // indirect
