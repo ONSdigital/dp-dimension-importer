@@ -11,6 +11,12 @@ exclude github.com/hashicorp/consul/api v1.1.0
 // to fix: [CVE-2023-32731] CWE-Other
 replace google.golang.org/grpc => google.golang.org/grpc v1.55.0
 
+// [CVE-2024-24786] CWE-835: Loop with Unreachable Exit Condition ('Infinite Loop')
+replace google.golang.org/protobuf => google.golang.org/protobuf v1.33.0
+
+// [CVE-2023-48795] CWE-354: Improper Validation of Integrity Check Value
+replace golang.org/x/crypto => golang.org/x/crypto v0.17.0
+
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.252.0
 	github.com/ONSdigital/dp-graph/v2 v2.17.0
@@ -27,7 +33,7 @@ require (
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/smartystreets/goconvey v1.8.0
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 )
 
 require (
