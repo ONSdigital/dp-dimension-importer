@@ -1,9 +1,9 @@
-FROM golang:1.20 AS base
+FROM golang:1.23.2-bullseye AS base
 
 ENV GOCACHE=/go/.go/cache GOPATH=/go/.go/path TZ=Europe/London
 
 # Install github.com/cespare/reflex
-RUN GOBIN=/bin go install github.com/cespare/reflex@v0.3.1
+RUN GOBIN=/bin go install github.com/cespare/reflex@latest
 RUN PATH=$PATH:/bin
 
 # Clean cache, as we want all modules in the container to be under /go/.go/path

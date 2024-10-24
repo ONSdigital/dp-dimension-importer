@@ -1,15 +1,9 @@
 module github.com/ONSdigital/dp-dimension-importer
 
-go 1.20
-
-// to avoid 'sonatype-2021-4899' non-CVE Vulnerability
-exclude github.com/gorilla/sessions v1.2.1
+go 1.23.2
 
 //to avoid  [CVE-2022-29153] CWE-918: Server-Side Request Forgery (SSRF)
 exclude github.com/hashicorp/consul/api v1.1.0
-
-// to fix: [CVE-2023-32731] CWE-Other
-replace google.golang.org/grpc => google.golang.org/grpc v1.55.0
 
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.252.0
@@ -26,8 +20,8 @@ require (
 	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
 	github.com/smartystreets/goconvey v1.8.0
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
 )
 
 require (
@@ -47,6 +41,7 @@ require (
 	github.com/gofrs/uuid v4.4.0+incompatible // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
+	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
 	github.com/hokaccha/go-prettyjson v0.0.0-20211117102719-0474bc63780f // indirect
@@ -63,5 +58,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/smartystreets/assertions v1.13.1 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/crypto v0.28.0 // indirect
+	google.golang.org/protobuf v1.35.1 // indirect
 )
