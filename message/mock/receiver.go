@@ -5,12 +5,8 @@ package mock
 
 import (
 	"github.com/ONSdigital/dp-dimension-importer/message"
-	"github.com/ONSdigital/dp-kafka/v2"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"sync"
-)
-
-var (
-	lockReceiverMockOnMessage sync.RWMutex
 )
 
 // Ensure, that ReceiverMock does implement message.Receiver.
@@ -19,19 +15,19 @@ var _ message.Receiver = &ReceiverMock{}
 
 // ReceiverMock is a mock implementation of message.Receiver.
 //
-//     func TestSomethingThatUsesReceiver(t *testing.T) {
+//	func TestSomethingThatUsesReceiver(t *testing.T) {
 //
-//         // make and configure a mocked message.Receiver
-//         mockedReceiver := &ReceiverMock{
-//             OnMessageFunc: func(message kafka.Message)  {
-// 	               panic("mock out the OnMessage method")
-//             },
-//         }
+//		// make and configure a mocked message.Receiver
+//		mockedReceiver := &ReceiverMock{
+//			OnMessageFunc: func(message kafka.Message)  {
+//				panic("mock out the OnMessage method")
+//			},
+//		}
 //
-//         // use mockedReceiver in code that requires message.Receiver
-//         // and then make assertions.
+//		// use mockedReceiver in code that requires message.Receiver
+//		// and then make assertions.
 //
-//     }
+//	}
 type ReceiverMock struct {
 	// OnMessageFunc mocks the OnMessage method.
 	OnMessageFunc func(message kafka.Message)
@@ -44,6 +40,7 @@ type ReceiverMock struct {
 			Message kafka.Message
 		}
 	}
+	lockOnMessage sync.RWMutex
 }
 
 // OnMessage calls OnMessageFunc.
@@ -56,23 +53,24 @@ func (mock *ReceiverMock) OnMessage(message kafka.Message) {
 	}{
 		Message: message,
 	}
-	lockReceiverMockOnMessage.Lock()
+	mock.lockOnMessage.Lock()
 	mock.calls.OnMessage = append(mock.calls.OnMessage, callInfo)
-	lockReceiverMockOnMessage.Unlock()
+	mock.lockOnMessage.Unlock()
 	mock.OnMessageFunc(message)
 }
 
 // OnMessageCalls gets all the calls that were made to OnMessage.
 // Check the length with:
-//     len(mockedReceiver.OnMessageCalls())
+//
+//	len(mockedReceiver.OnMessageCalls())
 func (mock *ReceiverMock) OnMessageCalls() []struct {
 	Message kafka.Message
 } {
 	var calls []struct {
 		Message kafka.Message
 	}
-	lockReceiverMockOnMessage.RLock()
+	mock.lockOnMessage.RLock()
 	calls = mock.calls.OnMessage
-	lockReceiverMockOnMessage.RUnlock()
+	mock.lockOnMessage.RUnlock()
 	return calls
 }

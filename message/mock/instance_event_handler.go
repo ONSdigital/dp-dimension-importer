@@ -10,29 +10,25 @@ import (
 	"sync"
 )
 
-var (
-	lockInstanceEventHandlerMockHandle sync.RWMutex
-)
-
 // Ensure, that InstanceEventHandlerMock does implement message.InstanceEventHandler.
 // If this is not the case, regenerate this file with moq.
 var _ message.InstanceEventHandler = &InstanceEventHandlerMock{}
 
 // InstanceEventHandlerMock is a mock implementation of message.InstanceEventHandler.
 //
-//     func TestSomethingThatUsesInstanceEventHandler(t *testing.T) {
+//	func TestSomethingThatUsesInstanceEventHandler(t *testing.T) {
 //
-//         // make and configure a mocked message.InstanceEventHandler
-//         mockedInstanceEventHandler := &InstanceEventHandlerMock{
-//             HandleFunc: func(ctx context.Context, e event.NewInstance) error {
-// 	               panic("mock out the Handle method")
-//             },
-//         }
+//		// make and configure a mocked message.InstanceEventHandler
+//		mockedInstanceEventHandler := &InstanceEventHandlerMock{
+//			HandleFunc: func(ctx context.Context, e event.NewInstance) error {
+//				panic("mock out the Handle method")
+//			},
+//		}
 //
-//         // use mockedInstanceEventHandler in code that requires message.InstanceEventHandler
-//         // and then make assertions.
+//		// use mockedInstanceEventHandler in code that requires message.InstanceEventHandler
+//		// and then make assertions.
 //
-//     }
+//	}
 type InstanceEventHandlerMock struct {
 	// HandleFunc mocks the Handle method.
 	HandleFunc func(ctx context.Context, e event.NewInstance) error
@@ -47,6 +43,7 @@ type InstanceEventHandlerMock struct {
 			E event.NewInstance
 		}
 	}
+	lockHandle sync.RWMutex
 }
 
 // Handle calls HandleFunc.
@@ -61,15 +58,16 @@ func (mock *InstanceEventHandlerMock) Handle(ctx context.Context, e event.NewIns
 		Ctx: ctx,
 		E:   e,
 	}
-	lockInstanceEventHandlerMockHandle.Lock()
+	mock.lockHandle.Lock()
 	mock.calls.Handle = append(mock.calls.Handle, callInfo)
-	lockInstanceEventHandlerMockHandle.Unlock()
+	mock.lockHandle.Unlock()
 	return mock.HandleFunc(ctx, e)
 }
 
 // HandleCalls gets all the calls that were made to Handle.
 // Check the length with:
-//     len(mockedInstanceEventHandler.HandleCalls())
+//
+//	len(mockedInstanceEventHandler.HandleCalls())
 func (mock *InstanceEventHandlerMock) HandleCalls() []struct {
 	Ctx context.Context
 	E   event.NewInstance
@@ -78,8 +76,8 @@ func (mock *InstanceEventHandlerMock) HandleCalls() []struct {
 		Ctx context.Context
 		E   event.NewInstance
 	}
-	lockInstanceEventHandlerMockHandle.RLock()
+	mock.lockHandle.RLock()
 	calls = mock.calls.Handle
-	lockInstanceEventHandlerMockHandle.RUnlock()
+	mock.lockHandle.RUnlock()
 	return calls
 }
