@@ -86,10 +86,7 @@ func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.
 		return err
 	}
 
-	instanceProcessed := event.InstanceCompleted{
-		FileURL:    newInstance.FileURL,
-		InstanceID: newInstance.InstanceID,
-	}
+	instanceProcessed := event.InstanceCompleted(newInstance)
 
 	// produce the kafka message to notify that the dimensions have been successfully imported
 	if err := hdlr.Producer.Completed(ctx, instanceProcessed); err != nil {

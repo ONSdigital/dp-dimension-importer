@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -309,7 +309,7 @@ func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 
 func Response(body []byte, statusCode int, err error) (*http.Response, error) {
 	reader := bytes.NewBuffer(body)
-	readCloser := ioutil.NopCloser(reader)
+	readCloser := io.NopCloser(reader)
 
 	return &http.Response{
 		StatusCode: statusCode,

@@ -14,8 +14,6 @@ import (
 
 //go:generate moq -out ../mocks/dataset.go -pkg mocks . IClient
 
-const packageName = "client.DatasetAPI"
-
 // ErrHostEmpty is returned when a Client is created with an empty Host
 var ErrHostEmpty = errors.New("api host is required but was empty")
 
