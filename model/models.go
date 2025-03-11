@@ -33,8 +33,8 @@ func NewDimension(dimension *dataset.Dimension) *Dimension {
 	}
 }
 
-// DbModel returns a DB representation of the Dimension model
-func (d *Dimension) DbModel() *db.Dimension {
+// DBModel returns a DB representation of the Dimension model
+func (d *Dimension) DBModel() *db.Dimension {
 	return d.dbDimension
 }
 
@@ -56,13 +56,13 @@ func (d *Dimension) Validate() error {
 	if d == nil {
 		return errors.New("dimension is required but was nil")
 	}
-	if len(d.dbDimension.DimensionID) == 0 && len(d.dbDimension.Option) == 0 {
+	if d.dbDimension.DimensionID == "" && d.dbDimension.Option == "" {
 		return errors.New("dimension invalid: both dimension.dimension_id and dimension.value are required but were both empty")
 	}
-	if len(d.dbDimension.DimensionID) == 0 {
+	if d.dbDimension.DimensionID == "" {
 		return errors.New("dimension id is required but was empty")
 	}
-	if len(d.dbDimension.Option) == 0 {
+	if d.dbDimension.Option == "" {
 		return errors.New("dimension value is required but was empty")
 	}
 	return nil
@@ -92,7 +92,7 @@ func (i *Instance) AddDimension(d *Dimension) {
 }
 
 // DbModel returns the DB model of an instance struct
-func (i *Instance) DbModel() *db.Instance {
+func (i *Instance) DBModel() *db.Instance {
 	return i.dbInstance
 }
 
@@ -101,7 +101,7 @@ func (i *Instance) Validate() error {
 	if i == nil {
 		return errors.New("instance is required but was nil")
 	}
-	if len(i.dbInstance.InstanceID) == 0 {
+	if i.dbInstance.InstanceID == "" {
 		return errors.New("instance id is required but was empty")
 	}
 	return nil

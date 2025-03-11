@@ -71,7 +71,6 @@ func TestGet(t *testing.T) {
 				So(err, ShouldResemble, errors.New("config validation errors: no SERVICE_AUTH_TOKEN given, KAFKA_SEC_PROTO has invalid value"))
 			})
 		})
-
 	})
 
 	Convey("Given configurations already exist", t, func() {

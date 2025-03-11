@@ -111,7 +111,6 @@ func TestDimension_Validate(t *testing.T) {
 }
 
 func TestDimension_New(t *testing.T) {
-
 	emptyDimension := &Dimension{&db.Dimension{}, "", nil}
 
 	Convey("Given a new dimension with a nil pointer dataset API model", t, func() {
@@ -148,10 +147,9 @@ func TestDimension_New(t *testing.T) {
 		}
 
 		Convey("It is mapped to an equivalent database model", func() {
-			So(d.DbModel(), ShouldResemble, expected)
+			So(d.DBModel(), ShouldResemble, expected)
 			So(d.CodeListID(), ShouldEqual, "")
 		})
-
 	})
 
 	Convey("Given a new dimension with a dataset API model with non-empty links", t, func() {
@@ -166,15 +164,13 @@ func TestDimension_New(t *testing.T) {
 		}
 
 		Convey("It is mapped to an equivalent database model and the codeID is obtained from the link", func() {
-			So(d.DbModel(), ShouldResemble, expected)
+			So(d.DBModel(), ShouldResemble, expected)
 			So(d.CodeListID(), ShouldEqual, "myCodeList")
 		})
-
 	})
 }
 
 func TestInstance_New(t *testing.T) {
-
 	emptyInstance := &Instance{&db.Instance{}}
 
 	Convey("Given a new instance with a nil pointer dataset API model", t, func() {
@@ -206,7 +202,7 @@ func TestInstance_New(t *testing.T) {
 		}
 
 		Convey("It is mapped to the expected database model", func() {
-			So(inst.DbModel(), ShouldResemble, expected)
+			So(inst.DBModel(), ShouldResemble, expected)
 		})
 	})
 }

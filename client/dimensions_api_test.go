@@ -47,7 +47,6 @@ var expectedInstance = model.NewInstance(&datasetInstance)
 var ctx = context.Background()
 
 func TestNewClient(t *testing.T) {
-
 	Convey("Given that NewDatasetAPIClient is called with an empty host", t, func() {
 		datasetAPI, err := client.NewDatasetAPIClient(&config.Config{
 			ServiceAuthToken: authToken,
@@ -62,7 +61,6 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestGetInstance(t *testing.T) {
-
 	Convey("Given valid client configuration", t, func() {
 		clientMock := &mocks.IClientMock{
 			GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
@@ -77,7 +75,6 @@ func TestGetInstance(t *testing.T) {
 		}
 
 		Convey("When the GetInstance method is called", func() {
-
 			instance, err := datasetAPI.GetInstance(ctx, instanceID)
 
 			Convey("Then the expected response is returned with no error", func() {
@@ -95,7 +92,6 @@ func TestGetInstance(t *testing.T) {
 	})
 
 	Convey("Given an empty instanceID", t, func() {
-
 		instanceID := ""
 		clientMock := &mocks.IClientMock{}
 
@@ -106,7 +102,6 @@ func TestGetInstance(t *testing.T) {
 		}
 
 		Convey("When GetInstance method is called", func() {
-
 			instance, err := datasetAPI.GetInstance(ctx, instanceID)
 
 			Convey("Then the expected error is returned", func() {
@@ -117,7 +112,6 @@ func TestGetInstance(t *testing.T) {
 	})
 
 	Convey("Given dataset.GetInstance will return an error", t, func() {
-
 		clientMock := &mocks.IClientMock{
 			GetInstanceFunc: func(ctx context.Context, userAuthToken string, serviceAuthToken string, collectionID string, instanceID string, ifMatch string) (dataset.Instance, string, error) {
 				return dataset.Instance{}, "", errMock
@@ -131,7 +125,6 @@ func TestGetInstance(t *testing.T) {
 		}
 
 		Convey("When GetInstance is invoked", func() {
-
 			instance, err := datasetAPI.GetInstance(ctx, instanceID)
 
 			Convey("Then the expected error response is returned", func() {
@@ -150,9 +143,7 @@ func TestGetInstance(t *testing.T) {
 }
 
 func TestGetDimensions(t *testing.T) {
-
 	Convey("Given a valid client configuration", t, func() {
-
 		clientMock := &mocks.IClientMock{
 			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, bacthSize, maxWorkers int) (dataset.Dimensions, string, error) {
 				return datasetDimensions, "", nil
@@ -166,7 +157,6 @@ func TestGetDimensions(t *testing.T) {
 		}
 
 		Convey("When the client is called with a valid instanceID", func() {
-
 			dims, err := datasetAPI.GetDimensions(ctx, instanceID, ifMatch)
 
 			Convey("Then the expected response is returned with no error", func() {
@@ -183,7 +173,6 @@ func TestGetDimensions(t *testing.T) {
 	})
 
 	Convey("Given an empty instanceID is provided", t, func() {
-
 		clientMock := &mocks.IClientMock{}
 
 		datasetAPI := client.DatasetAPI{
@@ -193,7 +182,6 @@ func TestGetDimensions(t *testing.T) {
 		}
 
 		Convey("When GetDimensions is invoked", func() {
-
 			dims, err := datasetAPI.GetDimensions(ctx, "", ifMatch)
 
 			Convey("Then the expected error is returned", func() {
@@ -204,7 +192,6 @@ func TestGetDimensions(t *testing.T) {
 	})
 
 	Convey("Given dataset.GetInstanceDimensions will return an error", t, func() {
-
 		clientMock := &mocks.IClientMock{
 			GetInstanceDimensionsInBatchesFunc: func(ctx context.Context, serviceAuthToken string, instanceID string, bacthSize, maxWorkers int) (dataset.Dimensions, string, error) {
 				return dataset.Dimensions{}, "", errMock
@@ -218,7 +205,6 @@ func TestGetDimensions(t *testing.T) {
 		}
 
 		Convey("When GetDimensions is invoked", func() {
-
 			dims, err := datasetAPI.GetDimensions(ctx, instanceID, ifMatch)
 
 			Convey("Then the expected error response is returned", func() {
@@ -238,9 +224,9 @@ func TestGetDimensions(t *testing.T) {
 func TestDatasetAPI_PatchDimensionOption(t *testing.T) {
 	updates := []*dataset.OptionUpdate{
 		{
-			Name:   dimensionOne.DbModel().DimensionID,
-			Option: dimensionOne.DbModel().Option,
-			NodeID: dimensionOne.DbModel().NodeID,
+			Name:   dimensionOne.DBModel().DimensionID,
+			Option: dimensionOne.DBModel().Option,
+			NodeID: dimensionOne.DBModel().NodeID,
 		},
 	}
 

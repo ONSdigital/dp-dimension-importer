@@ -54,7 +54,7 @@ type DatasetAPI struct {
 
 // NewDatasetAPIClient validates the parameters and creates a new dataset API client from dp-api-clients-go library.
 func NewDatasetAPIClient(cfg *config.Config) (*DatasetAPI, error) {
-	if len(cfg.DatasetAPIAddr) == 0 {
+	if cfg.DatasetAPIAddr == "" {
 		return nil, fmt.Errorf("error creating new dataset api client: %w", ErrHostEmpty)
 	}
 	return &DatasetAPI{
@@ -68,7 +68,7 @@ func NewDatasetAPIClient(cfg *config.Config) (*DatasetAPI, error) {
 
 // GetInstance retrieve the specified instance from the Dataset API.
 func (api DatasetAPI) GetInstance(ctx context.Context, instanceID string) (*model.Instance, error) {
-	if len(instanceID) == 0 {
+	if instanceID == "" {
 		return &model.Instance{}, fmt.Errorf("error getting instance: %w", ErrInstanceIDEmpty)
 	}
 	datasetInstance, _, err := api.Client.GetInstance(ctx, "", api.AuthToken, "", instanceID, headers.IfMatchAnyETag)
@@ -79,8 +79,8 @@ func (api DatasetAPI) GetInstance(ctx context.Context, instanceID string) (*mode
 }
 
 // GetDimensions retrieve the dimensions of the specified instance from the Dataset API
-func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID string, ifMatch string) ([]*model.Dimension, error) {
-	if len(instanceID) == 0 {
+func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID, ifMatch string) ([]*model.Dimension, error) {
+	if instanceID == "" {
 		return nil, fmt.Errorf("error getting dimensions: %w", ErrInstanceIDEmpty)
 	}
 
@@ -98,7 +98,7 @@ func (api DatasetAPI) GetDimensions(ctx context.Context, instanceID string, ifMa
 
 // PatchDimensionOption makes an HTTP patch request to update the node_id and/or order for multiple dimension options
 func (api DatasetAPI) PatchDimensionOption(ctx context.Context, instanceID string, updates []*dataset.OptionUpdate) (string, error) {
-	if len(instanceID) == 0 {
+	if instanceID == "" {
 		return "", fmt.Errorf("error patching dimensions: %w", ErrInstanceIDEmpty)
 	}
 	return api.Client.PatchInstanceDimensions(ctx, api.AuthToken, instanceID, nil, updates, headers.IfMatchAnyETag)
