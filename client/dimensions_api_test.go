@@ -54,7 +54,7 @@ func TestNewClient(t *testing.T) {
 		})
 
 		Convey("Then a nil instance and ErrHostEmpty is returned", func() {
-			So(datasetAPI, ShouldEqual, nil)
+			So(datasetAPI, ShouldBeNil)
 			So(err.Error(), ShouldEqual, "error creating new dataset api client: api host is required but was empty")
 		})
 	})
@@ -128,7 +128,7 @@ func TestGetInstance(t *testing.T) {
 			instance, err := datasetAPI.GetInstance(ctx, instanceID)
 
 			Convey("Then the expected error response is returned", func() {
-				So(instance, ShouldEqual, nil)
+				So(instance, ShouldBeNil)
 				So(err, ShouldResemble, errMock)
 			})
 
@@ -185,7 +185,7 @@ func TestGetDimensions(t *testing.T) {
 			dims, err := datasetAPI.GetDimensions(ctx, "", ifMatch)
 
 			Convey("Then the expected error is returned", func() {
-				So(dims, ShouldEqual, nil)
+				So(dims, ShouldBeNil)
 				So(err.Error(), ShouldEqual, "error getting dimensions: instance id is required but is empty")
 			})
 		})
@@ -208,7 +208,7 @@ func TestGetDimensions(t *testing.T) {
 			dims, err := datasetAPI.GetDimensions(ctx, instanceID, ifMatch)
 
 			Convey("Then the expected error response is returned", func() {
-				So(dims, ShouldEqual, nil)
+				So(dims, ShouldBeNil)
 				So(err, ShouldResemble, errMock)
 			})
 
