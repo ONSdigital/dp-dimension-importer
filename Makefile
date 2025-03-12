@@ -35,4 +35,12 @@ debug: build
 test:
 	go test -cover -race $(shell go list ./... | grep -v /vendor/)
 
+.PHONY: lint
+lint:
+	golangci-lint run ./...
+
+.PHONY: test-component
+test-component:
+	exit
+
 .PHONY: build debug test
