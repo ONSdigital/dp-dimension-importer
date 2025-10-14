@@ -12,4 +12,4 @@ inputs:
   - name: dp-dimension-importer
 
 run:
-  path: dp-dimension-importer/ci/scripts/lint.sh
+  path: dp-dimension-importer/ci/scripts/component.sh
