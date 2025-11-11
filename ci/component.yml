@@ -10,7 +10,6 @@ image_resource:
 
 inputs:
   - name: dp-dimension-importer
-    path: dp-dimension-importer
 
 run:
-  path: dp-dimension-importer/ci/scripts/unit.sh
+  path: dp-dimension-importer/ci/scripts/component.sh

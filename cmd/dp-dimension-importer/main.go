@@ -32,6 +32,7 @@ var (
 	Version string
 )
 
+//nolint:gocognit,gocyclo // cognitive complexity (> 40), (> 20) is acceptable for now
 func main() {
 	log.Namespace = "dimension-importer"
 	ctx := context.Background()
@@ -150,7 +151,6 @@ func main() {
 	hasShutdownError := false
 
 	go func() {
-
 		defer cancel() // cancel shutdown context timer
 
 		if serviceList.HealthCheck {
@@ -248,7 +248,6 @@ func registerCheckers(hc *healthcheck.HealthCheck,
 	errorReporterProducer *kafka.Producer,
 	datasetClient client.IClient,
 	db store.Storer) (err error) {
-
 	hasErrors := false
 
 	if err = hc.AddCheck("Kafka Instance Consumer", instanceConsumer.Checker); err != nil {

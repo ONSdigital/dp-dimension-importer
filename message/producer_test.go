@@ -47,7 +47,6 @@ func TestInstanceCompletedProducer_Completed(t *testing.T) {
 		}
 
 		Convey("When given a valid instanceCompletedEvent", func() {
-
 			err := instanceCompletedProducer.Completed(ctx, completedEvent)
 
 			var avroBytes []byte

@@ -20,7 +20,7 @@ all: audit test build
 
 .PHONY: audit
 audit:
-	go list -m all | nancy sleuth
+	dis-vulncheck
 
 .PHONY: build
 build:
@@ -34,5 +34,13 @@ debug: build
 .PHONY: test
 test:
 	go test -cover -race $(shell go list ./... | grep -v /vendor/)
+
+.PHONY: lint
+lint:
+	golangci-lint run ./...
+
+.PHONY: test-component
+test-component:
+	exit
 
 .PHONY: build debug test

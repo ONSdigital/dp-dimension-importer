@@ -20,7 +20,6 @@ var kafkaHost = flag.String("kafka", "localhost:9092", "")
 var maxBytes = int(2000000)
 
 func main() {
-
 	flag.Parse()
 	ctx := context.Background()
 

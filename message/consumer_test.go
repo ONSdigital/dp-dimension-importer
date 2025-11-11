@@ -12,11 +12,9 @@ import (
 )
 
 func TestConsumer_Listen(t *testing.T) {
-
 	kafkaNumWorkers := 1
 
 	Convey("Given the Consumer has been configured correctly", t, func() {
-
 		cgChannels := kafka.CreateConsumerGroupChannels(1)
 		kafkaConsumer := &kafkatest.IConsumerGroupMock{
 			ChannelsFunc: func() *kafka.ConsumerGroupChannels { return cgChannels },
@@ -30,7 +28,6 @@ func TestConsumer_Listen(t *testing.T) {
 		}
 
 		Convey("When the consumer receives a valid message", func() {
-
 			msg := kafkatest.NewMessage([]byte{1, 2, 3, 4, 5}, 0)
 			kafkaConsumer.Channels().Upstream <- msg
 

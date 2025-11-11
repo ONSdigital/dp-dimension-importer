@@ -22,7 +22,6 @@ type Receiver interface {
 // Consume spawns a goroutine for each kafka consumer worker, which listens to the Upstream channel and calls the OnMessage on the provided Receiver
 // the consumer loops will end when the upstream or closed channels are closed, or when the provided context is Done
 func Consume(ctx context.Context, messageConsumer kafka.IConsumerGroup, messageReceiver Receiver, kafkaNumWorkers int) {
-
 	// consume loop, to be executed by each worker
 	var consume = func(workerID int) {
 		logData := log.Data{"package": packageName, "worker_id": workerID}

@@ -72,7 +72,6 @@ func TestKafkaMessageHandler_Handle_InvalidKafkaMessage(t *testing.T) {
 				So(len(fix.instanceHdlrCalls), ShouldEqual, 0)
 			})
 		})
-
 	})
 }
 

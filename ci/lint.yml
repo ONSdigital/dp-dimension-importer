@@ -1,0 +1,15 @@
+---
+
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: golangci/golangci-lint
+    tag: v1.64.8
+
+inputs:
+  - name: dp-dimension-importer
+
+run:
+  path: dp-dimension-importer/ci/scripts/lint.sh

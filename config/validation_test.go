@@ -13,7 +13,6 @@ func TestValidateConfig(t *testing.T) {
 		cfg = getDefaultConfig()
 
 		Convey("And all configurations are valid", func() {
-
 			Convey("When validateConfig is called", func() {
 				errs := validateConfig(ctx, cfg)
 
@@ -43,7 +42,6 @@ func TestValidateKafkaValues(t *testing.T) {
 		cfg = getDefaultConfig()
 
 		Convey("And valid kafka configurations are given", func() {
-
 			Convey("When validateKafkaValues is called", func() {
 				errs := validateKafkaValues(cfg.KafkaConfig)
 

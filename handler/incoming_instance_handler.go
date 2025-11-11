@@ -78,18 +78,15 @@ func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.
 	}
 
 	// insertDimensions to graph db and mongoDB
-	if err = hdlr.insertDimensions(ctx, instance, dimensions); err != nil {
+	if err := hdlr.insertDimensions(ctx, instance, dimensions); err != nil {
 		return err
 	}
 
-	if err = hdlr.createObservationConstraint(ctx, instance); err != nil {
+	if err := hdlr.createObservationConstraint(ctx, instance); err != nil {
 		return err
 	}
 
-	instanceProcessed := event.InstanceCompleted{
-		FileURL:    newInstance.FileURL,
-		InstanceID: newInstance.InstanceID,
-	}
+	instanceProcessed := event.InstanceCompleted(newInstance)
 
 	// produce the kafka message to notify that the dimensions have been successfully imported
 	if err := hdlr.Producer.Completed(ctx, instanceProcessed); err != nil {
@@ -107,14 +104,14 @@ func (hdlr *InstanceEventHandler) Validate(newInstance event.NewInstance) error 
 	if hdlr.Store == nil {
 		return fmt.Errorf("event validation error: %w", client.ErrNoDatastore)
 	}
-	if len(newInstance.InstanceID) == 0 {
+	if newInstance.InstanceID == "" {
 		return fmt.Errorf("event validation error: %w", client.ErrInstanceIDEmpty)
 	}
 	return nil
 }
 
 func ValidateInstance(instance *model.Instance) error {
-	if instance == nil || instance.DbModel() == nil || len(instance.DbModel().InstanceID) == 0 {
+	if instance == nil || instance.DBModel() == nil || instance.DBModel().InstanceID == "" {
 		return fmt.Errorf("instance validation error: %w", client.ErrInstanceIDEmpty)
 	}
 	return nil
@@ -125,10 +122,10 @@ func ValidateDimensions(dimensions []*model.Dimension) error {
 		return fmt.Errorf("dimensions validation error: %w", client.ErrDimensionsNil)
 	}
 	for _, d := range dimensions {
-		if d == nil || d.DbModel() == nil {
+		if d == nil || d.DBModel() == nil {
 			return fmt.Errorf("dimensions validation error: %w", client.ErrDimensionNil)
 		}
-		if len(d.DbModel().DimensionID) == 0 {
+		if d.DBModel().DimensionID == "" {
 			return fmt.Errorf("dimensions validation error: %w", client.ErrDimensionIDEmpty)
 		}
 	}
@@ -180,7 +177,7 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 		}
 
 		// set dimension options' order and nodeID for the current batch (one call per batch)
-		if err := hdlr.SetOrderAndNodeIDs(ctx, instance.DbModel().InstanceID, dimensionsBatch); err != nil {
+		if err := hdlr.SetOrderAndNodeIDs(ctx, instance.DBModel().InstanceID, dimensionsBatch); err != nil {
 			return err
 		}
 		return nil
@@ -207,7 +204,7 @@ func (hdlr *InstanceEventHandler) insertDimensions(ctx context.Context, instance
 	}
 
 	// Add dimensions to graph database
-	if err := hdlr.Store.AddDimensions(ctx, instance.DbModel().InstanceID, instance.DbModel().Dimensions); err != nil {
+	if err := hdlr.Store.AddDimensions(ctx, instance.DBModel().InstanceID, instance.DBModel().Dimensions); err != nil {
 		return fmt.Errorf("AddDimensions returned an error: %w", err)
 	}
 
@@ -222,7 +219,7 @@ func (hdlr *InstanceEventHandler) SetOrderAndNodeIDs(ctx context.Context, instan
 	codesByCodelistID := map[string][]string{}
 	for _, d := range dimensions {
 		codelistID := d.CodeListID()
-		codesByCodelistID[codelistID] = append(codesByCodelistID[codelistID], d.DbModel().Option)
+		codesByCodelistID[codelistID] = append(codesByCodelistID[codelistID], d.DBModel().Option)
 	}
 
 	// get a map of orders by code (one call to dp-graph per codeListID)
@@ -248,17 +245,17 @@ func (hdlr *InstanceEventHandler) SetOrderAndNodeIDs(ctx context.Context, instan
 	for _, d := range dimensions {
 		nodeID := ""
 		if hdlr.EnablePatchNodeID {
-			nodeID = d.DbModel().NodeID
+			nodeID = d.DBModel().NodeID
 		}
-		order := orderByCode[d.DbModel().Option]
+		order := orderByCode[d.DBModel().Option]
 
 		if nodeID == "" && order == nil {
 			continue // no update for the current dimension
 		}
 
 		u := &dataset.OptionUpdate{
-			Name:   d.DbModel().DimensionID,
-			Option: d.DbModel().Option,
+			Name:   d.DBModel().DimensionID,
+			Option: d.DBModel().Option,
 		}
 		if nodeID != "" {
 			u.NodeID = nodeID
@@ -286,19 +283,19 @@ func (hdlr *InstanceEventHandler) SetOrderAndNodeIDs(ctx context.Context, instan
 // and creates the code relationship if DimensionID is time
 // this method assumes that valid non-nil values are provided (have been created or validated by caller)
 func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map[string]string, cacheMutex *sync.Mutex, instance *model.Instance, d *model.Dimension, problem chan error) {
-	dbDimension, err := hdlr.Store.InsertDimension(ctx, cache, cacheMutex, instance.DbModel().InstanceID, d.DbModel())
+	dbDimension, err := hdlr.Store.InsertDimension(ctx, cache, cacheMutex, instance.DBModel().InstanceID, d.DBModel())
 	if err != nil {
 		err = fmt.Errorf("error while attempting to insert a dimension to the graph database: %w", err)
-		log.Error(ctx, "error inserting dimension", err, log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+		log.Error(ctx, "error inserting dimension", err, log.Data{"instance_id": instance.DBModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 		problem <- err
 		return
 	}
 
 	// todo: remove this temp hack once the time codelist / input data has been fixed.
 	if dbDimension.DimensionID != "time" {
-		if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance.DbModel().InstanceID, d.CodeListID(), dbDimension.Option); err != nil {
+		if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance.DBModel().InstanceID, d.CodeListID(), dbDimension.Option); err != nil {
 			err = fmt.Errorf("error attempting to create relationship to code: %w", err)
-			log.Error(ctx, "error attempting to create relationship to code", err, log.Data{"instance_id": instance.DbModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+			log.Error(ctx, "error attempting to create relationship to code", err, log.Data{"instance_id": instance.DBModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 			problem <- err
 			return
 		}
@@ -306,8 +303,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 }
 
 func (hdlr *InstanceEventHandler) createInstanceNode(ctx context.Context, instance *model.Instance) error {
-
-	exists, err := hdlr.Store.InstanceExists(ctx, instance.DbModel().InstanceID)
+	exists, err := hdlr.Store.InstanceExists(ctx, instance.DBModel().InstanceID)
 	if err != nil {
 		return fmt.Errorf("instance exists check returned an error: %w", err)
 	}
@@ -316,7 +312,7 @@ func (hdlr *InstanceEventHandler) createInstanceNode(ctx context.Context, instan
 		return errInstanceExists
 	}
 
-	if err = hdlr.Store.CreateInstance(ctx, instance.DbModel().InstanceID, instance.DbModel().CSVHeader); err != nil {
+	if err = hdlr.Store.CreateInstance(ctx, instance.DBModel().InstanceID, instance.DBModel().CSVHeader); err != nil {
 		return fmt.Errorf("create instance returned an error: %w", err)
 	}
 
@@ -324,8 +320,7 @@ func (hdlr *InstanceEventHandler) createInstanceNode(ctx context.Context, instan
 }
 
 func (hdlr *InstanceEventHandler) createObservationConstraint(ctx context.Context, instance *model.Instance) error {
-
-	if err := hdlr.Store.CreateInstanceConstraint(ctx, instance.DbModel().InstanceID); err != nil {
+	if err := hdlr.Store.CreateInstanceConstraint(ctx, instance.DBModel().InstanceID); err != nil {
 		return fmt.Errorf("error while attempting to add the unique observation constraint: %w", err)
 	}
 

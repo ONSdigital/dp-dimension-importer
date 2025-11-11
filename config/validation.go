@@ -9,7 +9,7 @@ import (
 func validateConfig(ctx context.Context, cfg *Config) []string {
 	errs := []string{}
 
-	if len(cfg.ServiceAuthToken) == 0 {
+	if cfg.ServiceAuthToken == "" {
 		errs = append(errs, "no SERVICE_AUTH_TOKEN given")
 	}
 
@@ -37,7 +37,7 @@ func validateKafkaValues(kafkaConfig KafkaConfig) []string {
 		errs = append(errs, "KAFKA_NUM_WORKERS is less than 0")
 	}
 
-	if len(kafkaConfig.Version) == 0 {
+	if kafkaConfig.Version == "" {
 		errs = append(errs, "no KAFKA_VERSION given")
 	}
 
@@ -46,8 +46,8 @@ func validateKafkaValues(kafkaConfig KafkaConfig) []string {
 	}
 
 	// isKafkaClientCertSet xor isKafkaClientKeySet
-	isKafkaClientCertSet := len(kafkaConfig.SecClientCert) != 0
-	isKafkaClientKeySet := len(kafkaConfig.SecClientKey) != 0
+	isKafkaClientCertSet := kafkaConfig.SecClientCert != ""
+	isKafkaClientKeySet := kafkaConfig.SecClientKey != ""
 	if (isKafkaClientCertSet || isKafkaClientKeySet) && !(isKafkaClientCertSet && isKafkaClientKeySet) {
 		errs = append(errs, "only one of KAFKA_SEC_CLIENT_CERT or KAFKA_SEC_CLIENT_KEY has been set - requires both")
 	}
