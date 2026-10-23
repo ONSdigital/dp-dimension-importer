@@ -23,7 +23,7 @@ func main() {
 	flag.Parse()
 	ctx := context.Background()
 
-	var brokers []string
+	brokers := make([]string, 0, 1)
 	brokers = append(brokers, *kafkaHost)
 
 	pConfig := &kafka.ProducerConfig{

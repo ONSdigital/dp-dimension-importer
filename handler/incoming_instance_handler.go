@@ -23,6 +23,8 @@ var (
 	packageName       = "handler.InstanceEventHandler"
 )
 
+const logKeyInstanceID = "instance_id"
+
 // CompletedProducer Producer kafka messages for instances that have been successfully processed.
 type CompletedProducer interface {
 	Completed(ctx context.Context, e event.InstanceCompleted) error
@@ -45,7 +47,7 @@ func (hdlr *InstanceEventHandler) Handle(ctx context.Context, newInstance event.
 		return err
 	}
 
-	logData := log.Data{"instance_id": newInstance.InstanceID, "package": packageName}
+	logData := log.Data{logKeyInstanceID: newInstance.InstanceID, "package": packageName}
 	log.Info(ctx, "handling new instance event", logData)
 	start := time.Now()
 
@@ -229,9 +231,9 @@ func (hdlr *InstanceEventHandler) SetOrderAndNodeIDs(ctx context.Context, instan
 		if err != nil {
 			err = fmt.Errorf("error while attempting to get dimension order using codes: %w", err)
 			log.Error(ctx, "error in setOrderAndNodeIDs while getting orders from the graph database", err, log.Data{
-				"instance_id":  instanceID,
-				"code_list_id": codeListID,
-				"codes":        codes,
+				logKeyInstanceID: instanceID,
+				"code_list_id":   codeListID,
+				"codes":          codes,
 			})
 			return err
 		}
@@ -272,8 +274,8 @@ func (hdlr *InstanceEventHandler) SetOrderAndNodeIDs(ctx context.Context, instan
 	if _, err := hdlr.DatasetAPICli.PatchDimensionOption(ctx, instanceID, updates); err != nil {
 		err = fmt.Errorf("DatasetAPICli.PatchDimensionOption returned an error: %w", err)
 		log.Error(ctx, "patch error in setOrderAndNodeIDs", err, log.Data{
-			"instance_id": instanceID,
-			"updates":     updates})
+			logKeyInstanceID: instanceID,
+			"updates":        updates})
 		return err
 	}
 	return nil
@@ -286,7 +288,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 	dbDimension, err := hdlr.Store.InsertDimension(ctx, cache, cacheMutex, instance.DBModel().InstanceID, d.DBModel())
 	if err != nil {
 		err = fmt.Errorf("error while attempting to insert a dimension to the graph database: %w", err)
-		log.Error(ctx, "error inserting dimension", err, log.Data{"instance_id": instance.DBModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+		log.Error(ctx, "error inserting dimension", err, log.Data{logKeyInstanceID: instance.DBModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 		problem <- err
 		return
 	}
@@ -295,7 +297,7 @@ func (hdlr *InstanceEventHandler) insertDimension(ctx context.Context, cache map
 	if dbDimension.DimensionID != "time" {
 		if err = hdlr.Store.CreateCodeRelationship(context.Background(), instance.DBModel().InstanceID, d.CodeListID(), dbDimension.Option); err != nil {
 			err = fmt.Errorf("error attempting to create relationship to code: %w", err)
-			log.Error(ctx, "error attempting to create relationship to code", err, log.Data{"instance_id": instance.DBModel().InstanceID, "dimension_id": dbDimension.DimensionID})
+			log.Error(ctx, "error attempting to create relationship to code", err, log.Data{logKeyInstanceID: instance.DBModel().InstanceID, "dimension_id": dbDimension.DimensionID})
 			problem <- err
 			return
 		}
