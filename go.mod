@@ -1,6 +1,6 @@
 module github.com/ONSdigital/dp-dimension-importer
 
-go 1.24.0
+go 1.27.0
 
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.263.0

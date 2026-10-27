@@ -51,6 +51,6 @@ func Consume(ctx context.Context, messageConsumer kafka.IConsumerGroup, messageR
 
 	// workers to consume messages in parallel
 	for w := 1; w <= kafkaNumWorkers; w++ {
-		go consume(w)
+		go consume(w) //nolint:gosec // G118: workers intentionally outlive the start-up context
 	}
 }

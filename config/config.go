@@ -49,6 +49,7 @@ type KafkaConfig struct {
 var cfg *Config
 
 func getDefaultConfig() *Config {
+	//nolint:gosec // local development defaults; real values come from env vars
 	return &Config{
 		BindAddr:         ":23000",
 		ServiceAuthToken: "4424A9F2-B903-40F4-85F1-240107D1AFAF",
